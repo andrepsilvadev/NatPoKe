@@ -1,0 +1,9 @@
+This raster file has been produced using the following sources:
+
+-------------------------------------------------------------------------------
+Generated using European Union's Copernicus Land Monitoring Service Information;
+
+Forest Type 2018 (raster 10 m and 100 m), Europe, 3-yearly
+DOI (raster 100 m): https://doi.org/10.2909/db1af59f-f01f-4bd4-830c-f0eb652500c1
+
+License: https://land.copernicus.eu/en/data-policy
