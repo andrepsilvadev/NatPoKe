@@ -16,70 +16,49 @@ library(sf)
 
 # import data
 example_01_res_df <- read_csv(
-  "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/example_01_res_df.csv")
+  "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/example_01_res_df.csv")
 
-# this function creates a dummy dataset from stefan's metaRange example output
-generate_dummy_dataset <- function(existing_df, 
-                                   taxa = c("Taxa1", "Taxa2", "Taxa3"), 
-                                   biomes = c("Tropical forests", "Boreal forests"), 
-                                   regions = paste0("Region", 1:5), 
-                                   scenarios = c("BAU", "policy A", "policy B", "policy C", "policy D", "policy E", "policy F"), 
-                                   cell_ids = sprintf("%02d", 1:10)) {
-  
-  # ensure species names and abundance values exist
-  if (!all(c("species", "n_abundance") %in% colnames(existing_df))) {
-    stop("Input dataframe must have 'species' and 'n_abundance' columns.")
-  }
-  
-  # assign each species to a random taxa but do not repeat the same sps for different taxa
-  species_to_taxa <- data.frame(
-    species = unique(existing_df$species),
-    taxa = sample(taxa, length(unique(existing_df$species)), replace = TRUE)
-  )
-  
-  # assign species to biomes (species can occur in one or both biomes)
-  species_to_biomes <- data.frame(
-    species = rep(unique(existing_df$species), each = length(biomes)),
-    biome = rep(biomes, times = length(unique(existing_df$species))),
-    occurs_in_biome = sample(c(TRUE, FALSE), length(unique(existing_df$species)) * length(biomes), replace = TRUE)
-  )
-  species_to_biomes <- subset(species_to_biomes, occurs_in_biome)
-  
-  # generate dummy data for regions, scenarios, and cell IDs
-  dummy_data <- expand.grid(
-    region = regions,
-    scenario = scenarios,
-    cell_id = cell_ids,
-    stringsAsFactors = FALSE
-  )
-  
-  # duplicate cell IDs for each region
-  dummy_data <- dummy_data[rep(1:nrow(dummy_data), times = length(regions)), ]
-  dummy_data$region <- rep(regions, each = nrow(dummy_data) / length(regions))
-  invisible(gc())
-  
-  # combine everything into a full dataset
-  full_dataset <- merge(dummy_data, species_to_taxa, by = NULL)
-  full_dataset <- merge(full_dataset, species_to_biomes, by = "species")
-  invisible(gc())
-  
-  # merge with existing dataframe to keep all original variables
-  full_dataset <- merge(full_dataset, existing_df, by = "species")
-  invisible(gc())
-  
-  # assign abundance values for each species in each cell_id
-  full_dataset$n_abundance <- round(runif(nrow(full_dataset), min = 0.5, max = 1.5) * full_dataset$n_abundance)
-  
-  # reorder columns for clarity
-  full_dataset <- full_dataset[, c("scenario", "biome", "region", "cell_id", "species", "taxa", colnames(existing_df)[-which(colnames(existing_df) == "species")])]
-  
-  return(full_dataset)
-}
+# Define scenarios, biomes, species, and taxa
+scenarios <- c("BAU", "policy A", "policy B", "policy C", "policy D", "policy E", "policy F")
+biomes <- c("Tropical forests", "Boreal forests")
+species <- c("SpeciesA", "SpeciesB", "SpeciesC", "SpeciesD", "SpeciesE")
+taxa <- data.frame(
+  species = species,
+  taxa = c("Mammal", "Mammal", "Bird", "Insect", "Insect")
+)
 
+# Create dummy_dataset of scenarios and biomes
+dummy_dataset <- expand.grid(
+  scenario = scenarios,
+  biome = biomes
+)
 
-# use function
-dummy_dataset <- generate_dummy_dataset(example_01_res_df)
-#head(dummy_dataset)
+# Repeat each combination for time steps (1 to 20) and cell IDs (01 to 10)
+dummy_dataset <- dummy_dataset[rep(1:nrow(dummy_dataset), each = 20 * 10), ]
+dummy_dataset$time <- rep(rep(1:20, each = 10), times = nrow(dummy_dataset) / (20 * 10))
+dummy_dataset$cell_id <- sprintf("%02d", rep(1:10, times = nrow(dummy_dataset) / 10))
+
+# Add regions based on biome
+dummy_dataset <- dummy_dataset[rep(1:nrow(dummy_dataset), each = 3), ]
+dummy_dataset$region <- ifelse(
+  dummy_dataset$biome == "Boreal forests",
+  rep(c("North America", "Europe"), length.out = nrow(dummy_dataset)),
+  rep(c("South America", "Africa", "South Asia"), length.out = nrow(dummy_dataset))
+)
+
+# Repeat for all species
+dummy_dataset <- dummy_dataset[rep(1:nrow(dummy_dataset), each = length(species)), ]
+dummy_dataset$species <- rep(species, times = nrow(dummy_dataset) / length(species))
+
+# Add taxa based on species
+dummy_dataset <- merge(dummy_dataset, taxa, by = "species")
+
+# Add random abundance values
+set.seed(123) # For reproducibility
+dummy_dataset$n_abundance <- round(runif(nrow(dummy_dataset), min = 5, max = 50))
+
+# Reorder columns for clarity
+dummy_dataset <- dummy_dataset[, c("scenario", "biome", "region", "time", "cell_id", "species", "taxa", "n_abundance")]
 invisible(gc())
 
 #####################
@@ -148,8 +127,7 @@ stability_avg_long <- stability_avg %>%
   pivot_longer(
     cols = -c(biome, scenario, taxa),
     names_to = "metric",
-    values_to = "value"
-  )
+    values_to = "value")
 
 ############
 # FIGURE 1 #
@@ -163,7 +141,7 @@ names(metric.labs) <- c("impact_avg",
                         "time_recovery_avg")
 
 # Custom color palette
-custom_colors <- c("Taxa1" = "#38b2fe", "Taxa2" = "#ffab27", "Taxa3" = "#99cc00")
+custom_colors <- c("Bird" = "#38b2fe", "Mammal" = "#ffab27", "Insect" = "#99cc00")
 
 # Updated plot
 stability_avg_long %>%
@@ -189,8 +167,7 @@ stability_avg_long %>%
     # modify x-axis text
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     # remove panel borders
-    panel.border = element_blank()
-  )
+    panel.border = element_blank())
 invisible(gc())
 
 ######################
@@ -231,7 +208,7 @@ invisible(gc())
 ### Tpecies richness per cell in the landscape
 
 community_df <- dummy_dataset %>%
-  group_by(biome, scenario, time, cell_id, taxa) %>%
+  group_by(biome, scenario, time, cell_id, region, taxa) %>%
   dplyr::summarize(Sps_richness = n_distinct(species))# calculate species richness by counting the nº of species in each group
 
 ### Species Diversity (Shannon_Wiener_Index) -----------------------------------
@@ -244,3 +221,166 @@ Shannon_index <- dummy_dataset %>%
                 ln_p_i = ifelse(p_i > 0, log(p_i), 0)) %>%  # in case pi is 0
   # up until here the table has values for each species, then info is summarised
   dplyr::summarize(Shannon_Wiener_Index = -sum(p_i * ln_p_i))  # calculate the Shannon-Wiener index
+
+### Functional Diversity (Funct_diversity_Index) -------------------------------
+trophic_levels <- c("herbivore", "carnivore", "omnivore")
+
+
+Funct_diversity <- dummy_dataset %>%
+  mutate(trophic_level = ifelse(dummy_dataset$species %in% c("SpeciesA", "SpeciesB"), "herbivore",
+                                ifelse(dummy_dataset$species == "SpeciesC", "omnivore",
+                                       ifelse(dummy_dataset$species %in% c("SpeciesD", "SpeciesE"), "carnivore", NA)))) %>%
+  group_by(biome, scenario, time, cell_id, trophic_level) %>%
+  dplyr::summarize(Total_abundance = sum(n_abundance, na.rm = TRUE)) %>%
+  group_by(biome, scenario, time, cell_id, trophic_level) %>%
+  dplyr::summarise(Fmean_abundance = mean(Total_abundance, na.rm = TRUE)) %>%
+  group_by(biome, scenario, time, cell_id) %>%
+  dplyr::mutate(Fp_i = Fmean_abundance / sum(Fmean_abundance),
+                # calculate proportion of individuals of fucntional group i
+                Fln_p_i = ifelse(Fp_i > 0, log(Fp_i), 0)) %>%  # in case Fpi is 0
+  # up until here the table has values for each functional group, then info is summarised
+  dplyr::summarize(Funct_diversity_Index = -sum(Fp_i * Fln_p_i))  # calculate the functional diversity index
+
+community_df <- community_df %>%
+  group_by(biome, scenario, time, cell_id) %>%
+  left_join(select(Shannon_index, Shannon_Wiener_Index, biome, scenario, time, cell_id),
+    by = c("biome", "scenario", "time", "cell_id")) %>%
+  left_join(select(Funct_diversity,
+                   Funct_diversity_Index,
+                   biome,
+                   scenario,
+                   time,
+                   cell_id),
+            by = c("biome", "scenario", "time", "cell_id"))
+
+# community metrics per year only
+community_df_year <- community_df %>%
+  group_by(biome, scenario, time, taxa) %>%
+  dplyr::summarise(
+    mean_Sps_richness_yr = mean(Sps_richness, na.rm = TRUE),
+    mean_Shannon_Index_yr = mean(Shannon_Wiener_Index, na.rm = TRUE),
+    mean_Funct_Div_yr = mean(Funct_diversity_Index, na.rm = TRUE))
+
+# community metrics per year in long format for plots
+community_df_year_long <- community_df_year %>%
+  pivot_longer(cols = c("mean_Sps_richness_yr", "mean_Shannon_Index_yr", "mean_Funct_Div_yr"),
+               names_to = 'variables',
+               values_to = 'values') %>%
+  dplyr::filter(time >= t_burnin) # remove burn-in period
+
+############
+# FIGURE 2 #
+############
+
+taxas <- unique(dummy_dataset$taxa)
+
+# create an empty list to store the plots
+plot_list <- list()
+
+# Loop through each scenario
+for (taxa in taxas) {
+  
+  # Filter data for the current scenario
+  taxa_data <- community_df_year_long[community_df_year_long$taxa == taxa,]
+  
+  comm_composition_time <- ggplot(data = taxa_data,
+                                  aes(x = time, y = values, color = scenario)) +
+    geom_line() +
+    facet_wrap(biome ~ variables, scales = "free_y") +
+    theme_minimal() +
+    theme(
+      # remove gridlines 
+      panel.grid = element_blank(),
+      # add subtle horizontal lines 
+      panel.grid.major.y = element_line(color = "gray90", linetype = "dashed"),
+      # modify facet labels
+      strip.text = element_text(face = "bold", size = rel(1)),
+      strip.placement = "outside",
+      # adjust legend
+      legend.position = "right",
+      # modify x-axis text
+      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+      # remove panel borders
+      panel.border = element_blank()) +
+    geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8) 
+  
+    # save each plot in the list
+        plot_list[[taxa]] <- comm_composition_time
+        
+        # save each scenario map as a separate image
+        #ggsave(paste0("comm_composition_time", taxa, ".tiff"), comm_composition_time, bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw")
+}
+
+
+# Calculate Shannon Wiener INdex Change bewtween each time step and time step 3
+dummy_map_dataset <- community_df %>%
+  group_by(biome, scenario, region, taxa) %>% 
+  mutate(
+    Shannon_change = Shannon_Wiener_Index  - Shannon_Wiener_Index [time == 1],
+    Richness_change = Sps_richness - Sps_richness[time == 1],
+    Funct_Div_change = Funct_diversity_Index - Funct_diversity_Index[time == 1]
+  )
+
+
+# THESE PLOTS SHOULD CONSIDER HAVING INTERVAL SCALE INSTEAD OF CONTINUOS SO WE CAN VISUALISE BETTER
+
+#https://www.researchgate.net/publication/324339168_Myxomycete_diversity_in_Costa_Rica/figures?lo=1
+
+# Load world map data
+world_map <- ne_countries(scale = "medium", returnclass = "sf")
+
+dummy_map_dataset_t20 <- dummy_map_dataset %>%
+  dplyr::filter(time == 20) %>%
+  #split cell_id column into two separate coordinates x and y
+  separate(cell_id, into = c("x", "y"), sep = 1)
+
+
+regions <- unique(dummy_dataset$region)
+taxas <- unique(dummy_dataset$taxa)
+
+# split the dataset by region
+region_splits <- split(dummy_dataset, dummy_dataset$region)
+
+# loop through each region
+for (region_name in names(region_splits)) {
+  
+  # extract the data for the current region
+  region_data <- region_splits[[region_name]]
+  
+  # extract unique taxa for the current region
+  region_taxas <- unique(region_data$taxa)
+  
+  # loop through each taxa within the region
+  for (taxa in region_taxas) {
+    
+    # filter data for the current region and taxa
+    region_taxa_data <- region_data[region_data$taxa == taxa, ] 
+    
+    # create the plot
+    spatial_maps <- ggplot() +
+      # geom_sf(data = world_map, 
+      #          color = "black", 
+      #          size = 0.2) +  # World map outline
+      geom_raster(data = region_taxa_data, aes(x = x, y = y, fill = Shannon_change)) +
+      facet_wrap( ~ scenario) +
+      scale_fill_viridis_c(option = "D") +
+      #coord_sf() +  # Use coord_sf for compatibility with geom_sf
+      theme_minimal() +
+      theme(legend.position = "bottom",
+            # bold, slightly larger facet titles
+            strip.text = element_text(face = "bold", size = rel(1.2))) +
+      labs(x = "Longitude",
+           y = "Latitude",
+           fill = "Shannon-Wiener\nIndex change")
+    
+    # Save the plot
+    ggsave(paste0("spatial_maps_", region_name, "_", taxa, ".tiff"), 
+           spatial_maps, 
+           bg = 'white', 
+           width = 230, 
+           height = 210, 
+           units = "mm", 
+           dpi = 1200, 
+           compression = "lzw")
+  }
+}
