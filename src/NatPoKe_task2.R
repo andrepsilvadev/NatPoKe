@@ -16,7 +16,7 @@ library(sf)
 
 # import data
 example_01_res_df <- read_csv(
-  "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/example_01_res_df.csv")
+  "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/example_01_res_df.csv")
 
 # Define scenarios, biomes, species, and taxa
 scenarios <- c("BAU", "policy A", "policy B", "policy C", "policy D", "policy E", "policy F")
@@ -92,7 +92,8 @@ stability_sps <- dummy_dataset %>%
             # find max. nº of individuals
             impact_year = time[which.min(n_abundance)],
             # find the year the pop. reaches a min. value in the post policy period
-            recovery_year = ifelse(any(time > t_policy & n_abundance >= mean_post), min(time[time > t_policy & n_abundance >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
+            recovery_year = ifelse(any(time > t_policy & n_abundance >= mean_post),
+                                   min(time[time > t_policy & n_abundance >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
                                    NA), .groups = "drop") %>%
   pivot_wider(names_from = period, values_from = c(mean, min, max, impact_year, recovery_year)) %>%
   dplyr::select(!c(impact_year_Pre, recovery_year_Pre)) %>% # remove year of min. nº of individuals in the pre policy period and the year in which the nº ind is equal to the mean values of the post policy period
@@ -100,7 +101,9 @@ stability_sps <- dummy_dataset %>%
                           (max_Post - mean_Pre) / mean_Pre,
                           (min_Post - mean_Pre) / mean_Pre),
          time_impact = impact_year_Post - t_policy,
-         recovery = (mean_Post - mean_Pre) / mean_Pre,
+         recovery = ifelse(impact <= 0,
+                           (mean_Post - mean_Pre) / mean_Pre,
+                           NA),
          time_recovery = recovery_year_Post - t_policy)
 invisible(gc())
 
@@ -130,7 +133,7 @@ stability_avg_long <- stability_avg %>%
     values_to = "value")
 
 ############
-# FIGURE 1 #
+# FIGURE 1 # Impact and Recovery per taxa for both biomes
 ############
 
 # new facet label names
@@ -146,13 +149,14 @@ custom_colors <- c("Bird" = "#38b2fe", "Mammal" = "#ffab27", "Insect" = "#99cc00
 # Updated plot
 stability_avg_long %>%
   dplyr::filter(metric %in% c("impact_avg", "recovery_avg")) %>%
-  ggplot(aes(x = scenario, y = value, fill = taxa, shape = biome)) +
-  geom_bar(stat = "identity", position = position_dodge(0.9)) +
-  facet_grid(metric ~ biome, scales = "free_y", labeller = labeller(metric = metric.labs), switch = "y") +
+  ggplot(aes(x = scenario, y = value, fill = taxa)) +
+  geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
+  facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
   scale_fill_manual(values = custom_colors) +
   ylab("") +
+  xlab("\nEconomic policy scenario") +
   theme_minimal() +
   theme(
     # remove gridlines 
@@ -164,14 +168,17 @@ stability_avg_long %>%
     strip.placement = "outside",
     # adjust legend
     legend.position = "right",
-    # modify x-axis text
+    # modify y & x-axis text
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    axis.title = element_text(face = "bold", margin = margin(t = 20, r = 0, b = 0, l = 0)),
     # remove panel borders
-    panel.border = element_blank())
+    panel.border = element_blank(),
+    panel.spacing.x = unit(1, "lines"),
+    panel.spacing.y = unit(2, "lines"))
 invisible(gc())
 
 ######################
-# SUP MATERIAL FIG 1 #
+# SUP MATERIAL FIG 1 # Time to impact and Time to recovery per taxa for both biomes
 ######################
 
 # Updated plot
@@ -184,6 +191,7 @@ stability_avg_long %>%
   # use custom colors for taxa
   scale_fill_manual(values = custom_colors) +
   ylab("") +
+  xlab("\nEconomic policy scenario") +
   theme_minimal() +
   theme(
     # remove gridlines 
@@ -195,11 +203,13 @@ stability_avg_long %>%
     strip.placement = "outside",
     # adjust legend
     legend.position = "right",
-    # modify x-axis text
+    # modify y & x-axis text
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    axis.title = element_text(face = "bold", margin = margin(t = 20, r = 0, b = 0, l = 0)),
     # remove panel borders
-    panel.border = element_blank()
-  )
+    panel.border = element_blank(),
+    panel.spacing.x = unit(1, "lines"),
+    panel.spacing.y = unit(2, "lines"))
 invisible(gc())
 
 
@@ -269,10 +279,14 @@ community_df_year_long <- community_df_year %>%
   dplyr::filter(time >= t_burnin) # remove burn-in period
 
 ############
-# FIGURE 2 #
+# FIGURE 2 # Community metrics per policy in both biomes per (one figure per taxa)
 ############
 
 taxas <- unique(dummy_dataset$taxa)
+biome_names <- c("Tropical forests" = "Tropical forests", "Boreal forests" = "Boreal forests")
+vars_names <- c("mean_Sps_richness_yr" = "Species \n Richness", "mean_Shannon_Index_yr" = "Shannon Wienner \nIndex", "mean_Funct_Div_yr" = "Functional \nDiversity")
+
+unique(community_df_year_long$variables)
 
 # create an empty list to store the plots
 plot_list <- list()
@@ -280,13 +294,16 @@ plot_list <- list()
 # Loop through each scenario
 for (taxa in taxas) {
   
-  # Filter data for the current scenario
+  # Filter data for the current taxa
   taxa_data <- community_df_year_long[community_df_year_long$taxa == taxa,]
   
   comm_composition_time <- ggplot(data = taxa_data,
                                   aes(x = time, y = values, color = scenario)) +
     geom_line() +
-    facet_wrap(biome ~ variables, scales = "free_y") +
+    facet_wrap(biome~variables, scales = "free", labeller = labeller(biome = as_labeller(biome_names), variables = as_labeller(vars_names))) +
+    xlab("Time") +
+    ylab("Metric value") +
+    scale_color_discrete("Economic policy \nscenario") +
     theme_minimal() +
     theme(
       # remove gridlines 
@@ -297,7 +314,7 @@ for (taxa in taxas) {
       strip.text = element_text(face = "bold", size = rel(1)),
       strip.placement = "outside",
       # adjust legend
-      legend.position = "right",
+      legend.position = "bottom",
       # modify x-axis text
       axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
       # remove panel borders
@@ -311,6 +328,11 @@ for (taxa in taxas) {
         #ggsave(paste0("comm_composition_time", taxa, ".tiff"), comm_composition_time, bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw")
 }
 
+plot_list$Mammal
+
+############
+# FIGURE 3 # Spatially explicit maps per region in each biome (Shannon's index change only)
+############
 
 # Calculate Shannon Wiener INdex Change bewtween each time step and time step 3
 dummy_map_dataset <- community_df %>%
