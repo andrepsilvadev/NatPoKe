@@ -123,6 +123,11 @@ for (taxa in taxas) {
   comm_composition_time <- ggplot(data = taxa_data,
                                   aes(x = time, y = values, color = scenario)) +
     geom_line() +
+    # facet_grid(biome ~ variables, scales = "free",
+    #            labeller = labeller(
+    #              biome = as_labeller(biome_names),
+    #              variables = as_labeller(vars_names)
+    #            )) +
     facet_wrap(biome~variables, scales = "free", labeller = labeller(biome = as_labeller(biome_names), variables = as_labeller(vars_names))) +
     xlab("Time") +
     ylab("Metric value") +
@@ -152,4 +157,4 @@ for (taxa in taxas) {
 }
 
 # check figures
-plot_list$Mammal
+#plot_list$Mammal
