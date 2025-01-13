@@ -152,4 +152,4 @@ for (taxa in taxas) {
 }
 
 # check figures
-#plot_list$Mammal
+plot_list$Mammal
