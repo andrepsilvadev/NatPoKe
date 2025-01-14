@@ -123,6 +123,11 @@ for (taxa in taxas) {
   comm_composition_time <- ggplot(data = taxa_data,
                                   aes(x = time, y = values, color = scenario)) +
     geom_line() +
+    # facet_grid(biome ~ variables, scales = "free",
+    #            labeller = labeller(
+    #              biome = as_labeller(biome_names),
+    #              variables = as_labeller(vars_names)
+    #            )) +
     facet_wrap(biome~variables, scales = "free", labeller = labeller(biome = as_labeller(biome_names), variables = as_labeller(vars_names))) +
     xlab("Time") +
     ylab("Metric value") +
@@ -154,7 +159,10 @@ for (taxa in taxas) {
 
 # check figures
 #plot_list$Mammal
+<<<<<<< HEAD
 
 
 # THESE FIGURES GO TO SUPPLEMENTARY MATERIAL
 # ADD NEW FIFURE WITH SHANNON WIENER FOR THE DIFFERENT TAXA FOR DIFFERENTE BIOMES
+=======
+>>>>>>> e19cdccbfc273621be63521f3e1093ab1f965333
