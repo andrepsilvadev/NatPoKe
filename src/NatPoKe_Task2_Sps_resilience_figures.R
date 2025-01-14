@@ -145,19 +145,11 @@ stability_avg_long <- stability_avg %>%
 ############
 
 # new facet label names
-<<<<<<< HEAD
 metric.labs <- c("Impact (units)", "Recovery (units)", "Time to Impact (years)" , "Time to recovery (years)")
 names(metric.labs) <- c("impact",
                         "recovery",
                         "timeimpact",
                         "timerecovery")
-=======
-metric.labs <- c("Impact (units)", "Recovery (units)", "Time to \nImpact (years)" , "Time to \nrecovery (years)")
-names(metric.labs) <- c("impact_avg",
-                        "recovery_avg",
-                        "time_impact_avg",
-                        "time_recovery_avg")
->>>>>>> e19cdccbfc273621be63521f3e1093ab1f965333
 
 # Custom color palette
 custom_colors <- c("Bird" = "#38b2fe", "Mammal" = "#ffab27", "Insect" = "#99cc00")
@@ -168,7 +160,6 @@ figure1 <- stability_avg_long %>%
   ggplot(aes(x = scenario, y = avg, fill = taxa)) +
   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
   geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
-  # INSERT!!!!! line for error bars in plot
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
@@ -206,10 +197,11 @@ invisible(gc())
 
 # Updated plot
 suplementary_figure1 <- stability_avg_long %>%
-  dplyr::filter(metric %in% c("time_impact_avg", "time_recovery_avg")) %>%
-  ggplot(aes(x = scenario, y = value, fill = taxa, shape = biome)) +
+  dplyr::filter(metric %in% c("timeimpact", "timerecovery")) %>%
+  ggplot(aes(x = scenario, y = avg, fill = taxa)) +
   geom_bar(stat = "identity", position = position_dodge(0.9)) +
-  facet_grid(metric ~ biome, scales = "free_y", labeller = labeller(metric = metric.labs), switch = "y") +
+  geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
+  facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
   scale_fill_manual("Taxa", values = custom_colors) +
