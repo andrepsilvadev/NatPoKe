@@ -199,7 +199,7 @@ invisible(gc())
 suplementary_figure1 <- stability_avg_long %>%
   dplyr::filter(metric %in% c("timeimpact", "timerecovery")) %>%
   ggplot(aes(x = scenario, y = avg, fill = taxa)) +
-  geom_bar(stat = "identity", position = position_dodge(0.9)) +
+  geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
   geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
   geom_hline(yintercept = 0) +
