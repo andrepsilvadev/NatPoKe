@@ -145,11 +145,19 @@ stability_avg_long <- stability_avg %>%
 ############
 
 # new facet label names
+<<<<<<< HEAD
 metric.labs <- c("Impact (units)", "Recovery (units)", "Time to Impact (years)" , "Time to recovery (years)")
 names(metric.labs) <- c("impact",
                         "recovery",
                         "timeimpact",
                         "timerecovery")
+=======
+metric.labs <- c("Impact (units)", "Recovery (units)", "Time to \nImpact (years)" , "Time to \nrecovery (years)")
+names(metric.labs) <- c("impact_avg",
+                        "recovery_avg",
+                        "time_impact_avg",
+                        "time_recovery_avg")
+>>>>>>> e19cdccbfc273621be63521f3e1093ab1f965333
 
 # Custom color palette
 custom_colors <- c("Bird" = "#38b2fe", "Mammal" = "#ffab27", "Insect" = "#99cc00")
@@ -164,7 +172,7 @@ figure1 <- stability_avg_long %>%
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
-  scale_fill_manual(values = custom_colors) +
+  scale_fill_manual("Taxa", values = custom_colors, ) +
   ylab("") +
   xlab("\nEconomic policy scenario") +
   theme_minimal() +
@@ -178,6 +186,7 @@ figure1 <- stability_avg_long %>%
     strip.placement = "outside",
     # adjust legend
     legend.position = "right",
+    legend.title = element_text(face = "bold"),
     # modify y & x-axis text
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     axis.title = element_text(face = "bold", margin = margin(t = 20, r = 0, b = 0, l = 0)),
@@ -203,7 +212,7 @@ suplementary_figure1 <- stability_avg_long %>%
   facet_grid(metric ~ biome, scales = "free_y", labeller = labeller(metric = metric.labs), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
-  scale_fill_manual(values = custom_colors) +
+  scale_fill_manual("Taxa", values = custom_colors) +
   ylab("") +
   xlab("\nEconomic policy scenario") +
   theme_minimal() +
@@ -217,6 +226,7 @@ suplementary_figure1 <- stability_avg_long %>%
     strip.placement = "outside",
     # adjust legend
     legend.position = "right",
+    legend.title = element_text(face = "bold"),
     # modify y & x-axis text
     axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
     axis.title = element_text(face = "bold", margin = margin(t = 20, r = 0, b = 0, l = 0)),
