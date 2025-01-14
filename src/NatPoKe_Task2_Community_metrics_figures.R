@@ -203,9 +203,8 @@ for (variable in variables) {
   # Save each plot in the list
   plot_list[[variable]] <- comm_composition_time
   
-  # Optional: Save each scenario map as a separate image
-  # ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_CommunityCompositionOverTime", variable, ".tiff"), 
-  #        comm_composition_time, bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw")
+  # save each plot as a separate image
+  #ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_CommunityCompositionOverTime", variable, ".tiff"),        comm_composition_time, bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw")
 }
 
 # see plot
