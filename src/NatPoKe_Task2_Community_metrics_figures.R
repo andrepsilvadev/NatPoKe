@@ -138,6 +138,7 @@ for (taxa in taxas) {
       strip.placement = "outside",
       # adjust legend
       legend.position = "bottom",
+      # ADD LEGEND FOR POLICY BEGGINING
       # modify x-axis text
       axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
       # remove panel borders
@@ -153,3 +154,7 @@ for (taxa in taxas) {
 
 # check figures
 #plot_list$Mammal
+
+
+# THESE FIGURES GO TO SUPPLEMENTARY MATERIAL
+# ADD NEW FIFURE WITH SHANNON WIENER FOR THE DIFFERENT TAXA FOR DIFFERENTE BIOMES

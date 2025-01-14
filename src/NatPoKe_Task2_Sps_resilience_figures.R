@@ -19,7 +19,7 @@ library(sf)
 
 # import data
 example_01_res_df <- read_csv(
-  "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/example_01_res_df.csv")
+  "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/example_01_res_df.csv")
 
 # Define scenarios, biomes, species, and taxa
 scenarios <- c("BAU", "policy A", "policy B", "policy C", "policy D", "policy E", "policy F")
@@ -108,6 +108,7 @@ stability_sps <- dummy_dataset %>%
                           (max_Post - mean_Pre) / mean_Pre,
                           (min_Post - mean_Pre) / mean_Pre),
          time_impact = impact_year_Post - t_policy,
+         # WORTH CALCULATING RECOVERY IF IMPACT IS POSITIVE? See metrics explanation canva
          recovery = ifelse(impact <= 0,
                            (mean_Post - mean_Pre) / mean_Pre,
                            NA),
@@ -120,24 +121,24 @@ stability_avg <- stability_sps %>%
   group_by(biome, scenario, taxa) %>%
   dplyr::summarize(
     impact_avg = mean(impact, na.rm = TRUE),
-    #impact_sd = sd(impact, na.rm = TRUE),
+    impact_sd = sd(impact, na.rm = TRUE),
     recovery_avg = mean(recovery, na.rm = TRUE),
-    #recovery_sd = sd(recovery, na.rm = TRUE),
-    time_impact_avg = mean(time_impact, na.rm = TRUE),
-    #time_impact_sd = sd(time_impact, na.rm = TRUE),
-    time_recovery_avg = mean(time_recovery, na.rm = TRUE)
-    #time_recovery_sd = sd(time_recovery, na.rm = TRUE),
+    recovery_sd = sd(recovery, na.rm = TRUE),
+    timeimpact_avg = mean(time_impact, na.rm = TRUE),
+    timeimpact_sd = sd(time_impact, na.rm = TRUE),
+    timerecovery_avg = mean(time_recovery, na.rm = TRUE),
+    timerecovery_sd = sd(time_recovery, na.rm = TRUE)
   )
 invisible(gc())
 
 #stability_avg
-
+library(grr)
 # stability metrics in long format for plots
 stability_avg_long <- stability_avg %>%
   pivot_longer(
-    cols = -c(biome, scenario, taxa),
-    names_to = "metric",
-    values_to = "value")
+    cols = matches("_avg$|_sd$"),
+    names_to = c("metric", ".value"),
+    names_sep = "_")
 
 ############
 # FIGURE 1 # Impact and Recovery per taxa for both biomes
@@ -145,19 +146,21 @@ stability_avg_long <- stability_avg %>%
 
 # new facet label names
 metric.labs <- c("Impact (units)", "Recovery (units)", "Time to Impact (years)" , "Time to recovery (years)")
-names(metric.labs) <- c("impact_avg",
-                        "recovery_avg",
-                        "time_impact_avg",
-                        "time_recovery_avg")
+names(metric.labs) <- c("impact",
+                        "recovery",
+                        "timeimpact",
+                        "timerecovery")
 
 # Custom color palette
 custom_colors <- c("Bird" = "#38b2fe", "Mammal" = "#ffab27", "Insect" = "#99cc00")
 
 # Updated plot
 figure1 <- stability_avg_long %>%
-  dplyr::filter(metric %in% c("impact_avg", "recovery_avg")) %>%
-  ggplot(aes(x = scenario, y = value, fill = taxa)) +
+  dplyr::filter(metric %in% c("impact", "recovery")) %>%
+  ggplot(aes(x = scenario, y = avg, fill = taxa)) +
   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
+  geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
+  # INSERT!!!!! line for error bars in plot
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
