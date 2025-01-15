@@ -195,7 +195,7 @@ for (variable in variables) {
   plot_list[[variable]] <- comm_composition_time
   
   # save each plot as a separate image
-  #ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_CommunityCompositionOverTime", variable, ".tiff"),        comm_composition_time, bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw")
+  ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_CommunityCompositionOverTime", variable, ".tiff"),        comm_composition_time, bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw")
 }
 
 # see plot
