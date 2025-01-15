@@ -13,7 +13,7 @@ library(viridis)
 library(rnaturalearth) # for world maps
 library(rnaturalearthdata) # for world maps
 library(sf)
-library(rphylopic)
+library(rphylopic) # for icon on plots
 
 # import dummy dataset
 dummy_dataset <- read_csv("data/dummy_dataset_Jan2025.csv")
@@ -30,18 +30,11 @@ t_policy <- 5
 uuid_bird <- get_uuid(name = "Tinamus major", n = 1)
 uuid_mammal <- get_uuid(name = "Vulpes vulpes", n = 1)
 uuid_insect <- get_uuid(name = "Apolygus lucorum", n = 1)
+
 # Get the image for that uuid
-img_bird <- get_phylopic(uuid = uuid_bird)
-img_mammal <- get_phylopic(uuid = uuid_mammal)
-img_mammal <- get_phylopic(uuid = uuid_insect)
-
-
-test <- data.frame("x" = c(18, 18, 18),
-                   "y" = c(2.85, 2.85, 2.85),
-                   "taxa" = c("Mammal", "Bird", "Insect"),
-                   "phylopic" = c(uuid_mammal, uuid_bird, uuid_insect))
-
-
+# img_bird <- get_phylopic(uuid = uuid_bird)
+# img_mammal <- get_phylopic(uuid = uuid_mammal)
+# img_mammal <- get_phylopic(uuid = uuid_insect)
 
 ###############################
 # CALCULATE COMMUNITY METRICS #
@@ -100,12 +93,9 @@ community_df <- community_df %>%
                    time,
                    cell_id),
             by = c("biome", "scenario", "time", "cell_id"))
-
-# write this dataframe into a .csv to feed NatPoKe_Task2_Spatially_explicit_maps.R script
-write.csv(community_df, "~/NatPoKe/data/community_df_Jan2025.csv")
 invisible(gc())
 
-# average community metrics per year 
+# average community metrics per year -------------------------------------------
 community_df_year <- community_df %>%
   group_by(biome, scenario, time, taxa) %>%
   dplyr::summarise(
@@ -113,6 +103,9 @@ community_df_year <- community_df %>%
     mean_Shannon_Index_yr = mean(Shannon_Wiener_Index, na.rm = TRUE),
     mean_Funct_Div_yr = mean(Funct_diversity_Index, na.rm = TRUE))
 invisible(gc())
+
+# write this dataframe into a .csv to feed NatPoKe_Task2_Spatially_explicit_maps.R script
+write.csv(community_df_year, "~/NatPoKe/data/community_df_peryear_Jan2025.csv")
 
 # change community metrics per year from wide to LONG format for plots
 community_df_year_long <- community_df_year %>%
@@ -125,8 +118,6 @@ invisible(gc())
 ############
 # FIGURE 2 # Community metrics per policy in both biomes per taxa (one figure per community metric)
 ############
-
-
 
 taxas <- unique(dummy_dataset$taxa)
 variables <- unique(c(community_df_year_long$variables))
@@ -178,8 +169,8 @@ for (variable in variables) {
     ylab("Metric value") +
     #scale_color_discrete("Economic policy \nscenario") +
     coord_cartesian(clip = "off") +  # Allow plotting outside the panel
-    geom_phylopic(data = icon_positions, aes(x = x, y = y, image = phylopic), 
-                  size = 0.2, inherit.aes = FALSE) +  # Add PhyloPic icons
+    geom_phylopic(data = icon_positions, aes(x = x, y = y, uuid = phylopic), 
+                  size = 0.02, inherit.aes = FALSE) +  # Add PhyloPic icons
     theme_minimal() +
     theme(
       # remove gridlines 
@@ -208,11 +199,11 @@ for (variable in variables) {
 }
 
 # see plot
-#plot_list$mean_Funct_Div_yr 
+plot_list$mean_Funct_Div_yr 
 
-#########################
-# SUPPLEMENTARY FIGURES # 
-#########################
+###################################
+# SUPPLEMENTARY FIGURES IF NEEDED # 
+###################################
 
 # THESE FIGURES WERE FROM A TALK BEFORE JAN 14TH 2025 
 # ON THIS DAY WE DECIDED WE DO NOT LIKE THIS FIGURES ANYMORE
