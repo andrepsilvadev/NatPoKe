@@ -15,6 +15,7 @@ library(rnaturalearth) # for world maps
 library(rnaturalearthdata) # for world maps
 library(sf)
 library(terra)
+library(raster)
 library(patchwork) # to mix and match different plots in a grid
 
 
@@ -41,8 +42,6 @@ southamerica <- continents %>%
   dplyr::filter(continent %in% "Europe")
 extent(southamerica)
 
-plot()plot(st_crop(africa, st_bbox(africa_box)))
-
 # import ecoregions shapefile
 ecoregions_2017 <- sf::st_read(
   "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/Ecoregions2017/Ecoregions2017.shp")
@@ -59,13 +58,15 @@ forests_2017 <- ecoregions_2017 %>%
   group_by(BIOME_NAME) %>%
   summarize(geometry = st_union(geometry))
 
-
+# import raster ----------------------------------------------------------------
+rast_alces <- rast("~/NatPoKe/data/Alcesalces_suitability.tif")
+#plot(rast_alces)
 
 # transform continent CRS to match the raster CRS
-continents <- st_transform(continents, crs(raster_data))
+continents <- st_transform(continents, crs(rast_alces))
 
 # transform forests to match raster CRS
-forests_2017 <- st_transform(forests_2017, crs(raster_data))
+forests_2017 <- st_transform(forests_2017, crs(rast_alces))
 
 ##############################
 # CALCULATE CHANGE VARIABLES #
@@ -87,11 +88,6 @@ forests_2017 <- st_transform(forests_2017, crs(raster_data))
 ################
 # MOOSE RASTER # Just as an example to avoid creating fake pixels in water
 ################
-
-# import raster ----------------------------------------------------------------
-rast_alces <- rast("~/NatPoKe/data/Alcesalces_suitability.tif")
-#plot(rast_alces)
-
 
 # crop moose raster per continents and then per type of forest -----------------
 
@@ -322,7 +318,9 @@ mammals_plots <- wrap_plots(A = mammals_bf_northamerica,
                 theme(legend.position = "bottom")
 
 # save mammals plot
-#ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure3_SpatiallyExplicitMapsMammals", ".tiff"), mammals_plots, bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw")
+ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure3_SpatiallyExplicitMapsMammals", ".tiff"),
+       mammals_plots,
+       bg = 'white', width = 297, height = 210, units = "mm", dpi = 1200, compression = "lzw")
 
 
 
