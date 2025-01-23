@@ -102,7 +102,12 @@ for (raster_file in raster_files) {
 # JUST TRYING TO SEE THE DATA #
 ###############################
 
+# THIS HAS COORDINATES
+alce009 <- rast("C:/Users/maria/Documents/NatPoKe/example/mammals_try2/results/009-Alcesalces_abundance.tif")
+plot(alce009)
+
+# THIS DOES NOT! WHY? WHIS IS IT SHOWING STRIPES????
 library(ggplot2)
 ggplot() +
   # plot data for the index in question (here Shannon wiener = sum just because these are dummydata)
-  geom_raster(data = X008_Alcesalces_abundance_output_5c5439791090, aes(x = x, y = y, fill = value))
+  geom_raster(data = X009_Alcesalces_abundance_output_5c542eaf32e0, aes(x = x, y = y, fill = value))
