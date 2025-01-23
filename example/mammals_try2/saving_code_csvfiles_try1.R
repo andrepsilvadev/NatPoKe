@@ -1,3 +1,9 @@
+#########################
+# SAVING RASTERS AS CSV #
+########## MIS ##########
+# 22 Jan 2025
+
+
 library(Rcpp)
 library(checkmate)
 library(raster)  # For handling raster files
