@@ -2,8 +2,8 @@ library(Rcpp)
 library(checkmate)
 library(raster)  # For handling raster files
 library(tools)   # For working with file paths
+library(here)
 
-# Define the C++ function
 output_values_cpp <- cppFunction('
 #include <Rcpp.h>
 #include <fstream>
@@ -27,6 +27,7 @@ void output_values_cpp(NumericMatrix mat, std::string path) {
 }
 ')
 
+
 # Function to save a matrix as a CSV file
 save_matrix_as_csv <- function(mat, path) {
   if (!is.numeric(mat) || !is.matrix(mat)) {
@@ -47,52 +48,55 @@ save_matrix_as_csv <- function(mat, path) {
 ###########################################
 
 library(terra)
-alce <- rast("~/NatPoKe/example/mammals_try2/001-Alcesalces_abundance.tif")
+alce <- rast("C:/Users/maria/Documents/NatPoKe/example/mammals_try2/012-Alcesalces_abundance.tif")
 plot(alce)
 
 test_output_file <- tempfile("matrix_output", fileext = ".csv")
 
-save_matrix_as_csv(mat, test_output_file)
-
 save_matrix_as_csv(mat = terra::as.matrix(alce),
                    path = test_output_file)
+
 reimported_mat <- read.csv(test_output_file)
 
+#####################################################
+# automating function to loop over all raster files #
+#####################################################
 
 
-# Main function to process multiple raster files
-process_rasters_to_csv <- function(input_files, output_dir) {
-  # Ensure output directory exists
-  if (!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
+# define input and output folders
+input_folder <- here("example/mammals_try2/results/")
+output_folder <- here("example/mammals_try2/results")
+
+
+# list raster files in the input folder
+raster_files <- list.files(input_folder, pattern = "\\.tif$", full.names = TRUE)
+
+# loop through each raster file
+for (raster_file in raster_files) {
+  # Step 1 - read raster file
+  raster_obj <- terra::rast(raster_file)
   
-  # Loop through each input file
-  for (raster_file in input_files) {
-    tryCatch({
-      # Load the raster
-      raster_data <- terra::rast(raster_file)
-      
-      # Convert raster to a matrix
-      raster_matrix <- as.matrix(raster_data)
-      
-      # Define output file path
-      output_file <- file.path(output_dir, paste0(tools::file_path_sans_ext(basename(raster_file)), ".csv"))
-      
-      # Save matrix to CSV
-      save_matrix_as_csv(raster_matrix, output_file)
-      
-      message(paste("Processed:", raster_file, "->", output_file))
-    }, error = function(e) {
-      message(paste("Error processing", raster_file, ":", e$message))
-    })
-  }
+  # Step 2 - convert raster to matrix
+  raster_matrix <- terra::as.matrix(raster_obj)
+  
+  # Step 3 - extract raster name (without the .tif)
+  raster_name <- tools::file_path_sans_ext(basename(raster_file))
+  
+  # Step 4 - create a temp file with the raster name included
+  output_file <- tempfile(paste0(raster_name, "_output_"), tmpdir = output_folder, fileext = ".csv")
+  
+  # Step 5 - save the matrix to the temporary CSV
+  save_matrix_as_csv(mat = raster_matrix, path = output_file)
+  
+  # check progress
+  message("Processed: ", raster_file, " -> ", output_file)
 }
 
-# Example usage
-# Define your input raster files and output directory
-input_rasters <- list.files("~/NatPoKe/example/mammals_try2", pattern = "\\.tif$", full.names = TRUE)  # Adjust file extension if needed
-output_directory <- "~/NatPoKe/example/mammals_try2/outputs"
+###############################
+# JUST TRYING TO SEE THE DATA #
+###############################
 
-# Call the function
-process_rasters_to_csv(input_rasters, output_directory)
+library(ggplot2)
+ggplot() +
+  # plot data for the index in question (here Shannon wiener = sum just because these are dummydata)
+  geom_raster(data = X008_Alcesalces_abundance_output_5c5439791090, aes(x = x, y = y, fill = value))
