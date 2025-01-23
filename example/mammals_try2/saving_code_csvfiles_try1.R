@@ -15,6 +15,10 @@ library(purrr) # for map_dfr()
 library(data.table) # for fread()
 library(tidyr)
 
+#########################
+# STEFAN's C++ FUNCTION #
+#########################
+
 output_values_cpp <- cppFunction('
 #include <Rcpp.h>
 #include <fstream>
@@ -69,10 +73,9 @@ save_matrix_as_csv(mat = terra::as.matrix(alce),
 
 reimported_mat <- read.csv(test_output_file)
 
-#####################################################
-# automating function to loop over all raster files #
-#####################################################
-
+#########################################################
+# AUTOMATING THE FUNCTION TO LOOP OVER ALL RASTER FILES #
+#########################################################
 
 # define input and output folders
 input_folder <- here("example/mammals_try2/results/")
@@ -133,8 +136,6 @@ ggplot() +
 # | A        | 1    | 1   | 1   | bird 1      | Bird   | 30        | 1                |
 # | A        | 1    | 1   | 2   | bird 1      | Bird   | 30        | 1                |
 
-
-
 # set working directory for the map_dfr function (CHECK IF I CAN FIND A CLEANER ALTERNATIVE HERE)
 setwd("~/NatPoKe/example/mammals_try2/results")
 
@@ -163,6 +164,10 @@ all_data <- all_data %>%
   pivot_wider(names_from = variable, values_from = value)
 
 # in the next simulation run, change filenames to have only "_" and not "-" and "_"
+
+######################
+# PLOTTING OVER TIME #
+######################
 
 # calculate mean value per time step
 all_data_mean <- all_data %>%
@@ -196,6 +201,9 @@ abundance_overtime <- ggplot(data = all_data_mean,
     panel.spacing.y = unit(2, "lines"),
     plot.margin = unit(c(0, 0.5, 0, 0.5), "cm"))
 
+ggsave(plot = abundance_overtime, file = "~/NatPoKe/example/mammals_try2/results/Abundance_through_time_23jan2025.tiff", 
+       bg = 'white', width = 250, height = 230, units = "mm", dpi = 1200,
+       compression = "lzw")
 # Here we need to imagine that there will at least three lines representing how 
 # does taxa abundance over time
   # one for mammals
