@@ -20,7 +20,7 @@ library(patchwork) # to mix and match different plots in a grid
 
 
 # import dummy community metrics
-community_df <- read_csv("data/community_df_peryear_Jan2025.csv")
+community_df <- read_csv("~/NatPoKe/data/community_df_peryear_Jan2025.csv")
 
 
 # specify burn in timestep & policy start

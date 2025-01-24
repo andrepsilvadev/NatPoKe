@@ -164,6 +164,8 @@ all_data <- all_data %>%
   pivot_wider(names_from = variable, values_from = value)
 
 # in the next simulation run, change filenames to have only "_" and not "-" and "_"
+#write.csv(all_data, "all_data_together_22Jan.csv")
+
 
 ######################
 # PLOTTING OVER TIME #

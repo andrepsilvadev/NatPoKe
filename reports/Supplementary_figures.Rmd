@@ -1,0 +1,73 @@
+---
+title: "Supplementary_figures"
+date: "2025-01-24"
+output: 
+ html_document:
+    code_folding: hide
+    theme: cosmo
+    highlight: haddock
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_knit$set(root.dir = '~/NatPoKe/src')
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+# packages
+library(here)
+#https://stackoverflow.com/questions/7653483/github-relative-link-in-markdown-file
+```
+
+# Supplementary Fig. 1
+
+This Figures comes from the `NatPoKe_Task2_Sps_resilience_figure.R` script, and represents the Time to recovery and Time to impact metrics for each taxa in each biome.
+
+```{r, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(12,8)}
+source(here("src", "NatPoKe_Task2_Sps_resilience_figures.R"))
+suplementary_figure1
+```
+# Supplementary Fig. 2
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+source(here("src", "NatPoKe_Task2_Community_metrics_figures.R"))
+```
+
+## Functional diversity over time
+
+```{r, fig.align='center', fig.dim=c(12,8)}
+functdiv_over_time
+```
+
+## Species Richness
+
+```{r, fig.align='center', fig.dim=c(12,8)}
+richness_over_time
+```
+
+# Supplementary Fig. 3
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+source(here("src", "NatPoKe_Task2_Spatially_explicit_maps.R"))
+```
+
+Supplementary figure 3 will be the same as the main with the Spatially explicit maps of the Shannon Wiener Index per taxa. Most likely mammals will be in the main Figure and the remaining taxa go to the supplementary materials. So there will be as many Supplementary figures 3 as taxa. 
+
+```{r}
+mammals_plots
+```
+
+# Model Validation
+
+```{r, warning=FALSE, message=FALSE}
+source(here("src", "NatPoKe_Model_validation.R"))
+```
+
+```{r, fig.align='center', fig.dim=c(12, 8)}
+pvalidation1
+```
+

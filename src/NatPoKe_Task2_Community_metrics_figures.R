@@ -16,7 +16,7 @@ library(sf)
 library(rphylopic) # for icon on plots
 
 # import dummy dataset
-dummy_dataset <- read_csv("data/dummy_dataset_Jan2025.csv")
+dummy_dataset <- read_csv("~/NatPoKe/data/dummy_dataset_Jan2025.csv")
 
 # specify burn in timestep & policy start
 t_burnin <- 2
@@ -105,7 +105,7 @@ community_df_year <- community_df %>%
 invisible(gc())
 
 # write this dataframe into a .csv to feed NatPoKe_Task2_Spatially_explicit_maps.R script
-write.csv(community_df_year, "~/NatPoKe/data/community_df_peryear_Jan2025.csv")
+#write.csv(community_df_year, "~/NatPoKe/data/community_df_peryear_Jan2025.csv")
 
 # change community metrics per year from wide to LONG format for plots
 community_df_year_long <- community_df_year %>%
@@ -187,9 +187,9 @@ shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
 # save shannon_over_time plot
-ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_ShannonWienerOverTime.tiff"), # path
-       shannon_over_time, # plot
-       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+# #ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_ShannonWienerOverTime.tiff"), # path
+#        shannon_over_time, # plot
+#        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
 
 
@@ -251,10 +251,10 @@ functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
     plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
-# save functdiv_over_time plot
-ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_FunctionalDiversityOverTime.tiff"), # path
-       functdiv_over_time, # plot
-       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+# # save functdiv_over_time plot
+# ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_FunctionalDiversityOverTime.tiff"), # path
+#        functdiv_over_time, # plot
+#        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
 
 # Species richness  ------------------------------------------------------------
@@ -315,11 +315,11 @@ richness_over_time <- ggplot(data = variable_data$mean_Sps_richness_yr,
     plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
-# save functdiv_over_time plot
-ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_SpeciesRichnessOverTime.tiff"), # path
-       richness_over_time, # plot
-       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
-
+# # save functdiv_over_time plot
+# ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_SpeciesRichnessOverTime.tiff"), # path
+#        richness_over_time, # plot
+#        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+# 
 
 
 # IF WE WANT A MORE AUTOMATED WAY THAT MIGHT NOT WORK WITH DIFFERENT SCALES 
