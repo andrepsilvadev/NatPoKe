@@ -25,7 +25,7 @@ library(here)
 
 # Supplementary Fig. 1
 
-This Figures comes from the [`NatPoKe_Task2_Sps_resilience_figure.R`](src/NatPoKe_Task2_Sps_resilience_figures.R) script, and represents the Time to recovery and Time to impact metrics for each taxa in each biome.
+This Figures comes from the [`NatPoKe_Task2_Sps_resilience_figure.R`](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/NatPoKe_Task2_Sps_resilience_figures.R) script, and represents the Time to recovery and Time to impact metrics for each taxa in each biome.
 
 ```{r, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(12,8)}
 source(here("src", "NatPoKe_Task2_Sps_resilience_figures.R"))
@@ -33,7 +33,7 @@ suplementary_figure1
 ```
 # Supplementary Fig. 2 
 
-These next figures come from the [`NatPoKe_Task2_Community_metrics_figures.R`](src/NatPoKe_Task2_Community_metrics_figures.R) script, and represents the functional diveristy and species richness over time for analysed taxa.
+These next figures come from the [`NatPoKe_Task2_Community_metrics_figures.R`](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/NatPoKe_Task2_Community_metrics_figures.R) script, and represents the functional diveristy and species richness over time for analysed taxa.
 
 ```{r, include=FALSE, warning=FALSE, message=FALSE}
 source(here("src", "NatPoKe_Task2_Community_metrics_figures.R"))
@@ -53,7 +53,7 @@ richness_over_time
 
 # Supplementary Fig. 3
 
-See [`NatPoKe_Task2_Spatially_explicit_maps.R`](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/NatPoKe_Model_validation.R) for code to produce spatially explicit maps for all taxa in al regions.
+See [`NatPoKe_Task2_Spatially_explicit_maps.R`](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/NatPoKe_Task2_Spatially_explicit_maps.R) for code to produce spatially explicit maps for all taxa in al regions.
 
 ```{r, include=FALSE, warning=FALSE, message=FALSE}
 #source(here("src", "NatPoKe_Task2_Spatially_explicit_maps.R"))
@@ -79,7 +79,7 @@ In Step 4, we need to actually **Calculate the estimated density by the model** 
 
 Finally we **Combine independentDensity and estimatedDensity into a list**, so we can access them later to produce the model validation figure.
 
-Code for model validation in [`NatPoKe_Model_validation.R`](src/NatPoKe_Model_validation.R)
+Code for model validation in [`NatPoKe_Model_validation.R`](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/NatPoKe_Model_validation.R)
 
 ```{r, warning=FALSE, message=FALSE}
 source(here("src", "NatPoKe_Model_validation.R"))
@@ -106,6 +106,8 @@ To allow less memory space being used in R, only the strictly necessary columns 
 Finally the plot is created with facets per variable, and with jitter points for each species. Horizontal lines exist for the tresholds th model should not overpass (0.8 and 1.2, 20% chnage).
 
 Here since data is often big several notes exist in the script to handle and dela with that. Read comments carefully to avoid R aborting session even when using Gaias servers.
+
+Code for Sensitivity analysis in [`NatPoKe_Sensitivity_analysis.R`](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/NatPoKe_Sensitivity_analysis.R)
 
 ```{r, include=FALSE, warning=FALSE, message=FALSE}
 source(here("src", "NatPoKe_Sensitivity_analysis.R"))
