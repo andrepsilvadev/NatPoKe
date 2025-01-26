@@ -13,7 +13,7 @@ output:
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, message=FALSE}
-knitr::opts_knit$set(root.dir = '~/NatPoKe/src')
+knitr::opts_knit$set(root.dir = '~/NatPoKe/src') # this allows me to use diferent sources
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -25,13 +25,15 @@ library(here)
 
 # Supplementary Fig. 1
 
-This Figures comes from the `NatPoKe_Task2_Sps_resilience_figure.R` script, and represents the Time to recovery and Time to impact metrics for each taxa in each biome.
+This Figures comes from the [`NatPoKe_Task2_Sps_resilience_figure.R`](src/NatPoKe_Task2_Sps_resilience_figures.R) script, and represents the Time to recovery and Time to impact metrics for each taxa in each biome.
 
 ```{r, warning=FALSE, message=FALSE, fig.align='center', fig.dim=c(12,8)}
 source(here("src", "NatPoKe_Task2_Sps_resilience_figures.R"))
 suplementary_figure1
 ```
-# Supplementary Fig. 2
+# Supplementary Fig. 2 
+
+These next figures come from the [`NatPoKe_Task2_Community_metrics_figures.R`](src/NatPoKe_Task2_Community_metrics_figures.R) script, and represents the functional diveristy and species richness over time for analysed taxa.
 
 ```{r, include=FALSE, warning=FALSE, message=FALSE}
 source(here("src", "NatPoKe_Task2_Community_metrics_figures.R"))
@@ -51,17 +53,33 @@ richness_over_time
 
 # Supplementary Fig. 3
 
+See [`NatPoKe_Task2_Spatially_explicit_maps.R`](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/NatPoKe_Model_validation.R) for code to produce spatially explicit maps for all taxa in al regions.
+
 ```{r, include=FALSE, warning=FALSE, message=FALSE}
-source(here("src", "NatPoKe_Task2_Spatially_explicit_maps.R"))
+#source(here("src", "NatPoKe_Task2_Spatially_explicit_maps.R"))
 ```
 
 Supplementary figure 3 will be the same as the main with the Spatially explicit maps of the Shannon Wiener Index per taxa. Most likely mammals will be in the main Figure and the remaining taxa go to the supplementary materials. So there will be as many Supplementary figures 3 as taxa. 
 
 ```{r}
-mammals_plots
+#mammals_plots
 ```
 
 # Model Validation
+
+> Model validation is the process of determining whether the model accurately represents the behavior of the system (Aumann, 2007). Model validity should be evaluated both operationally (i.e., by determining if model output agrees with observed data) and conceptually (i.e., by determining whether the theory and assumptions underlying the model are justifiable; Sargent, 1984; Rykiel, 1996).
+
+FIrst step on Model Validation is to **Process Indenpendent Density Data**, for now this is teh dataframe provided in Santini et al. 2022, by filtering teh target species and selecting relevant columns (lw95, lw75, PredMd).
+
+Then we need to **Process Extimated Data**, coming from the model output, again by filtering the target species, but this time for a specific **validationYear**. If we are using the raw dataset (exactely as it comes out of the model) we need to average the abundance of each species per cell, by grouping per species and cellid.
+
+After, we add the **spData** with target species traits and select the ModellingResolution. In this case, and specifically for RangeShifter, the Modelling Resolution was calculated from the *Starting density per cell (individuals/cell) = IndsHaCell* retrieved from Santini et al. 2022.
+
+In Step 4, we need to actually **Calculate the estimated density by the model** my dividing the mean number of individuals per cell (meanNInd) with the Modelling resolution (ModellingRes).
+
+Finally we **Combine independentDensity and estimatedDensity into a list**, so we can access them later to produce the model validation figure.
+
+Code for model validation in [`NatPoKe_Model_validation.R`](src/NatPoKe_Model_validation.R)
 
 ```{r, warning=FALSE, message=FALSE}
 source(here("src", "NatPoKe_Model_validation.R"))
@@ -69,5 +87,31 @@ source(here("src", "NatPoKe_Model_validation.R"))
 
 ```{r, fig.align='center', fig.dim=c(12, 8)}
 pvalidation1
+```
+
+# Sensitivity Analysis
+
+To have the model sensitivity analysis plot, we first run the model again chngaing the parameters by +5% and -5%.
+
+Then files are read and imported, being separated by sensitivity runs (data_105, data_095 and data_control). Files are combined into the corresponding list and unified into a single dataframe.
+
+Next we need to split th source_file column into multiple one to get all the info we need and pivot_wider our data so variables like abundance and reproductionRate become individual columns instead of rows. 
+
+Dataframes are split again by the parameter changed and column names are updated to include the "amount" by which they were chnaged. Using the Reduce() function, individual parameter-change dataframes are merged again into a single table for both +5% and -5% datasets.
+
+Afterwards 105, 095 and control datasets are joined together (careful with integrer64 columns) and proportion metrics are calculated between the control and each sensitivity run result.
+
+To allow less memory space being used in R, only the strictly necessary columns are subseted and retained for plotting. Next we melt the resulting dataframe, changing it to a long format for boxplotting.
+
+Finally the plot is created with facets per variable, and with jitter points for each species. Horizontal lines exist for the tresholds th model should not overpass (0.8 and 1.2, 20% chnage).
+
+Here since data is often big several notes exist in the script to handle and dela with that. Read comments carefully to avoid R aborting session even when using Gaias servers.
+
+```{r, include=FALSE, warning=FALSE, message=FALSE}
+source(here("src", "NatPoKe_Sensitivity_analysis.R"))
+```
+
+```{r, warning=FALSE, message=FALSE}
+sens_analysis
 ```
 
