@@ -3,29 +3,60 @@
 ######### MIS ##########
 # 24 Jan 2025
 
+# GOAL: Compare mean species densities estimated from two sources.
+
+
+# WHAT IS MODEL VALIDATION?
+# Model validation is the process of determining whether the model accurately
+# represents the behavior of the system (Aumann, 2007). Model validity should be
+# evaluated both operationally (i.e., by determining if model output agrees with
+# observed data) and conceptually (i.e., by determining whether the theory and
+# assumptions underlying the model are justifiable; Sargent, 1984; Rykiel, 1996).
+
+# Kerr LA, Goethel DR. Simulation Modeling as a Tool for Synthesis of Stock Identification Information. In: Stock Identification Methods, 2014, 501-533
+
+start.time <- Sys.time() # start the clock
 # packages
 library(readxl)
 library(stringr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
 
 ###################
 # DATASETS NEEDED #
 ###################
 
+# To validate the metaRange model we need:
+  # (1) targetspecies: Vector of species names for which the validation will be performed
+  # (2) independentDensity: dataframe containing species density estimates from an Santini 2022
+  # (3) estimatedDensity: dataframe containing species abundance data derived from the model output
+  # (4) spData: dataframe with species traits (with ModellingRes) to calculate density from abundance
+  # (5) validationYear: The specific year (or time step) used for validation
+
+# (1) targetspecies
+targetspecies <- c("Alcesalces", "Lynxlynx")
+
+# (2) independentDensity
 santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
   # santini's dataframe has species names with spaces but metaRange does not like spaces
   # remove spaces again
   mutate(Species = str_replace_all(Species, " ", ""))
 
-targetspecies <- c("Alcesalces", "Lynxlynx")
-
+# (3) estimatedDensity
 estimatedDensity <- read.csv("~/NatPoKe/example/mammals_try2/results/all_data_together_22Jan.csv") %>% 
   mutate(cell_id = paste0(x,y))
 
-spData <- read_csv("~/NatPoKe/example/mammals_try2/target_metarange_mammals20250110.csv") %>% 
+# (4) spData
+spData <- read.csv("~/NatPoKe/example/mammals_try2/target_metarange_mammals20250110.csv") %>% 
   # to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022
   left_join(dplyr::select(santini2022, Species, PredMd), by = c("species" = "Species")) %>%
   # create ModellingRes variable
   mutate(ModellingRes = ceiling(sqrt(2/as.numeric(PredMd))))
+
+# (5) validationYear
+# defined directly in the function
 
 #############################
 # MODEL VALIDATION FUNCTION #
@@ -33,7 +64,6 @@ spData <- read_csv("~/NatPoKe/example/mammals_try2/target_metarange_mammals20250
 
 # this model validation uses independent estimates
 # André's comments are in lowercase letters
-# MY COMMENTS ARE IN CAPS LOCK
 
 validateModel1.1 <- function(
     targetspecies, independentDensity, estimatedDensity, spData, validationYear) {
@@ -45,7 +75,6 @@ validateModel1.1 <- function(
   # instead from raster
   
   ## species density estimates by an independent source (akin to observed density)
-  ### THIS IS THE SANTINI DATAFRAME FROM SUP MATERIALS
   independentDensity <- independentDensity %>% 
     dplyr::filter(Species %in% targetspecies) %>%
     dplyr::select(Species, lw95, lw75, PredMd, up75, up95) %>%
@@ -61,7 +90,6 @@ validateModel1.1 <- function(
     )
   
   ## species density estimated by rangeshifter
-  ### THIS IS THE OUTPUT DATAFRAME OF THE MODEL THTA NEEDS TO HAVE AT LEAST SPS NAMES, YEAR, CELLID & ABUNDANCE
   predicted <- estimatedDensity %>%
     dplyr::filter(species %in% targetspecies) %>%
     dplyr::filter(time %in% validationYear) %>% # validate model at the equilibrium (burn-in years)
@@ -71,7 +99,6 @@ validateModel1.1 <- function(
       .groups = 'drop') %>%
     as.data.frame()
   
-  ### THIS IS THE TRAIT DATAFRAME BUILT FOR RANGESHIFTER FROM THE combined_traits_data DF
   spData2 <- spData %>%
     dplyr::select(species, ModellingRes) %>%
     #rename(species = Species) %>%
@@ -86,6 +113,8 @@ validateModel1.1 <- function(
   return(list)
 }
 
+
+
 # applying the function
 validationList <- validateModel1.1(
   targetspecies = targetspecies,
@@ -99,7 +128,7 @@ validationList <- validateModel1.1(
 # MODEL VALIDATION PLOT #
 #########################
 
-#since names do have a species in between words to look nice we have to replace names before plotting
+# since names do have a species in between words to look nice we have to replace names before plotting
 names_replace <- c("Alcesalces" = "Alces alces",
                    "Lynxlynx" = "Lynx lynx")
 
@@ -125,12 +154,13 @@ pvalidation1 <- ggplot(validationList$independentDensity, aes(species)) +
 
 #pvalidation1
 
+# saving the plot
 # ggsave(path = paste0("./output/", runname, "/Outputs"),
 #        filename = "ComparisonToIndependentModel.png",
 #        plot = pvalidation1,
-#        dpi = 600,
-#        width = 25,
-#        height = 10,
-#        units = "cm",
-#        bg = "white")
+#        dpi = 600, width = 25, height = 10, units = "cm", bg = "white")
 
+
+end.time <- Sys.time() # end the clock
+time.taken <- round(end.time - start.time) # calculate time taken to run the complete script
+time.taken
