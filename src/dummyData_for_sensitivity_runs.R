@@ -3,6 +3,13 @@
 ################# MIS #################
 # 25 Jan 2025
 
+# GOAL: Run dummy simulation to have sensitivity runs ro test supplementary figures
+
+# Output files should follow the same structure as before, but adding:
+  # SRXXX_VARCHANGED stating which sensitivity run it belongs to
+  # SRXXX_VARCHANGED_SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
+
+
 # packages
 library(terra)
 library(here)
@@ -79,7 +86,7 @@ for (i in seq_len(nrow(species_traits))) {
     
     "abundance" = species_traits[["initial_abundance"]][i],
     "juvenile_abundance" = 0, # we only need this for one species in the example, but we can just add the trait to all species
-    "reproduction_rate" = species_traits[["reproduction_rate"]][i],
+    "reproductionRate" = species_traits[["reproduction_rate"]][i],
     "carrying_capacity" = species_traits[["carrying_capacity"]][i]
   )
   
@@ -147,7 +154,7 @@ sim$add_process(
     self$traits[["carrying_capacity"]] <-
       self$traits[["max_carrying_capacity"]] * self$sim$environment$current[[species_suitability_name]]
     
-    self$traits[["reproduction_rate"]] <-
+    self$traits[["reproductionRate"]] <-
       self$traits[["max_reproduction_rate"]] * self$sim$environment$current[[species_suitability_name]]
   },
   execution_priority = 2
@@ -161,7 +168,7 @@ sim$add_process(
     self$traits[["abundance"]] <-
       ricker_reproduction_model(
         self$traits[["abundance"]],
-        self$traits[["reproduction_rate"]],
+        self$traits[["reproductionRate"]],
         self$traits[["carrying_capacity"]]
       )
   },
@@ -175,7 +182,7 @@ sim$add_process(
   process_fun = function() {
     
     # calculate how many juveniles are produced
-    self$traits[["juvenile_abundance"]] <- self$traits[["abundance"]] * self$traits[["reproduction_rate"]]
+    self$traits[["juvenile_abundance"]] <- self$traits[["abundance"]] * self$traits[["reproductionRate"]]
     
     # how many of the adult population survive, based on the environment suitability
     self$traits[["abundance"]] <-
@@ -261,6 +268,7 @@ sim$add_process(
 )
 
 # saving the results -----------------------------------------------------------
+# SRXXX_VARCHANGED_SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
 save_string <- here("example/mammals_try2/results_sensitivityRuns")
 # Note: Saving the results is a process that takes the longest time
@@ -272,13 +280,13 @@ sim$add_process(
     
     for (species in self$globals[["alive_species"]]) {
       # define a suffix string for sensitivity run
-      suffix <- "SR105_" 
+      suffix <- "SR105_reproductionRate_BAU_Tropical_Asia_" 
       
       save_species(
         # pass the species object
         self[[species]],
         # specify traits we want to save
-        traits = c("abundance", "reproduction_rate"),
+        traits = c("abundance", "reproductionRate"),
         # a prefix for each time step
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
@@ -365,7 +373,7 @@ for (i in seq_len(nrow(species_traits))) {
     
     "abundance" = species_traits[["initial_abundance"]][i],
     "juvenile_abundance" = 0, # we only need this for one species in the example, but we can just add the trait to all species
-    "reproduction_rate" = species_traits[["reproduction_rate"]][i],
+    "reproductionRate" = species_traits[["reproduction_rate"]][i],
     "carrying_capacity" = species_traits[["carrying_capacity"]][i]
   )
   
@@ -433,7 +441,7 @@ sim$add_process(
     self$traits[["carrying_capacity"]] <-
       self$traits[["max_carrying_capacity"]] * self$sim$environment$current[[species_suitability_name]]
     
-    self$traits[["reproduction_rate"]] <-
+    self$traits[["reproductionRate"]] <-
       self$traits[["max_reproduction_rate"]] * self$sim$environment$current[[species_suitability_name]]
   },
   execution_priority = 2
@@ -447,7 +455,7 @@ sim$add_process(
     self$traits[["abundance"]] <-
       ricker_reproduction_model(
         self$traits[["abundance"]],
-        self$traits[["reproduction_rate"]],
+        self$traits[["reproductionRate"]],
         self$traits[["carrying_capacity"]]
       )
   },
@@ -461,7 +469,7 @@ sim$add_process(
   process_fun = function() {
     
     # calculate how many juveniles are produced
-    self$traits[["juvenile_abundance"]] <- self$traits[["abundance"]] * self$traits[["reproduction_rate"]]
+    self$traits[["juvenile_abundance"]] <- self$traits[["abundance"]] * self$traits[["reproductionRate"]]
     
     # how many of the adult population survive, based on the environment suitability
     self$traits[["abundance"]] <-
@@ -547,6 +555,7 @@ sim$add_process(
 )
 
 # saving the results -----------------------------------------------------------
+# SRXXX_VARCHANGED_SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
 save_string <- here("example/mammals_try2/results_sensitivityRuns")
 # Note: Saving the results is a process that takes the longest time
@@ -556,15 +565,15 @@ sim$add_process(
   process_name = "save_results",
   process_fun = function() {
     
-    for (species in self$globals[["alive_species"]]) {
+    for (species in species_names) {
       # define a suffix string for sensitivity run
-      suffix <- "SR095_" 
+      suffix <- "SR095_reproductionRate_BAU_Tropical_Asia_" 
       
       save_species(
         # pass the species object
         self[[species]],
         # specify traits we want to save
-        traits = c("abundance", "reproduction_rate"),
+        traits = c("abundance", "reproductionRate"),
         # a prefix for each time step
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
