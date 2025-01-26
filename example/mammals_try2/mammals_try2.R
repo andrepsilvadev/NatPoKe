@@ -3,6 +3,13 @@
 ################ MIS #################
 # 22 Jan 2025
 
+
+# GOAL: Running the model for a couple of mammals species
+
+# Output files of the model should follow this structure:
+  # SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
+  # change in "save_results" process the prefix line to accomodate this
+
 # packages
 library(terra)
 library(here)
