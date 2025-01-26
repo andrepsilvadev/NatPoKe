@@ -19,7 +19,7 @@ library(raster)
 library(sf)
 
 # Check if environment data is available
-stopifnot(file.exists(here("example/mammals_try2/Lynxlynx_suitability.tif")))
+#stopifnot(file.exists(here("example/mammals_try2/Lynxlynx_suitability.tif")))
 stopifnot(file.exists(here("example/mammals_try2/Alcesalces_suitability.tif")))
 stopifnot(file.exists(here("example/mammals_try2/target_metarange_mammals20250110.csv")))
 
@@ -42,25 +42,25 @@ stopifnot(file.exists(here("example/mammals_try2/target_metarange_mammals2025011
 # creating suitability rasters with multiple layers (dynamic) #
 ###############################################################
 
-r <- terra::rast(
-  here::here("example/mammals_try2", "alces_suitability_cropped.tif")
-)
-
-for (i in seq_len(nrow(species_traits))) {
-  species_suitability <- 1 - abs(r - species_traits$optimum_forest_cover[i])
-  species_suitability <- rep(species_suitability, 20)
-
-  for (j in seq_len(nlyr(species_suitability))) {
-    species_suitability[[j]] <- species_suitability[[j]] + runif(1, -0.25, 0.25)
-  }
-  species_suitability <- clamp(species_suitability, 0, 100)
-
-  writeRaster(
-    species_suitability,
-    here::here("example/mammals_try2", paste0("species_suitability_", species_traits$species[i], ".tif")),
-    overwrite = TRUE
-  )
-}
+# r <- terra::rast(
+#   here::here("example/mammals_try2", "alces_suitability_cropped.tif")
+# )
+# 
+# for (i in seq_len(nrow(species_traits))) {
+#   species_suitability <- 1 - abs(r - species_traits$optimum_forest_cover[i])
+#   species_suitability <- rep(species_suitability, 20)
+# 
+#   for (j in seq_len(nlyr(species_suitability))) {
+#     species_suitability[[j]] <- species_suitability[[j]] + runif(1, -0.25, 0.25)
+#   }
+#   species_suitability <- clamp(species_suitability, 0, 100)
+# 
+#   writeRaster(
+#     species_suitability,
+#     here::here("example/mammals_try2", paste0("species_suitability_", species_traits$species[i], ".tif")),
+#     overwrite = TRUE
+#   )
+# }
 
 ####################
 # model simulation #
@@ -122,7 +122,7 @@ for (i in seq_len(nrow(species_traits))) {
     
     "abundance" = species_traits[["initial_abundance"]][i],
     "juvenile_abundance" = 0, # we only need this for one species in the example, but we can just add the trait to all species
-    "reproduction_rate" = species_traits[["reproduction_rate"]][i],
+    "reproductionRate" = species_traits[["reproduction_rate"]][i],
     "carrying_capacity" = species_traits[["carrying_capacity"]][i]
   )
   
@@ -176,7 +176,6 @@ for (i in species_names) {
 do.call(sim$add_globals, species_sum_abundance)
 
 # check which globals exist
-sim$globals
 
 # add processes ----------------------------------------------------------------
 
@@ -190,7 +189,7 @@ sim$add_process(
     self$traits[["carrying_capacity"]] <-
       self$traits[["max_carrying_capacity"]] * self$sim$environment$current[[species_suitability_name]]
     
-    self$traits[["reproduction_rate"]] <-
+    self$traits[["reproductionRate"]] <-
       self$traits[["max_reproduction_rate"]] * self$sim$environment$current[[species_suitability_name]]
   },
   execution_priority = 2
@@ -204,7 +203,7 @@ sim$add_process(
     self$traits[["abundance"]] <-
       ricker_reproduction_model(
         self$traits[["abundance"]],
-        self$traits[["reproduction_rate"]],
+        self$traits[["reproductionRate"]],
         self$traits[["carrying_capacity"]]
       )
   },
@@ -218,7 +217,7 @@ sim$add_process(
   process_fun = function() {
     
     # calculate how many juveniles are produced
-    self$traits[["juvenile_abundance"]] <- self$traits[["abundance"]] * self$traits[["reproduction_rate"]]
+    self$traits[["juvenile_abundance"]] <- self$traits[["abundance"]] * self$traits[["reproductionRate"]]
     
     # how many of the adult population survive, based on the environment suitability
     self$traits[["abundance"]] <-
@@ -304,6 +303,7 @@ sim$add_process(
 )
 
 # saving the results -----------------------------------------------------------
+# OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
 save_string <- here("example/mammals_try2")
 # Note: Saving the results is a process that takes the longest time
@@ -313,14 +313,16 @@ sim$add_process(
   process_name = "save_results",
   process_fun = function() {
     
-    for (species in self$globals[["alive_species"]]) {
+    for (species in species_names) {
+      # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
+      suffix <- "BAU_Tropical_Asia_"
       save_species(
         # pass the species object
         self[[species]],
         # specify traits we want to save
-        traits = c("abundance", "reproduction_rate"),
+        traits = c("abundance", "reproductionRate"),
         # a prefix for each time step
-        prefix = paste0(sprintf("%03d", self$get_current_time_step()), "-"),
+        prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
         path = save_string,
         overwrite = TRUE
@@ -342,24 +344,24 @@ sim$begin()
 print("simulation finished")
 
 # save results in .csv file ----------------------------------------------------
-
-# optionally save some results as csv
-res_df <- data.frame()
-for (i in species_names) {
-  res_df <- rbind(
-    res_df,
-    data.frame(
-      species = i,
-      time = 1:sim$number_time_steps,
-      alive = i %in% sim$globals[["alive_species"]],
-      n_abundance = sim$globals[[i]][["n_abundance"]],
-      n_occupied = sim$globals[[i]][["n_occupied"]],
-      n_juveniles = sim$globals[[i]]["n_juveniles"]
-    )
-  )
-}
-write.csv(res_df, paste0(save_string, "/", sim_name, "_res_df.csv"), row.names = FALSE)
-
+# 
+# # optionally save some results as csv
+# res_df <- data.frame()
+# for (i in species_names) {
+#   res_df <- rbind(
+#     res_df,
+#     data.frame(
+#       species = i,
+#       time = 1:sim$number_time_steps,
+#       alive = i %in% sim$globals[["alive_species"]],
+#       n_abundance = sim$globals[[i]][["n_abundance"]],
+#       n_occupied = sim$globals[[i]][["n_occupied"]],
+#       n_juveniles = sim$globals[[i]]["n_juveniles"]
+#     )
+#   )
+# }
+# write.csv(res_df, paste0(save_string, "/", sim_name, "_res_df.csv"), row.names = FALSE)
+# 
 
 
 
