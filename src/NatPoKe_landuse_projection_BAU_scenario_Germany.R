@@ -1,6 +1,4 @@
-added libraries in libraries.R (duble check if there are some missing)
-scenarios.R separate file to read the land-use scenarios (seems that some land-use scenarios are missing - dont forget to add)
-avoid have long scripts  (more than 400 lines) - split in several scripts if needed
+
 
 
 # Settings & libraries -------------------------------------------
@@ -54,17 +52,6 @@ LULC_Types_names <- c(
   "Barren or other"
 )
 
-# combine the layers into stacks - not needed when directly calculating percentages for the plot
-stack_LULC_ESA_2017_germany <- rast(landUse_LULC_ESA_2017_germany)
-names(stack_LULC_ESA_2017_germany) <- LULC_Types_names
-stack_BAU_PNAS_2030_germany <- rast(landUse_BAU_PNAS_germany)
-names(stack_BAU_PNAS_2030_germany) <- LULC_Types_names
-plot(stack_LULC_ESA_2017_germany) # dont forget to double-check if the land-use maps match the patterns in mapped_LULC_ESA_2017_germany
-plot(stack_BAU_PNAS_2030_germany) # dont forget to double-check if the land-use maps match the patterns in BAU_PNAS_2030_germany
-
-# next two lines can be deleted
-unique(values(landUse_LULC_ESA_2017_germany[[1]])) # notice that here the values are 0 and 1 not percentages
-unique(values(landUse_BAU_PNAS_germany[[1]])) # notice that here the values are 0 and 1 not percentages
 
 # Calculate the percentage of each land-use type
 
@@ -95,7 +82,6 @@ print(landUse_percentages_BAU_PNAS_2030_germany)
 total_percentage_LULC_ESA_2017_germany<-sum(landUse_percentages_LULC_ESA_2017_germany)
 total_percentage_BAU_PNAS_2030_germany<-sum(landUse_percentages_BAU_PNAS_2030_germany)
 
-
 # create the land use data frame for the projection
 BAU_projection_data_germany <-data.frame()
 # create the data frame for the baseline 2017
@@ -106,6 +92,12 @@ LULC_ESA_2017_df <-data.frame(
   landuse = names(landUse_percentages_LULC_ESA_2017_germany)
 )
 BAU_projection_data_germany <-rbind(BAU_projection_data_germany,LULC_ESA_2017_df)
+# extend the data frame for the baseline from 2017 to 2030
+for(year in 2018:2030){
+  temp_df <- LULC_ESA_2017_df
+  temp_df$time <- year
+  BAU_projection_data_germany <- rbind(BAU_projection_data_germany,temp_df)
+}
 
 # create the data frame for the scenario 2030
 BAU_PNAS_2030_df <-data.frame(
@@ -115,14 +107,8 @@ BAU_PNAS_2030_df <-data.frame(
   landuse = names(landUse_percentages_BAU_PNAS_2030_germany)
 )
 BAU_projection_data_germany <-rbind(BAU_projection_data_germany,BAU_PNAS_2030_df)
-
-# extend the data frame from 2017 to 2050, whereas 2017-2030 represents the baseline and 2030-2050 represents the scenario
-for(year in 2017:2030){
-  temp_df <- LULC_ESA_2017_df
-  temp_df$time <- year
-  BAU_projection_data_germany <- rbind(BAU_projection_data_germany,temp_df)
-}
-for(year in 2030:2050){
+# extend the data frame for the scenario from 2030 to 2050
+for(year in 2031:2050){
   temp_df <- BAU_PNAS_2030_df
   temp_df$time <- year
   BAU_projection_data_germany <- rbind(BAU_projection_data_germany,temp_df)
@@ -155,34 +141,21 @@ ggsave(path = "./output",
        units = "cm")
 
   #------------------------
-# Verify percentages with calculations of percentages without NAs
-landUse_percentages_LULC_ESA_2017_germany <- sapply(landUse_LULC_ESA_2017_germany, function(layer) {
-  sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
-})
-landUse_percentages_BAU_PNAS_2030_germany <- sapply(landUse_BAU_PNAS_germany, function(layer) {
-  sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
-})
-
-# rename categories to land-use types
-names(landUse_percentages_LULC_ESA_2017_germany)<-LULC_Types_names
-names(landUse_percentages_BAU_PNAS_2030_germany)<-LULC_Types_names
-
-# check results and total percentage
-print(landUse_percentages_LULC_ESA_2017_germany)
-print(landUse_percentages_BAU_PNAS_2030_germany)
-total_percentage_LULC_ESA_2017_germany<-sum(landUse_percentages_LULC_ESA_2017_germany)
-total_percentage_BAU_PNAS_2030_germany<-sum(landUse_percentages_BAU_PNAS_2030_germany)
-
 
 # I have not checked from here below
 
+# combine the layers into stacks - not needed when directly calculating percentages for the plot
+stack_LULC_ESA_2017_germany <- rast(landUse_LULC_ESA_2017_germany)
+names(stack_LULC_ESA_2017_germany) <- LULC_Types_names
+stack_BAU_PNAS_2030_germany <- rast(landUse_BAU_PNAS_germany)
+names(stack_BAU_PNAS_2030_germany) <- LULC_Types_names
+plot(stack_LULC_ESA_2017_germany) # dont forget to double-check if the land-use maps match the patterns in mapped_LULC_ESA_2017_germany
+plot(stack_BAU_PNAS_2030_germany) # dont forget to double-check if the land-use maps match the patterns in BAU_PNAS_2030_germany
 
 # combine the stacks into a list
 combined_stack_germany<-list(stack_LULC_ESA_2017_germany,stack_BAU_PNAS_2030_germany)
 
 #4. Create land use projections and data frame
-
-
 # land use projections
 t <- c(2017,2030)
 var.names <- LULC_Types_names 
