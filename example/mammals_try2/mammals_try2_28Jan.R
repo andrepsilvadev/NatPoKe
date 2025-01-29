@@ -29,11 +29,6 @@ library(raster)
 library(sf)
 library(tools) # for file without paths
 
-# Check if environment data is available
-stopifnot(file.exists(here("example/mammals_try2/clean_data_2species/Lynxlynx_suitability.tif")))
-stopifnot(file.exists(here("example/mammals_try2/clean_data_2species/Alcesalces_suitability.tif")))
-stopifnot(file.exists(here("example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv")))
-
 ##########################################################
 # CREATE DUMMY RASTER BASED ON SRIT GLOBAL SUITABILITIES #
 ##########################################################
@@ -81,6 +76,27 @@ stopifnot(file.exists(here("example/mammals_try2/clean_data_2species/target_meta
 # alce <- rast(here("example/mammals_try2/clean_data_2species/Alcesalces_suitability_cropped_modified.tif"))
 # plot(alce)
 
+###############
+# FILES CHECK #
+###############
+
+# import trait data
+species_traits <- read.csv(here("example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv"))
+
+# list species in trait data
+species_list<- unique(species_traits$species)
+
+# Check which files exist
+existing_files <- file.exists(here(file.path("example/mammals_try2/clean_data_2species",
+                                             paste0(species_list, "_suitability.tif"))))
+
+# Identify species with missing files
+missing_species <- species_list[!existing_files]
+
+# Display a warning with just the species names
+if (length(missing_species) > 0) {
+  warning("No suitability files found for the following species: ", paste(missing_species, collapse = ", "))
+}
 
 ####################
 # model simulation #
@@ -97,7 +113,7 @@ save_string <- here("example/mammals_try2/")
 # simulation parameters
 sim_name <- "example_01"
 
-species_traits <- read.csv(here("example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv"))
+
 species_traits[2,5] <- 10
 species_traits[1,5] <- 1000
 species_traits[1,3] <- 10000
