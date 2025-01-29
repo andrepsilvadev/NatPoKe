@@ -6,6 +6,8 @@ library(easypackages)
 easypackages::packages(
     "dplyr",
     "terra",
+    "ggplot2",
+    "sf",
     "rnaturalearth",
     "rnaturalearthdata",
   prompt = FALSE)
