@@ -11,8 +11,8 @@ source("./src/scenarios.R") # customized functions
 #plot(LULC_ESA_2017_germany)
 #plot(BAU_PNAS_2030_germany)
 
-# Define the mapping from ESA LULC types to the 7 LULC types (SEALS)
-HERE: ADD in which document can we find this correspondence. Think as the script as something that you will have to understand 5 years from now if one comesback to run it
+# Simpliy and define ESA LULC types (39) to the 7 (SEALS) LULC types
+# Source of ESA LULC simplification scheme in Table S.2.4.1 of Supporting Information Appendix in Johnson et al. 2023 (https://www.pnas.org/doi/10.1073/pnas.2220401120#supplementary-materials)
 
 value_to_land_use <- list(
   "190" = 1,  # Urban
@@ -78,7 +78,23 @@ give it a thought and let me know, best
 
 
 
+# Verify percentages with calculations of percentages without NAs
+landUse_percentages_LULC_ESA_2017_germany <- sapply(landUse_LULC_ESA_2017_germany, function(layer) {
+  sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
+})
+landUse_percentages_BAU_PNAS_2030_germany <- sapply(landUse_BAU_PNAS_germany, function(layer) {
+  sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
+})
 
+# rename categories to land-use types
+names(landUse_percentages_LULC_ESA_2017_germany)<-LULC_Types_names
+names(landUse_percentages_BAU_PNAS_2030_germany)<-LULC_Types_names
+
+# check results and total percentage
+print(landUse_percentages_LULC_ESA_2017_germany)
+print(landUse_percentages_BAU_PNAS_2030_germany)
+total_percentage_LULC_ESA_2017_germany<-sum(landUse_percentages_LULC_ESA_2017_germany)
+total_percentage_BAU_PNAS_2030_germany<-sum(landUse_percentages_BAU_PNAS_2030_germany)
 
 
 # I have not checked from here below
@@ -154,32 +170,7 @@ for(year in 2030:2050){
 }
 
 print(BAU_projection_data_germany_extended)
-####
 
-# Verify percentages with calculations of percentages without NAs
-landUse_percentages_LULC_ESA_2017_germany <- sapply(landUse_LULC_ESA_2017_germany, function(layer) {
-  sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
-})
-landUse_percentages_BAU_PNAS_2030_germany <- sapply(landUse_BAU_PNAS_germany, function(layer) {
-  sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
-})
-
-# rename categories to land-use types
-names(landUse_percentages_LULC_ESA_2017_germany)<-LULC_Types_names
-names(landUse_percentages_BAU_PNAS_2030_germany)<-LULC_Types_names
-
-# print results
-print(landUse_percentages_LULC_ESA_2017_germany)
-print(landUse_percentages_BAU_PNAS_2030_germany)
-
-# Recalculate the total percentage
-total_percentage_LULC_ESA_2017_germany<-sum(landUse_percentages_LULC_ESA_2017_germany)
-total_percentage_BAU_PNAS_2030_germany<-sum(landUse_percentages_BAU_PNAS_2030_germany)
-
-cat("Adjusted total percentage of land-use types in 2017:", total_percentage_LULC_ESA_2017_germany, "%\n")
-cat("Adjusted total percentage of land-use types in 2030 BAU scenario:", total_percentage_BAU_PNAS_2030_germany, "%\n")
-
-####
 
 #5&6. Plot the land use change from baseline 2017 to scenario 2030
 # stacked area chart
