@@ -45,15 +45,16 @@ santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDR
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # (3) estimatedDensity
-estimatedDensity <- read.csv("~/NatPoKe/example/mammals_try2/results/all_data_together_22Jan.csv") %>% 
+estimatedDensity <- fread("~/NatPoKe/example/mammals_try2/results_28Jan/final_results28Jan.tsv") %>% 
   mutate(cell_id = paste0(x,y))
 
 # (4) spData
-spData <- read.csv("~/NatPoKe/example/mammals_try2/target_metarange_mammals20250110.csv") %>% 
+spData <- read.csv("~/NatPoKe/example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv") %>% 
   # to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022
   left_join(dplyr::select(santini2022, Species, PredMd), by = c("species" = "Species")) %>%
   # create ModellingRes variable
-  mutate(ModellingRes = ceiling(sqrt(2/as.numeric(PredMd))))
+  mutate(ModellingRes = ceiling(sqrt(2/as.numeric(PredMd)))) # change to a specific value 
+# ADD NOTE TO USE VALUES FROM SPEPS TRAITS DATASET
 
 # (5) validationYear
 # defined directly in the function
@@ -92,7 +93,7 @@ validateModel1.1 <- function(
   ## species density estimated by rangeshifter
   predicted <- estimatedDensity %>%
     dplyr::filter(species %in% targetspecies) %>%
-    dplyr::filter(time %in% validationYear) %>% # validate model at the equilibrium (burn-in years)
+    dplyr::filter(timestep %in% validationYear) %>% # validate model at the equilibrium (burn-in years)
     dplyr::group_by(species, cell_id) %>%
     dplyr::summarise(
       meanNInd = mean(abundance),
@@ -152,7 +153,7 @@ pvalidation1 <- ggplot(validationList$independentDensity, aes(species)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
-#pvalidation1
+pvalidation1
 
 # saving the plot
 # ggsave(path = paste0("./output/", runname, "/Outputs"),
