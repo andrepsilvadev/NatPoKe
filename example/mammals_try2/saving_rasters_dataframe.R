@@ -90,13 +90,15 @@ final_results$taxa <- "Mammal"
 ##############################
 # SIMPLE ABUNDANCE OVER TIME #
 ##############################
+library(ggplot2)
 final_results %>% 
   group_by(scenario, biome, timestep, taxa, species) %>% 
   summarise(mean_abundance = mean(abundance, na.rm = TRUE)) %>% 
   ggplot(aes(x = timestep, y = mean_abundance, color = species)) +
   geom_line()
 
-
+alces <- rast("~/NatPoKe/example/mammals_try2/results_28Jan/BAU_Tropical_Asia_001_Lynxlynx_abundance.tif")
+plot(alces)
 ################################
 # CALCULATE RESILIENCE METRICS #
 ################################

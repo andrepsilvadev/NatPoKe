@@ -98,12 +98,12 @@ save_string <- here("example/mammals_try2/")
 sim_name <- "example_01"
 
 species_traits <- read.csv(here("example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv"))
-#species_traits[2,5] <- 1000
-#species_traits[1,5] <- 1000
-#species_traits[1,3] <- 10000
-species_traits[2,3] <- 100000
 species_traits[2,5] <- 10
-species_traits[2,2] <- 5
+species_traits[1,5] <- 1000
+species_traits[1,3] <- 10000
+species_traits[2,3] <- 100000
+#species_traits[2,5] <- 25
+#species_traits[2,2] <- 2.25
 
 # image parameters
 wid <- 2000
