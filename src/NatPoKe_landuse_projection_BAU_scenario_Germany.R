@@ -54,7 +54,7 @@ LULC_Types_names <- c(
   "Barren or other"
 )
 
-# combine the layers into stacks
+# combine the layers into stacks - not needed when directly calculating percentages for the plot
 stack_LULC_ESA_2017_germany <- rast(landUse_LULC_ESA_2017_germany)
 names(stack_LULC_ESA_2017_germany) <- LULC_Types_names
 stack_BAU_PNAS_2030_germany <- rast(landUse_BAU_PNAS_germany)
@@ -77,7 +77,84 @@ here You can maybe follow two approaches
 give it a thought and let me know, best
 
 
+# Calculate the percentages for each land-use type without NAs
+landUse_percentages_LULC_ESA_2017_germany <- sapply(landUse_LULC_ESA_2017_germany, function(layer) {
+  sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
+})
+landUse_percentages_BAU_PNAS_2030_germany <- sapply(landUse_BAU_PNAS_germany, function(layer) {
+  sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
+})
 
+# rename categories to land-use types
+names(landUse_percentages_LULC_ESA_2017_germany)<-LULC_Types_names
+names(landUse_percentages_BAU_PNAS_2030_germany)<-LULC_Types_names
+
+# check results and total percentage
+print(landUse_percentages_LULC_ESA_2017_germany)
+print(landUse_percentages_BAU_PNAS_2030_germany)
+total_percentage_LULC_ESA_2017_germany<-sum(landUse_percentages_LULC_ESA_2017_germany)
+total_percentage_BAU_PNAS_2030_germany<-sum(landUse_percentages_BAU_PNAS_2030_germany)
+
+
+# create the land use data frame for the projection
+BAU_projection_data_germany <-data.frame()
+# create the data frame for the baseline 2017
+LULC_ESA_2017_df <-data.frame(
+  time =2017,
+  value = landUse_percentages_LULC_ESA_2017_germany,
+  variable = names(landUse_percentages_LULC_ESA_2017_germany),
+  landuse = names(landUse_percentages_LULC_ESA_2017_germany)
+)
+BAU_projection_data_germany <-rbind(BAU_projection_data_germany,LULC_ESA_2017_df)
+
+# create the data frame for the scenario 2030
+BAU_PNAS_2030_df <-data.frame(
+  time =2030,
+  value = landUse_percentages_BAU_PNAS_2030_germany,
+  variable = names(landUse_percentages_BAU_PNAS_2030_germany),
+  landuse = names(landUse_percentages_BAU_PNAS_2030_germany)
+)
+BAU_projection_data_germany <-rbind(BAU_projection_data_germany,BAU_PNAS_2030_df)
+
+# extend the data frame from 2017 to 2050, whereas 2017-2030 represents the baseline and 2030-2050 represents the scenario
+for(year in 2017:2030){
+  temp_df <- LULC_ESA_2017_df
+  temp_df$time <- year
+  BAU_projection_data_germany <- rbind(BAU_projection_data_germany,temp_df)
+}
+for(year in 2030:2050){
+  temp_df <- BAU_PNAS_2030_df
+  temp_df$time <- year
+  BAU_projection_data_germany <- rbind(BAU_projection_data_germany,temp_df)
+}
+View(BAU_projection_data_germany)
+
+# Remove the "Water" layer if needed
+BAU_projection_data_germany <- BAU_projection_data_germany %>%
+  dplyr::filter(variable != "Water")
+
+# Plot the land use change from baseline 2017 to scenario 2050
+BAU_scenario_plot_germany <- ggplot(BAU_projection_data_germany, aes(x=time, y=value, fill=landuse)) + 
+  geom_area() +
+  scale_fill_viridis_d("Land Use") +
+  #scale_fill_manual(values = cbPalette) +
+  theme_classic() +
+  labs(x = "Year",
+       y = "Average fraction of grid cell",
+       title = "Land use change in Germany based on BAU scenario")
+
+print(BAU_scenario_plot_germany) # the plot has a gradual step from 2029 to 2030 and not one sharp one in 2030, 
+  something is different in the data frame (row names did not exist before).
+
+ggsave(path = "./output",
+       filename = "BAU_scenario_plot_germany_test.png",
+       plot = BAU_scenario_plot_germany,
+       dpi = 600,
+       width = 25,
+       height = 10,
+       units = "cm")
+
+  #------------------------
 # Verify percentages with calculations of percentages without NAs
 landUse_percentages_LULC_ESA_2017_germany <- sapply(landUse_LULC_ESA_2017_germany, function(layer) {
   sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
