@@ -7,8 +7,8 @@
 # GOAL: Running the model for a couple of mammals species
 
 # Output files of the model should follow this structure:
-  # SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
-  # change in "save_results" process the prefix line to accomodate this
+# SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
+# change in "save_results" process the prefix line to accomodate this
 
 # packages
 library(terra)
@@ -20,8 +20,8 @@ library(sf)
 
 # Check if environment data is available
 #stopifnot(file.exists(here("example/mammals_try2/Lynxlynx_suitability.tif")))
-stopifnot(file.exists(here("example/mammals_try2/Alcesalces_suitability.tif")))
-stopifnot(file.exists(here("example/mammals_try2/target_metarange_mammals20250110.csv")))
+#stopifnot(file.exists(here("example/mammals_try2/Alcesalces_suitability.tif")))
+#stopifnot(file.exists(here("example/mammals_try2/target_metarange_mammals20250110.csv")))
 
 ###############################################
 # crop suitability raster by a smaller extent #
@@ -77,7 +77,7 @@ save_string <- here("example/mammals_try2/")
 # simulation parameters
 sim_name <- "example_01"
 
-species_traits <- read.csv(here("example/mammals_try2/target_metarange_mammals20250110.csv"))
+species_traits <- read.csv(here("example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv"))
 
 # add random number for this until ANDRE decides what to do
 species_traits$optimum_forest_cover <- c(70, 50)
@@ -175,8 +175,6 @@ for (i in species_names) {
 }
 do.call(sim$add_globals, species_sum_abundance)
 
-# check which globals exist
-
 # add processes ----------------------------------------------------------------
 
 # To simplify the example, we just add the same processes for all species here
@@ -230,10 +228,10 @@ sim$add_process(
       (1 - self$traits[["juvenile_abundance"]] / self$traits[["carrying_capacity"]])
     
     # make sure we don't exceed the carrying capacity
-    exeed_populations <- self$traits[["abundance"]] > self$traits[["carrying_capacity"]]
-    exeed_populations[is.na(exeed_populations)] <- FALSE
+    exeed_populations <- self$traits[["abundance"]] > self$traits[["carrying_capacity"]] #check where abundance exceeds the carrying capacity - result is TRUE or FALSE
+    exeed_populations[is.na(exeed_populations)] <- FALSE # handle missing values
     self$traits[["abundance"]][exeed_populations] <-
-      self$traits[["carrying_capacity"]][exeed_populations]
+      self$traits[["carrying_capacity"]][exeed_populations] # where populations exceed carrying capacity, the abundance is changed to match carrying capacity
     
   },
   execution_priority = 3
@@ -271,7 +269,7 @@ sim$add_process(
   process_name = "track_stats",
   process_fun = function() {
     for (i in self$globals[["alive_species"]]) {
-      current_abu <- sum(self[[i]]$traits[["abundance"]], na.rm = TRUE)
+      current_abu <- sum(self[[i]]$traits[["abundance"]], na.rm = TRUE) # sum up all abundances across cells
       # remove species from future process queue if extinct
       # i.e. we don't need to calculate suitability for extinct species
       if (current_abu <= 1) {
@@ -290,12 +288,12 @@ sim$add_process(
         }
       }
       self$globals[[i]][["n_abundance"]][[self$get_current_time_step()]] <-
-        current_abu
+        current_abu # for sps still alive save total abundance for each time step
       
       self$globals[[i]][["n_occupied"]][[self$get_current_time_step()]] <-
-        sum(self[[i]]$traits[["abundance"]] > 1, na.rm = TRUE)
+        sum(self[[i]]$traits[["abundance"]] > 1, na.rm = TRUE) # sum up all cells occupied by each alive sps
       
-      self$globals[[i]][["n_juveniles"]][[self$get_current_time_step()]] <- # I ADDED THIS TO SEE IF I COULD GET ANOTHER VARIABLE BY MYSELF
+      self$globals[[i]][["n_juveniles"]][[self$get_current_time_step()]] <- # sum up all juveniles (INSERTED BY ME COULD BE WRING IT SHOULD BE SIMILIAR TO n_abundance THINK ITS MISSING A STEP)
         sum(self[[i]]$traits[["juvenile_abundance"]] > 1, na.rm = TRUE)
     }
   },
@@ -305,7 +303,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
-save_string <- here("example/mammals_try2")
+save_string <- here("example/mammals_try2/results_28Jan_StefanLandscape")
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
