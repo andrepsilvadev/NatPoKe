@@ -22,6 +22,8 @@ library(stringr)
 library(tidyr)
 library(dplyr)
 library(ggplot2)
+library(terra)
+library(data.table)
 
 
 ###################
@@ -33,6 +35,7 @@ library(ggplot2)
   # (2) independentDensity: dataframe containing species density estimates from an Santini 2022
   # (3) estimatedDensity: dataframe containing species abundance data derived from the model output
   # (4) spData: dataframe with species traits (with ModellingRes) to calculate density from abundance
+        # for now, 20250130, ModellingRes will be the pixel size of one of the rasters BUT THIS WILL CHANGE WHENEVER SOMEONE THINKS OF THIS
   # (5) validationYear: The specific year (or time step) used for validation
 
 # (1) targetspecies
@@ -48,12 +51,17 @@ santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDR
 estimatedDensity <- fread("~/NatPoKe/example/mammals_try2/results_28Jan/final_results28Jan.tsv") %>% 
   mutate(cell_id = paste0(x,y))
 
+# import a raster to get cell size
+size <- res(terra::rast("~/NatPoKe/example/mammals_try2/clean_data_2species/Lynxlynx_suitability_cropped_modified.tif"))
+
 # (4) spData
 spData <- read.csv("~/NatPoKe/example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv") %>% 
+  mutate(ModellingRes = size[[1]]*size[[2]])
+  #IF WE WANT TO GO BACK TO THE ORIGINAL IDEA OF USING SANTINI'S "MEASUREMENTS" OF PREDICTED DENSITIES
   # to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022
-  left_join(dplyr::select(santini2022, Species, PredMd), by = c("species" = "Species")) %>%
+  #left_join(dplyr::select(santini2022, Species, PredMd), by = c("species" = "Species")) %>%
   # create ModellingRes variable
-  mutate(ModellingRes = ceiling(sqrt(2/as.numeric(PredMd)))) # change to a specific value 
+  #mutate(ModellingRes = ceiling(sqrt(2/as.numeric(PredMd)))) # change to a specific value 
 # ADD NOTE TO USE VALUES FROM SPEPS TRAITS DATASET
 
 # (5) validationYear
@@ -64,7 +72,7 @@ spData <- read.csv("~/NatPoKe/example/mammals_try2/clean_data_2species/target_me
 #############################
 
 # this model validation uses independent estimates
-# André's comments are in lowercase letters
+# André's comments are in lowercase letters within the function
 
 validateModel1.1 <- function(
     targetspecies, independentDensity, estimatedDensity, spData, validationYear) {
@@ -165,3 +173,5 @@ pvalidation1
 end.time <- Sys.time() # end the clock
 time.taken <- round(end.time - start.time) # calculate time taken to run the complete script
 time.taken
+
+
