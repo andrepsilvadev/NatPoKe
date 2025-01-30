@@ -41,16 +41,6 @@ landUse_BAU_PNAS_germany <- lapply(LULC_Types,function(cat){
   })
 })
 
-# Assign the names of land-use types
-LULC_Types_names <- c(
-  "Urban",
-  "Cropland",
-  "Pasture/Grassland",
-  "Forest",
-  "Non-forest vegetation",
-  "Water",
-  "Barren or other"
-)
 
 
 # Calculate the percentage of each land-use type
@@ -72,6 +62,16 @@ landUse_percentages_BAU_PNAS_2030_germany <- sapply(landUse_BAU_PNAS_germany, fu
   sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
 })
 
+# Assign the names of land-use types
+LULC_Types_names <- c(
+  "Urban",
+  "Cropland",
+  "Pasture/Grassland",
+  "Forest",
+  "Non-forest vegetation",
+  "Water",
+  "Barren or other"
+)
 # rename categories to land-use types
 names(landUse_percentages_LULC_ESA_2017_germany)<-LULC_Types_names
 names(landUse_percentages_BAU_PNAS_2030_germany)<-LULC_Types_names
@@ -242,31 +242,3 @@ ggsave(path = "./output",
        width = 25,
        height = 10,
        units = "cm")
-
-# not really sure what this part is doing so decided to remove it but let me know if it is important 
-
-# # Define the mapping from LULC types to the 7 LULC types (SEALS)
-# #value_to_land_use_scenario<-list(
-#   "1" = 1,  # Urban
-#   "2" = 2,  # Cropland
-#   "3" = 3,  # Pasture/Grassland
-#   "4" = 4,  # Forest
-#   "5" = 5,  # Non-forest vegetation
-#   "6" = 6,  # Water
-#   "7" = 7,  # Barren or Other
-#   "255" = NA # No Data value
-# )
-
-# Function to map scenario LULC values to the 7 LULC types
-# map_values_to_land_use_scenario <- function(x) {
-#   sapply(x, function(val) {
-#     if (val %in% names(value_to_land_use_scenario)) {
-#       return(value_to_land_use_scenario[[as.character(val)]])
-#     } else {
-#       return(NA)  # Handle values that do not map to any land-use type
-#     }
-#   })
-# }
-
-# Apply the mapping to the BAU_PNAS_germany raster
-#mapped_BAU_PNAS_germany <- app(BAU_PNAS_2030_germany, fun = map_values_to_land_use_scenario)
