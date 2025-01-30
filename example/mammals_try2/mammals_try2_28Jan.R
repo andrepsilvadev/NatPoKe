@@ -33,10 +33,15 @@ library(tools) # for file without paths
 # CREATE DUMMY RASTER BASED ON SRIT GLOBAL SUITABILITIES #
 ##########################################################
 
-# Here SRTIT Databases Global suitability rasters for 2 species were imported,
-# cropped to a smaller extent in sweden and them duplicated 25 times so that the
+# Here SRIT Databases Global suitability rasters for 2 species were imported,
+# cropped to have only Sweden and them duplicated 25 times so that the
 # landscape to import to metaRange is "dynamic"
 
+# 20250130 Rangifer tarandus & cervus elaphus were added to the metarange runs
+# to test more how the parameters work adn the simulation was run for Sweden
+
+# sweden <- st_read("C:/Users/User/OneDrive - Universidade de Lisboa/Ambiente de Trabalho/gadm41_SWE_shp/gadm41_SWE_0.shp")
+# 
 # # list of raster files
 # raster_files <- list.files(here("example/mammals_try2/clean_data_2species"),
 #                             pattern = "_suitability.tif$", full.names = TRUE)
@@ -56,11 +61,8 @@ library(tools) # for file without paths
 #    # read the raster
 #    sp_raster <- rast(r)
 # 
-#    # define the bounding box
-#    bbox_SW <- ext(6.306152, 17.248535, 59.288332, 62.769811)
-# 
 #    # crop the raster to the bounding box
-#    cropped_raster <- terra::crop(sp_raster, bbox_SW)
+#    cropped_raster <- terra::crop(sp_raster, extent(sweden))
 # 
 #    # duplicate the layers 25 times
 #    duplicated_raster <- duplicate_layers(cropped_raster, times = 25)
@@ -72,8 +74,8 @@ library(tools) # for file without paths
 #    invisible(gc())
 #  }
 # 
-# # check rasters
-# alce <- rast(here("example/mammals_try2/clean_data_2species/Alcesalces_suitability_cropped_modified.tif"))
+# # # check rasters
+# alce <- rast(here("example/mammals_try2/clean_data_2species/Rangifertarandus_suitability_cropped_modified.tif"))
 # plot(alce)
 
 ###############
@@ -93,7 +95,7 @@ existing_files <- file.exists(here(file.path("example/mammals_try2/clean_data_2s
 # Identify species with missing files
 missing_species <- species_list[!existing_files]
 
-# Display a warning with just the species names
+# Display a WARNING with just the species names
 if (length(missing_species) > 0) {
   warning("No suitability files found for the following species: ", paste(missing_species, collapse = ", "))
 }
@@ -113,11 +115,16 @@ save_string <- here("example/mammals_try2/")
 # simulation parameters
 sim_name <- "example_01"
 
+species_traits[1,5] <- 1000 # alces abundance
+species_traits[2,5] <- 10 # lynx abundance
+species_traits[3,5] <- 10 # rangifer abundance
+species_traits[4,5] <- 10 # cervus abundance
 
-species_traits[2,5] <- 10
-species_traits[1,5] <- 1000
-species_traits[1,3] <- 10000
-species_traits[2,3] <- 100000
+species_traits[1,3] <- 10000 # alces carrying capacity
+species_traits[2,3] <- 1000000 # lynx carrying capacity
+species_traits[3,3] <- 10000 # rangifer carrying capacity
+species_traits[4,3] <- 10000 # cervu carrying capacity
+
 #species_traits[2,5] <- 25
 #species_traits[2,2] <- 2.25
 
@@ -338,7 +345,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
-save_string <- here("example/mammals_try2/results_28Jan")
+save_string <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results30Jan2025")
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
@@ -353,7 +360,7 @@ sim$add_process(
         # pass the species object
         self[[species]],
         # specify traits we want to save
-        traits = c("abundance", "reproductionRate"),
+        traits = "abundance",
         # a prefix for each time step
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
@@ -375,26 +382,4 @@ set_verbosity(1L)
 print("starting simulation")
 sim$begin()
 print("simulation finished")
-
-# save results in .csv file ----------------------------------------------------
-# 
-# # optionally save some results as csv
-# res_df <- data.frame()
-# for (i in species_names) {
-#   res_df <- rbind(
-#     res_df,
-#     data.frame(
-#       species = i,
-#       time = 1:sim$number_time_steps,
-#       alive = i %in% sim$globals[["alive_species"]],
-#       n_abundance = sim$globals[[i]][["n_abundance"]],
-#       n_occupied = sim$globals[[i]][["n_occupied"]],
-#       n_juveniles = sim$globals[[i]]["n_juveniles"]
-#     )
-#   )
-# }
-# write.csv(res_df, paste0(save_string, "/", sim_name, "_res_df.csv"), row.names = FALSE)
-# 
-
-
 

@@ -24,7 +24,9 @@ library(readr)
 # create empty list
 results <- list()
 
-species_names <- c("Alcesalces", "Ursusarctos", "Lynxlynx")
+species_traits <- read.csv(here("example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv"))
+
+species_names <- species_traits$species
 
 ##########
 # Step 2 #
@@ -34,7 +36,7 @@ species_names <- c("Alcesalces", "Ursusarctos", "Lynxlynx")
 for (sp in species_names) {
   
   # find raster files for the current species
-  flist <- list.files(here("example/mammals_try2/results_28Jan"), 
+  flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results30Jan2025"), 
                       pattern = paste0(sp, "_abundance.tif"), full.names = TRUE)
   
   # check if any files were found; if not, skip to the next
@@ -63,28 +65,31 @@ for (sp in species_names) {
     raster_data$timestep <- filename_parts[4] 
     raster_data$species <- sp                  # use current species name
     names(raster_data)[names(raster_data) == "lyr1"] <- filename_parts[6]
+    invisible(gc())
     
     # store result in a list, then append by species
     if (!is.null(results[[sp]])) {
       results[[sp]] <- rbind(results[[sp]], raster_data)
     } else {
       results[[sp]] <- raster_data
+      invisible(gc())
     }
   }
 }
 
 # combine all species results into one data frame
 final_results <- do.call(rbind, results)
+invisible(gc())
 #View(final_results)
 
-#WRITE RESULTS TO .tsv
-write_tsv(final_results, "example/mammals_try2/results_28Jan/final_results28Jan.tsv")
-
-library(data.table)
-
-View(raster_data)
-
-final_results <- fread("example/mammals_try2/results_28Jan/final_results28Jan.tsv")
+# #WRITE RESULTS TO .tsv
+# write_tsv(final_results, "example/mammals_try2/results_28Jan/final_results28Jan.tsv")
+# 
+# library(data.table)
+# 
+# View(raster_data)
+# 
+# final_results <- fread("example/mammals_try2/results_28Jan/final_results28Jan.tsv")
 
 final_results$taxa <- "Mammal"
 
@@ -95,7 +100,7 @@ library(ggplot2)
 final_results %>% 
   group_by(scenario, biome, timestep, taxa, species) %>% 
   summarise(mean_abundance = mean(abundance, na.rm = TRUE)) %>% 
-  ggplot(aes(x = timestep, y = mean_abundance, color = species)) +
+  ggplot(aes(x = timestep, y = mean_abundance, group = species, color = species)) +
   geom_line()
 
 lynx30 <- rast("~/NatPoKe/example/mammals_try2/results_28Jan/BAU_Tropical_Asia_030_Lynxlynx_abundance.tif")
