@@ -1,4 +1,6 @@
-
+## Name: NatPoKe_landuse_projection_BAU_scenario_Germany.R ##
+## Authors: Andre P. Silva & Jorinde-M. Rieger ##
+## Description: Includes the code to calculate and run the projections for the BAU scenario ##
 
 
 # Settings & libraries -------------------------------------------
@@ -9,9 +11,9 @@ source("./src/scenarios.R") # customized functions
 #plot(LULC_ESA_2017_germany)
 #plot(BAU_PNAS_2030_germany)
 
-# Simpliy and define ESA LULC types (39) to the 7 (SEALS) LULC types
-# Source of ESA LULC simplification scheme in Table S.2.4.1 of Supporting Information Appendix in Johnson et al. 2023 (https://www.pnas.org/doi/10.1073/pnas.2220401120#supplementary-materials)
-
+# Simplify and define ESA LULC types (39) to the 7 (SEALS) LULC types
+# Source of ESA LULC simplification scheme in Table S.2.4.1 of Supporting Information Appendix in Johnson et al. 2023 
+# (https://www.pnas.org/doi/10.1073/pnas.2220401120#supplementary-materials)
 value_to_land_use <- list(
   "190" = 1,  # Urban
   "10" = 2, "11" = 2, "12" = 2, "20" = 2, "30" = 2,  # Cropland
@@ -27,30 +29,18 @@ mapped_LULC_ESA_2017_germany <- terra::app(
   x = LULC_ESA_2017_germany,
   fun = map_values_to_land_use)
 
-# create binary maps for each land-use type
+# Create binary maps for each land-use type
 LULC_Types <- 1:7
 landUse_LULC_ESA_2017_germany <- lapply(LULC_Types, function(cat){
   terra::app(mapped_LULC_ESA_2017_germany, fun = function(x){
     return(ifelse(x == cat,1,0))
   })
 })
-
 landUse_BAU_PNAS_germany <- lapply(LULC_Types,function(cat){
   app(BAU_PNAS_2030_germany, fun = function(x){
     return(ifelse(x==cat,1,0))
   })
 })
-
-# Assign the names of land-use types
-LULC_Types_names <- c(
-  "Urban",
-  "Cropland",
-  "Pasture/Grassland",
-  "Forest",
-  "Non-forest vegetation",
-  "Water",
-  "Barren or other"
-)
 
 
 # Calculate the percentage of each land-use type
@@ -72,19 +62,27 @@ landUse_percentages_BAU_PNAS_2030_germany <- sapply(landUse_BAU_PNAS_germany, fu
   sum(values(layer), na.rm = TRUE) / sum(!is.na(values(layer))) * 100
 })
 
-# rename categories to land-use types
+# Assign the names of land-use types
+LULC_Types_names <- c(
+  "Urban",
+  "Cropland",
+  "Pasture/Grassland",
+  "Forest",
+  "Non-forest vegetation",
+  "Water",
+  "Barren or other"
+)
+# Rename categories to land-use types
 names(landUse_percentages_LULC_ESA_2017_germany)<-LULC_Types_names
 names(landUse_percentages_BAU_PNAS_2030_germany)<-LULC_Types_names
 
-# check results and total percentage
-print(landUse_percentages_LULC_ESA_2017_germany)
-print(landUse_percentages_BAU_PNAS_2030_germany)
+# Check results and total percentage
 total_percentage_LULC_ESA_2017_germany<-sum(landUse_percentages_LULC_ESA_2017_germany)
 total_percentage_BAU_PNAS_2030_germany<-sum(landUse_percentages_BAU_PNAS_2030_germany)
 
-# create the land use data frame for the projection
+# Create the land use data frame for the projection
 BAU_projection_data_germany <-data.frame()
-# create the data frame for the baseline 2017
+# Create the data frame for the baseline 2017
 LULC_ESA_2017_df <-data.frame(
   time =2017,
   value = landUse_percentages_LULC_ESA_2017_germany,
@@ -92,14 +90,14 @@ LULC_ESA_2017_df <-data.frame(
   landuse = names(landUse_percentages_LULC_ESA_2017_germany)
 )
 BAU_projection_data_germany <-rbind(BAU_projection_data_germany,LULC_ESA_2017_df)
-# extend the data frame for the baseline from 2017 to 2030
+# Extend the data frame for the baseline from 2017 to 2030
 for(year in 2018:2030){
   temp_df <- LULC_ESA_2017_df
   temp_df$time <- year
   BAU_projection_data_germany <- rbind(BAU_projection_data_germany,temp_df)
 }
 
-# create the data frame for the scenario 2030
+# Create the data frame for the scenario 2030
 BAU_PNAS_2030_df <-data.frame(
   time =2030,
   value = landUse_percentages_BAU_PNAS_2030_germany,
@@ -107,7 +105,7 @@ BAU_PNAS_2030_df <-data.frame(
   landuse = names(landUse_percentages_BAU_PNAS_2030_germany)
 )
 BAU_projection_data_germany <-rbind(BAU_projection_data_germany,BAU_PNAS_2030_df)
-# extend the data frame for the scenario from 2030 to 2050
+# Extend the data frame for the scenario from 2030 to 2050
 for(year in 2031:2050){
   temp_df <- BAU_PNAS_2030_df
   temp_df$time <- year
@@ -128,10 +126,7 @@ BAU_scenario_plot_germany <- ggplot(BAU_projection_data_germany, aes(x=time, y=v
   labs(x = "Year",
        y = "Average fraction of grid cell",
        title = "Land use change in Germany based on BAU scenario")
-
-print(BAU_scenario_plot_germany) # the plot has a gradual step from 2029 to 2030 and not one sharp one in 2030, 
-  something is different in the data frame (row names did not exist before).
-
+print(BAU_scenario_plot_germany)
 ggsave(path = "./output",
        filename = "BAU_scenario_plot_germany_test.png",
        plot = BAU_scenario_plot_germany,
@@ -242,31 +237,3 @@ ggsave(path = "./output",
        width = 25,
        height = 10,
        units = "cm")
-
-# not really sure what this part is doing so decided to remove it but let me know if it is important 
-
-# # Define the mapping from LULC types to the 7 LULC types (SEALS)
-# #value_to_land_use_scenario<-list(
-#   "1" = 1,  # Urban
-#   "2" = 2,  # Cropland
-#   "3" = 3,  # Pasture/Grassland
-#   "4" = 4,  # Forest
-#   "5" = 5,  # Non-forest vegetation
-#   "6" = 6,  # Water
-#   "7" = 7,  # Barren or Other
-#   "255" = NA # No Data value
-# )
-
-# Function to map scenario LULC values to the 7 LULC types
-# map_values_to_land_use_scenario <- function(x) {
-#   sapply(x, function(val) {
-#     if (val %in% names(value_to_land_use_scenario)) {
-#       return(value_to_land_use_scenario[[as.character(val)]])
-#     } else {
-#       return(NA)  # Handle values that do not map to any land-use type
-#     }
-#   })
-# }
-
-# Apply the mapping to the BAU_PNAS_germany raster
-#mapped_BAU_PNAS_germany <- app(BAU_PNAS_2030_germany, fun = map_values_to_land_use_scenario)
