@@ -1,4 +1,6 @@
-
+## Name: NatPoKe_landuse_projection_BAU_scenario_Germany.R ##
+## Authors: Andre P. Silva & Jorinde-M. Rieger ##
+## Description: Includes the code to calculate and run the projections for the BAU scenario ##
 
 
 # Settings & libraries -------------------------------------------
