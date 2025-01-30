@@ -56,7 +56,7 @@ for (sp in species_names) {
     # convert raster to a data frame with coordinates and values
     raster_data <- terra::as.data.frame(r, xy = TRUE, na.rm = TRUE, row.names = FALSE) 
     
-    # add information for easier identification of each raster (sp, timestpe, scenario, etc..)
+    # add information for easier identification of each raster (sp, timestpe, scTRUE# add information for easier identification of each raster (sp, timestpe, scenario, etc..)
     raster_data$scenario <- filename_parts[1]  # BAU
     raster_data$biome <- filename_parts[2]     # Tropical
     raster_data$region <- filename_parts[3]    # Asia
@@ -82,6 +82,7 @@ write_tsv(final_results, "example/mammals_try2/results_28Jan/final_results28Jan.
 
 library(data.table)
 
+View(raster_data)
 
 final_results <- fread("example/mammals_try2/results_28Jan/final_results28Jan.tsv")
 
@@ -97,8 +98,14 @@ final_results %>%
   ggplot(aes(x = timestep, y = mean_abundance, color = species)) +
   geom_line()
 
-alces <- rast("~/NatPoKe/example/mammals_try2/results_28Jan/BAU_Tropical_Asia_001_Lynxlynx_abundance.tif")
-plot(alces)
+lynx30 <- rast("~/NatPoKe/example/mammals_try2/results_28Jan/BAU_Tropical_Asia_030_Lynxlynx_abundance.tif")
+plot(lynx30)
+
+alces30 <- rast("~/NatPoKe/example/mammals_try2/results_28Jan/BAU_Tropical_Asia_030_Alcesalces_abundance.tif")
+plot(alces30)
+
+
+
 ################################
 # CALCULATE RESILIENCE METRICS #
 ################################
