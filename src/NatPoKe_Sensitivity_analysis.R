@@ -8,6 +8,9 @@ start.time <- Sys.time() # start the clock
 # packages
 library(data.table) # efficient and fast df transdformations (instead of dplyr option for e.g.)
 library(ggplot2)
+library(here)
+library(dplyr)
+library(tidyr)
 
 ###############################################
 # IMPORT SENSITIVYTY RUNS AND COMBINE PER RUN #
@@ -50,8 +53,8 @@ combined_data_095 <- data.table::rbindlist(data_095)
 # datacontrol <- data_control[grep("control", names(data_control))]
 # combined_data_control <- data.table::rbindlist(datacontrol)
 
-combined_data_control <- read_csv("~/NatPoKe/example/mammals_try2/results/all_data_together_22Jan.csv") %>% 
-  dplyr::select(-'...1') %>% 
+combined_data_control <- read.csv("example/mammals_try2/results_27Jan/all_data_together_22Jan.csv") %>% 
+  dplyr::select(-X) %>% 
   mutate(scenario = "BAU",
          biome = "Tropical",
          region = "Asia",
@@ -201,6 +204,7 @@ gc()
 
 # combining dataframes
 sens_run_control <- combined_data_control %>% 
+  mutate(time = sprintf("%03d", time)) %>% 
   left_join(combined_105, by = c("time", "x", "y", "species", "scenario", "biome", "region", "cell_id")) %>% 
   left_join(combined_095, by = c("time", "x", "y", "species", "scenario", "biome", "region", "cell_id"))
 
@@ -313,6 +317,7 @@ variables.labs <- c("abund" = "Abundance",
                     "hab" = "Habitat suitability",
                     "reprod" = "Reproduction")
 
+summary(simulations_long)
 
 #plot the results into a boxplot 
 #this running and saving this plot takes 40 min 
