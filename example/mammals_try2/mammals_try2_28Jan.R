@@ -360,7 +360,7 @@ sim$add_process(
         # pass the species object
         self[[species]],
         # specify traits we want to save
-        traits = "abundance",
+        traits = c("abundance","reproductionRate"),
         # a prefix for each time step
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
