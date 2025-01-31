@@ -1,5 +1,5 @@
 ## Name: libraries ##
-## Authors: Andre P. Silva ##
+## Authors: Andre P. Silva & Jorinde-M. Rieger ##
 ## Description: Loads land-use scenarios ##
 
 # Import data -------------------------------------------------------
@@ -35,7 +35,17 @@ germany_sf <- ne_countries(scale = "medium", country = "Germany", returnclass = 
 germany_sf <- st_transform(germany_sf,crs=crs(LULC_ESA_2017))
 # Convert the sf to a spatial object
 germany_sp <- vect(germany_sf)
+
 # Crop and mask the raster to Germany's boundary
 LULC_ESA_2017_germany <- mask(crop(LULC_ESA_2017,germany_sp),germany_sp)
 BAU_PNAS_2030_germany <- mask(crop(BAU_PNAS,germany_sp),germany_sp)
-
+BAU_rigid_2030_germany_2030_germany <- mask(crop(BAU_rigid,germany_sp),germany_sp)
+PESGC_2030_germany_2030_germany <- mask(crop(PESGC,germany_sp),germany_sp)
+PESLC_2030_germany_2030_germany <- mask(crop(PESLC,germany_sp),germany_sp)
+SR_Land_2030_germany_2030_germany <- mask(crop(SR_Land,germany_sp),germany_sp)
+SR_RnD_20p_2030_germany_2030_germany <- mask(crop(SR_RnD_20p,germany_sp),germany_sp)
+SR_Land_PESGC_2030_germany_2030_germany <- mask(crop(SR_Land_PESGC,germany_sp),germany_sp)
+SR_PESLC_2030_germany_2030_germany <- mask(crop(SR_PESLC,germany_sp),germany_sp)
+SR_RnD_20p_PESGC_2030_germany_2030_germany <- mask(crop(SR_RnD_20p_PESGC,germany_sp),germany_sp)
+SR_RnD_20p_PESGC_30_2030_germany_2030_germany <- mask(crop(SR_RnD_20p_PESGC_30,germany_sp),germany_sp)
+SR_RnD_PESLC_2030_germany_2030_germany <- mask(crop(SR_RnD_PESLC,germany_sp),germany_sp)
