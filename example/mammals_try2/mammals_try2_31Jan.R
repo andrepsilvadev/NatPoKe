@@ -1,7 +1,7 @@
 ######################################
 # 4th TRY WITH metaRange FOR MAMMALS #
 ################ MIS #################
-# 28 Jan 2025
+# 31 Jan 2025
 
 
 # GOAL: Running the model for a couple of mammals species
