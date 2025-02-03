@@ -42,20 +42,22 @@ library(data.table)
 targetspecies <- c("Alcesalces", "Lynxlynx")
 
 # (2) independentDensity
-santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
+santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
   # santini's dataframe has species names with spaces but metaRange does not like spaces
   # remove spaces again
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # (3) estimatedDensity
-estimatedDensity <- fread("~/NatPoKe/example/mammals_try2/results_28Jan/final_results28Jan.tsv") %>% 
+estimatedDensity <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results_28Jan/final_results28Jan.tsv") %>% 
   mutate(cell_id = paste0(x,y))
 
+
+
 # import a raster to get cell size
-size <- res(terra::rast("~/NatPoKe/example/mammals_try2/clean_data_2species/Lynxlynx_suitability_cropped_modified.tif"))
+size <- res(terra::rast(here("example/mammals_try2/clean_data_2species", "Lynxlynx_suitability_cropped_modified.tif")))
 
 # (4) spData
-spData <- read.csv("~/NatPoKe/example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv") %>% 
+spData <- read.csv(here("example/mammals_try2/clean_data_2species", "target_metarange_mammals20250110.csv")) %>% 
   mutate(ModellingRes = size[[1]]*size[[2]])
   #IF WE WANT TO GO BACK TO THE ORIGINAL IDEA OF USING SANTINI'S "MEASUREMENTS" OF PREDICTED DENSITIES
   # to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022

@@ -19,7 +19,7 @@ library(sf)
 
 # import data
 example_01_res_df <- read_csv(
-  "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/example_01_res_df.csv")
+  "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/example_01_res_df.csv")
 
 # Define scenarios, biomes, species, and taxa
 scenarios <- c("BAU", "policy A", "policy B", "policy C", "policy D", "policy E", "policy F")

@@ -14,9 +14,10 @@ library(rnaturalearth) # for world maps
 library(rnaturalearthdata) # for world maps
 library(sf)
 library(rphylopic) # for icon on plots
+library(here)
 
 # import dummy dataset
-dummy_dataset <- read_csv("~/NatPoKe/data/dummy_dataset_Jan2025.csv")
+dummy_dataset <- read_csv(here("data", "dummy_dataset_Jan2025.csv"))
 
 # specify burn in timestep & policy start
 t_burnin <- 2

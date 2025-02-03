@@ -13,8 +13,8 @@ output:
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, message=FALSE}
-knitr::opts_knit$set(root.dir = '~/NatPoKe/src') # this allows me to use diferent sources
-knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_knit$set(root.dir = '~/NatPoKe/src') # this allows me to use diferent sources
+#knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, include=FALSE}
