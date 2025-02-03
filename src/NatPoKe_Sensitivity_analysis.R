@@ -484,9 +484,9 @@ sens_analysis <- ggplot(simulations_long, aes(x = as.factor(Simulation), y = Val
         legend.key = element_rect(fill = "white", colour = NA))
 #sens_analysis
 
-ggsave(plot = sens_analysis,
-       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/Sensitivity_analysis_31Jan2025.tiff",
-       bg = 'white', width = 250, height = 230, units = "mm", dpi = 1200, compression = "lzw")
+#ggsave(plot = sens_analysis,
+      # file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/Sensitivity_analysis_31Jan2025.tiff",
+       #bg = 'white', width = 250, height = 230, units = "mm", dpi = 1200, compression = "lzw")
 
 
 end.time <- Sys.time() # end the clock
