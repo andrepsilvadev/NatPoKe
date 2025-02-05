@@ -18,8 +18,8 @@ results_list <- list()
 raster_types <- c("abundance", "reproductionRate", "mortality", "carrying_capacity", "dispersal_distance")
 
 # Read species data
-species_traits <- read.csv(here("example/mammals_try2/clean_data_2species/target_metarange_mammals20250110.csv"))
-species_names <- species_traits$species
+species_traits <- read.csv(here("data","metaRangeSpeciesDataframe.csv"))
+species_names <- species_traits$Species
 
 ##########
 # STEP 2 #  loop through each species and raster type
@@ -33,7 +33,7 @@ for (sp in species_names) {
   for (raster_type in raster_types) {
     
     # find the raster files (for a sps and raster type)
-    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/test"), 
+    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results05Feb2025"), 
                         pattern = paste0(sp, "_", raster_type, ".tif"), full.names = TRUE)
     
     # skip if no files found print WARNING
@@ -47,6 +47,7 @@ for (sp in species_names) {
       
       # read
       r <- terra::rast(raster)
+      invisible(gc())
       
       # retrieve filename and split it
       filename <- basename(raster)
@@ -54,13 +55,15 @@ for (sp in species_names) {
       
       # convert raster to data frame (with coordinates and values)
       raster_data <- terra::as.data.frame(r, xy = TRUE, na.rm = TRUE, row.names = FALSE)
+      invisible(gc())
       
       # add more info as new columns
       raster_data$scenario <- filename_parts[1] # BAU
       raster_data$biome <- filename_parts[2] # TropicalForests
       raster_data$region <- filename_parts[3] # Asia    
       raster_data$timestep <- filename_parts[4] # 001  
-      raster_data$species <- sp                  
+      raster_data$species <- sp 
+      invisible(gc())
       
       # rename raster value column to the corresponding variable = raster type
       names(raster_data)[names(raster_data) == "lyr1"] <- raster_type
@@ -70,6 +73,7 @@ for (sp in species_names) {
         species_data[[raster_type]] <- rbind(species_data[[raster_type]], raster_data)
       } else {
         species_data[[raster_type]] <- raster_data
+        invisible(gc())
       }
     }
   }
@@ -86,3 +90,15 @@ final_results <- do.call(rbind, results_list)
 
 # check results!!!!!!!!!!!
 head(final_results)
+
+
+write.csv(final_results, "metaRangeOutputs05Fev2025.csv" )
+invisible(gc())
+
+final_results$taxa <- "Mammal"
+library(ggplot2)
+final_results %>% 
+  group_by(scenario, biome, timestep, taxa, species) %>% 
+  summarise(mean_abundance = mean(abundance, na.rm = TRUE)) %>% 
+  ggplot(aes(x = timestep, y = mean_abundance, group = species, color = species)) +
+  geom_line()

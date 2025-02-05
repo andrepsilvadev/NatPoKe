@@ -1,8 +1,8 @@
 ######################################
 # 4th TRY WITH metaRange FOR MAMMALS #
-################ MIS #################
-# 31 Jan 2025
-
+######################################
+# Ines Silva
+# 04 Feb 2025
 
 # GOAL: Running the model for a couple of mammals species
 # use global suitability landscape and repeat layers one 25 time so in the end
