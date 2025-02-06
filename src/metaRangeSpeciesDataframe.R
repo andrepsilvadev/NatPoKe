@@ -49,12 +49,14 @@ for (file in landscapes) {
   
   # put those sizes into the dataframe
   landscape_df <- rbind(landscape_df, data.frame(Species = species,
-                                                 pixel_size_x = res_x*1000,
-                                                 pixel_size_y = res_y*1000))
+                                                 # for now 20250296 we are simplifying because we know pixels are 5km
+                                                 pixel_size_x = 5, # this should be the pixel size * 110
+                                                 pixel_size_y = 5) # this should be the pixel size * 110
+                        ) 
 }
 # check pixels sizes
 #landscape_df
-
+crs(rast_obj)
 # merge with combined traits dataframe
 combined_traits_data <- merge(combined_traits_data, landscape_df, by = "Species", all.x = TRUE)
 
