@@ -4,7 +4,6 @@
 # Ines Silva
 # 04 Feb 20025
 
-
 # GOAL: Running the model for mammals species
 
 #######################
@@ -144,7 +143,7 @@ for (i in seq_len(nrow(species_traits))) {
   sim$add_traits(
     species = this_species,
     population_level = FALSE,
-    "dispersalDistance" =  species_traits[["dispersalCaxCistance"]][i],
+    "dispersalDistance" =  species_traits[["dispersalDistance"]][i],
     "maxReproductionRate" = species_traits[["reproductionRate"]][i],
     "maxCarryingCapacity" = species_traits[["carryingCapacity"]][i],
     
@@ -152,7 +151,7 @@ for (i in seq_len(nrow(species_traits))) {
     "dispersalKernel" = calculate_dispersal_kernel(
       max_dispersal_dist = as.integer(species_traits[["dispersalMaxDistance"]][i]),
       kfun = negative_exponential_function,
-      mean_dispersal_dist = species_traits[["dispersalMaxDistance"]][i] / 2,
+      mean_dispersal_dist = species_traits[["dispersalDistance"]][i] / 2,
     )
   )
 }
