@@ -33,7 +33,7 @@ for (sp in species_names) {
   for (raster_type in raster_types) {
     
     # find the raster files (for a sps and raster type)
-    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results05Feb2025"), 
+    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2"), 
                         pattern = paste0(sp, "_", raster_type, ".tif"), full.names = TRUE)
     
     # skip if no files found print WARNING
@@ -92,11 +92,12 @@ final_results <- do.call(rbind, results_list)
 head(final_results)
 
 
-write.csv(final_results, "metaRangeOutputs05Fev2025.csv" )
+write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/metaRangeOutputs06Fev2025v2.csv" )
 invisible(gc())
 
 final_results$taxa <- "Mammal"
 library(ggplot2)
+library(dplyr)
 final_results %>% 
   group_by(scenario, biome, timestep, taxa, species) %>% 
   summarise(mean_abundance = mean(abundance, na.rm = TRUE)) %>% 

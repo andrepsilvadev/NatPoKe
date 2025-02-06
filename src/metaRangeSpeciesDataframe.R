@@ -74,12 +74,12 @@ spData <- tibble(
   CellResolution = as.numeric(combined_traits_data$pixel_size_x*combined_traits_data$pixel_size_y), # cell area  in Km2 (as santini data comes in Ind/km)
   #ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))),
   #ProjRes = ModellingRes*1000,
-  initialAbundance = (as.numeric(combined_traits_data$IndsHaCell))*CellResolution, # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
-  carryingCapacity = as.numeric(combined_traits_data$TargetHaDensity)*CellResolution, # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
+  initialAbundance = ceiling(as.numeric(combined_traits_data$IndsHaCell)*CellResolution), # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
+  carryingCapacity = ceiling(as.numeric(combined_traits_data$TargetHaDensity)*CellResolution), # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
   reproductionRate = combined_traits_data$Stage1Fecundity, # Litter size
   dispersalDistance = combined_traits_data$MeanDisp, # mean dispersal distance based om trophic level (km, Schloss et al. 2012)
   dispersalMaxDistance = combined_traits_data$LongDisp, # maximum long distance dispersal based on trophic level (km, Schloss et al. 2012)
-) %>%
+  yearlySurvivalRate = 1- combined_traits_data$Stage1Mortality) %>%
   drop_na()
 
 # check NA's
