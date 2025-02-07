@@ -107,6 +107,8 @@ sim_env <- sds(list.files(here("example/mammals_try2/clean_data_2species"), patt
 #####################
 #### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
 
+#plot(rast(here("example/mammals_try2/clean_data_2species", "Rangifertarandus_suitability_cropped_modified.tif")))
+
 # create a simulation object ---------------------------------------------------
 
 sim <- create_simulation(sim_env)
@@ -118,6 +120,8 @@ sim <- create_simulation(sim_env)
 # >  1  1  1  1  1  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
 
 sim$set_time_layer_mapping(c(rep(1, 5), seq_len(min(nlyr(sim_env)))))
+
+plot(sim_env$Rangifertarandus_suitability_cropped_modified)
 
 # add species ------------------------------------------------------------------
 
@@ -364,7 +368,7 @@ sim$add_process(
       )
     }
   },
-  execution_priority = 7
+  execution_priority = 9
 )
 
 # run simulation ---------------------------------------------------------------

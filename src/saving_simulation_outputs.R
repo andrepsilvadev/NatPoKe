@@ -95,11 +95,29 @@ head(final_results)
 write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/metaRangeOutputs06Fev2025v2.csv" )
 invisible(gc())
 
-final_results$taxa <- "Mammal"
+#####################
+# JUST TESTING DATA #
+#####################
+
+library(data.table)
 library(ggplot2)
 library(dplyr)
-final_results %>% 
-  group_by(scenario, biome, timestep, taxa, species) %>% 
-  summarise(mean_abundance = mean(abundance, na.rm = TRUE)) %>% 
-  ggplot(aes(x = timestep, y = mean_abundance, group = species, color = species)) +
+library(terra)
+
+results06feb <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/metaRangeOutputs06Fev2025v2.csv")
+results06feb$taxa <- "Mammal"
+
+
+mean_abund <- results06feb %>% 
+  group_by(x, y) %>%
+  mutate(cell_id = cur_group_id()) %>%
+  ungroup() %>% 
+  group_by(scenario, biome, region, taxa, species, timestep) %>%
+  dplyr::filter(abundance != 0) %>% 
+  summarise(mean_abundance = mean(abundance, na.rm = TRUE))
+
+ggplot(mean_abund, aes(x= timestep , y = mean_abundance, group = species, fill = species)) +
   geom_line()
+
+plot(rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/BAU_Tropical_Asia_030_Rangifertarandus_abundance.tif"))
+
