@@ -12,6 +12,7 @@ library(viridis)
 library(rnaturalearth) # for world maps
 library(rnaturalearthdata) # for world maps
 library(sf)
+library(here)
 
 ###########################################
 # CREATE DUMMY DATASET BASED ON MetaRange #
@@ -19,7 +20,7 @@ library(sf)
 
 # import data
 example_01_res_df <- read_csv(
-  "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/example_01_res_df.csv")
+  "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/example_01_res_df.csv")
 
 # Define scenarios, biomes, species, and taxa
 scenarios <- c("BAU", "policy A", "policy B", "policy C", "policy D", "policy E", "policy F")
@@ -65,42 +66,78 @@ dummy_dataset <- dummy_dataset[, c("scenario", "biome", "region", "time", "cell_
 #write.csv(dummy_dataset, "~/NatPoKe/data/dummy_dataset_Jan2025.csv")
 invisible(gc())
 
+###############################
+# TOTAL NUMBER OF INDIVIDUALS #
+###############################
+
+t_burnin <- 2
+t_policy <- 5
+
+# !!! BE CAREFULL !!! #
+## Total number of individuals is different from mean number of individuals
+## In a landscape with three cells where cell 1 has two moose, cell 2 has three
+## moose and cell 3 has no moose, the total number of individuals in the landscape
+## would be 2+3+0 = 5 moose. But if we wanted the mean abundance of moose in those
+## three cells it would be (2+3)/2 = 2.5 moose
+
+# Total number of individuals (TNIND) per year and cellid
+TNIND <- dummy_dataset %>%
+  group_by(species, taxa, biome, scenario, time, cell_id) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
+  dplyr::summarize(sum_TNIND = sum(n_abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
+                   n = n()) %>% 
+  dplyr::select(!n) %>% 
+  group_by(species, taxa, biome, scenario, time, cell_id) %>% # KEEP SIM BUT REMOVE REP HERE
+  dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
+
+
+# Total number of individuals per year
+TNIND_yr <- TNIND %>% # n cells used for the calculus
+  group_by(species, taxa, biome, scenario, time) %>%
+  dplyr::summarize(mean_yr = mean(mean_TNIND, na.rm = TRUE), # cell mean 
+                   sd_yr = sd(mean_TNIND, na.rm = TRUE),
+                   n = n()) %>% 
+  dplyr::select(!n) %>% 
+  dplyr::filter(time >= t_burnin)
+
+TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = time, y = mean_yr)) + 
+  geom_line() + 
+  facet_wrap(scenario~ species, scales = "free_y", ncol = 5) +
+  labs(y = "Total number of individuals") +
+  theme_minimal() +
+  geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
 
 
 ################################
 # CALCULATE RESILIENCE METRICS #
 ################################
 
-t_burnin <- 2
-t_policy <- 5
-
 # calculate post policy mean value for the recovery time metric 
 # to be possible in one go with the other metrics)
-post_disturbance_values <- dummy_dataset %>%
+post_disturbance_values <- TNIND_yr %>%
   filter(time >= t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(time >= t_burnin &
                            time <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
   group_by(biome, species, scenario, period, taxa) %>%
   filter(period == "Post") %>% # filter for the post policy period only
-  summarise(mean_post = mean(n_abundance, na.rm = TRUE))
+  summarise(mean_post = mean(mean_yr, na.rm = TRUE))
 invisible(gc())
 
 # calculate all stability metrics per biome, policy & species
-stability_sps <- dummy_dataset %>%
+stability_sps <- TNIND_yr %>%
   filter(time >= t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(time >= t_burnin & time <= t_policy, "Pre", "Post")) %>%  # code pre and post policy
   left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "taxa")) %>%
   group_by(biome, species, scenario, period, taxa) %>%
-  summarise(mean = mean(n_abundance, na.rm = TRUE),
+  summarise(mean = mean(mean_yr, na.rm = TRUE),
             # find mean nº of individuals
-            min = min(n_abundance, na.rm = TRUE),
+            min = min(mean_yr, na.rm = TRUE),
             # find min. nº of individuals
-            max = max(n_abundance, na.rm = TRUE),
+            max = max(mean_yr, na.rm = TRUE),
             # find max. nº of individuals
-            impact_year = time[which.min(n_abundance)],
+            impact_year = time[which.min(mean_yr)],
             # find the year the pop. reaches a min. value in the post policy period
-            recovery_year = ifelse(any(time > t_policy & n_abundance >= mean_post),
-                                   min(time[time > t_policy & n_abundance >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
+            recovery_year = ifelse(any(time > t_policy & mean_yr >= mean_post),
+                                   min(time[time > t_policy & mean_yr >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
                                    NA), .groups = "drop") %>%
   pivot_wider(names_from = period, values_from = c(mean, min, max, impact_year, recovery_year)) %>%
   dplyr::select(!c(impact_year_Pre, recovery_year_Pre)) %>% # remove year of min. nº of individuals in the pre policy period and the year in which the nº ind is equal to the mean values of the post policy period
@@ -188,7 +225,10 @@ figure1 <- stability_avg_long %>%
 figure1
 invisible(gc())
 
-#ggsave(plot = figure1, file = "~/NatPoKe/output/dummy_figures/Figure1_Impact&Recovery.tiff", bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+ggsave(plot = figure1,
+       file = here("output", "dummy_figures", "Figure1_Impact&Recovery.tiff"),
+       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+
 
 
 ######################
@@ -229,4 +269,6 @@ suplementary_figure1 <- stability_avg_long %>%
 suplementary_figure1
 invisible(gc())
 
-#ggsave(plot = suplementary_figure1, file = "~/NatPoKe/output/dummy_figures/Suplementary_figure1_TimeImpact&TimeRecovery.tiff", bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+ggsave(plot = suplementary_figure1,
+       file = here("output", "dummy_figures", "Suplementary_figure1_TimeImpact&TimeRecovery.tiff"),
+       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
