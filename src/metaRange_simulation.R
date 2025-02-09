@@ -107,7 +107,7 @@ sim_env <- sds(list.files(here("example/mammals_try2/clean_data_2species"), patt
 #####################
 #### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
 
-#plot(rast(here("example/mammals_try2/clean_data_2species", "Rangifertarandus_suitability_cropped_modified.tif")))
+plot(rast(here("example/mammals_try2/clean_data_2species", "Rangifertarandus_suitability_cropped_modified.tif")))
 
 # create a simulation object ---------------------------------------------------
 
@@ -167,6 +167,8 @@ sim$add_globals(
   # keep track of the species that are still alive
   "alive_species" = species_names
 )
+
+plot(sim$Rangifertarandus, "abundance")
 # add global variables ---------------------------------------------------------
 
 # add some global variables to track stats

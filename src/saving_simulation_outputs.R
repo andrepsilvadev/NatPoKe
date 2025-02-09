@@ -119,5 +119,5 @@ mean_abund <- results06feb %>%
 ggplot(mean_abund, aes(x= timestep , y = mean_abundance, group = species, fill = species)) +
   geom_line()
 
-plot(rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/BAU_Tropical_Asia_030_Rangifertarandus_abundance.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/BAU_Tropical_Asia_001_Rangifertarandus_abundance.tif"))
 
