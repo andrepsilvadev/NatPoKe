@@ -52,6 +52,7 @@ invisible(gc())
 
 # calculate the Shannon index
 Shannon_index <- dummy_dataset %>%
+  dplyr::filter(n_abundance != 0) %>% # keep only cells where species exist 
   group_by(biome, scenario, time, cell_id) %>%
   dplyr::mutate(p_i = n_abundance / sum(n_abundance),
                 # calculate proportion of individuals of species i
@@ -67,6 +68,7 @@ invisible(gc())
 trophic_levels <- c("herbivore", "carnivore", "omnivore")
 
 Funct_diversity <- dummy_dataset %>%
+  dplyr::filter(n_abundance != 0) %>% # keep only cells where species exist
   mutate(trophic_level = ifelse(dummy_dataset$species %in% c("SpeciesA", "SpeciesB"), "herbivore",
                                 ifelse(dummy_dataset$species == "SpeciesC", "omnivore",
                                        ifelse(dummy_dataset$species %in% c("SpeciesD", "SpeciesE"), "carnivore", NA)))) %>%
