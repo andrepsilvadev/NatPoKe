@@ -42,6 +42,9 @@ library(tools) # for file without paths
 ## Species Trait Dataframe -----------------------------------------------------
 
 species_traits <- read.csv(here("data","metaRangeSpeciesDataframe.csv"))
+#species_traits$dispersalDistance <- species_traits$dispersalDistance*1000
+#species_traits$dispersalMaxDistance <- species_traits$dispersalMaxDistance*1000
+species_traits <- species_traits[4,]
 
 ## Global Suitability Landscapes - for each species ----------------------------
 ### (available on SRIT DATABASE Google drive)
@@ -103,11 +106,11 @@ sim_name <- "example_01"
 # Landscape --------------------------------------------------------------------
 
 # load the environment
-sim_env <- sds(list.files(here("example/mammals_try2/clean_data_2species"), pattern = "_cropped_modified.tif", full.names = TRUE))
+sim_env <- sds(list.files(here("example/mammals_try2/clean_data_2species"), pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
 #####################
 #### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
 
-plot(rast(here("example/mammals_try2/clean_data_2species", "Rangifertarandus_suitability_cropped_modified.tif")))
+rast(here("example/mammals_try2/clean_data_2species", "Rangifertarandus_suitability_cropped_modified_reprojected.tif"))
 
 # create a simulation object ---------------------------------------------------
 
@@ -121,7 +124,7 @@ sim <- create_simulation(sim_env)
 
 sim$set_time_layer_mapping(c(rep(1, 5), seq_len(min(nlyr(sim_env)))))
 
-plot(sim_env$Rangifertarandus_suitability_cropped_modified)
+#plot(sim_env$Rangifertarandus_suitability_cropped_modified)
 
 # add species ------------------------------------------------------------------
 
@@ -168,7 +171,7 @@ sim$add_globals(
   "alive_species" = species_names
 )
 
-plot(sim$Rangifertarandus, "abundance")
+#plot(sim$Rangifertarandus, "abundance")
 # add global variables ---------------------------------------------------------
 
 # add some global variables to track stats
@@ -189,8 +192,8 @@ for (i in species_names) {
 do.call(sim$add_globals, species_sum_abundance)
 
 sim$Rangifertarandus$traits$abundance
-plot(sim$Rangifertarandus, "abundance")
-plot(sim$Lynxlynx, "abundance")
+#plot(sim$Rangifertarandus, "abundance")
+#plot(sim$Lynxlynx, "abundance")
 # add processes ----------------------------------------------------------------
 
 # To simplify the example, we just add the same processes for all species here
@@ -198,7 +201,7 @@ sim$add_process(
   species = species_names,
   process_name = "suitability_influence_population_parameter",
   process_fun = function() {
-    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified")
+    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojected")
     
     self$traits[["carryingCapacity"]] <-
       self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -243,7 +246,7 @@ sim$add_process(
 #           self$traits[["abundance"]],
 #           self$traits[["yearlySurvivalProbability"]] *
 #             self$traits[["overpopulation"]] *
-#             self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified")]]
+#             self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
 #         ),
 #         nrow = nrow(self$traits[["abundance"]]),
 #         ncol = ncol(self$traits[["abundance"]])
@@ -262,7 +265,7 @@ sim$add_process(
     
     # how many of the adult population survive, based on the environment suitability
     self$traits[["abundance"]] <-
-      self$traits[["abundance"]] * self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified")]]
+      self$traits[["abundance"]] * self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
     
     # how many of the juveniles grow up and become adults
     self$traits[["abundance"]] <-
@@ -289,7 +292,7 @@ sim$add_process(
     # i.e. individuals disperse more likely into more suitable cells
     self$traits[["abundance"]] <- dispersal(
       abundance = self$traits[["abundance"]],
-      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified")]],
+      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
   },
   execution_priority = 6
@@ -346,7 +349,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
-save_string <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2")
+save_string <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results10Feb2025")
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
@@ -385,7 +388,7 @@ print("simulation finished")
 ################################
 
 # output file path
-output_file <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2", 
+output_file <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results10Feb2025", 
                     "metaRangeSimulationSettings.txt")
 
 # define the species names
