@@ -2,7 +2,7 @@
 # HOW TO RUN metaRange FOR MAMMALS #
 ####################################
 # Ines Silva
-# 04 Feb 20025
+# 11 Feb 20025
 
 # GOAL: Running the model for mammals species
 
@@ -36,7 +36,7 @@ library(sf)
 library(tools) # for file without paths
 
 ###############
-# Input files #
+# INPUT FILES #
 ###############
 
 ## Species Trait Dataframe -----------------------------------------------------
@@ -107,10 +107,7 @@ sim_name <- "example_01"
 
 # load the environment
 sim_env <- sds(list.files(here("example/mammals_try2/clean_data_2species"), pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
-#####################
-#### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
-
-rast(here("example/mammals_try2/clean_data_2species", "Rangifertarandus_suitability_cropped_modified_reprojected.tif"))
+##################### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
 
 # create a simulation object ---------------------------------------------------
 
@@ -123,8 +120,6 @@ sim <- create_simulation(sim_env)
 # >  1  1  1  1  1  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
 
 sim$set_time_layer_mapping(c(rep(1, 5), seq_len(min(nlyr(sim_env)))))
-
-#plot(sim_env$Rangifertarandus_suitability_cropped_modified)
 
 # add species ------------------------------------------------------------------
 
@@ -171,7 +166,6 @@ sim$add_globals(
   "alive_species" = species_names
 )
 
-#plot(sim$Rangifertarandus, "abundance")
 # add global variables ---------------------------------------------------------
 
 # add some global variables to track stats
@@ -191,12 +185,8 @@ for (i in species_names) {
 }
 do.call(sim$add_globals, species_sum_abundance)
 
-sim$Rangifertarandus$traits$abundance
-#plot(sim$Rangifertarandus, "abundance")
-#plot(sim$Lynxlynx, "abundance")
 # add processes ----------------------------------------------------------------
 
-# To simplify the example, we just add the same processes for all species here
 sim$add_process(
   species = species_names,
   process_name = "suitability_influence_population_parameter",
@@ -209,78 +199,52 @@ sim$add_process(
     self$traits[["reproductionRate"]] <-
       self$traits[["maxReproductionRate"]] * self$sim$environment$current[[species_suitability_name]]
   },
-  execution_priority = 2
+  execution_priority = 1
 )
 
-
-sim$add_process(
-  species = species_names,
-  process_name = "reproduction",
-  process_fun = function() {
-    self$traits[["abundance"]] <-
-      ricker_reproduction_model(
-        self$traits[["abundance"]],
-        self$traits[["reproductionRate"]],
-        self$traits[["carryingCapacity"]]
-      )
-  },
-  execution_priority = 3
-)
-# 
-# sim$add_process(
-#   species = species_names,
-#   process_name = "adult_mortality",
-#   process_fun = function() {
-#     
-#     self$traits[["overpopulation"]] <-
-#       1 / (
-#         self$traits[["abundance"]] /
-#           self$traits[["carryingCapacity"]]
-#       )
-#     self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
-#     
-#     self$traits[["abundance"]] <-
-#       matrix(
-#         rbinom(
-#           ncell(self$traits[["abundance"]]),
-#           self$traits[["abundance"]],
-#           self$traits[["yearlySurvivalProbability"]] *
-#             self$traits[["overpopulation"]] *
-#             self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
-#         ),
-#         nrow = nrow(self$traits[["abundance"]]),
-#         ncol = ncol(self$traits[["abundance"]])
-#       )
-#   },
-#   execution_priority = 4
-# )
 
 sim$add_process(
   species = species_names,
   process_name = "reproduction_age_structured",
   process_fun = function() {
     
-    # calculate how many juveniles are produced
-    self$traits[["juvenileAbundance"]] <- self$traits[["abundance"]] * self$traits[["reproductionRate"]]
-    
     # how many of the adult population survive, based on the environment suitability
-    self$traits[["abundance"]] <-
-      self$traits[["abundance"]] * self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
+    self$traits[["adultAbundance"]] <-
+      self$traits[["adultAbundance"]] * self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
+    
+    # calculate how many juveniles are produced
+    self$traits[["juvenileAbundance"]] <- self$traits[["adultAbundance"]] * self$traits[["reproductionRate"]]
+    
     
     # how many of the juveniles grow up and become adults
-    self$traits[["abundance"]] <-
-      self$traits[["abundance"]] +
+    self$traits[["?????"]] <-
+      self$traits[["adultAbundance"]] +
       self$traits[["juvenileAbundance"]] *
       (1 - self$traits[["juvenileAbundance"]] / self$traits[["carryingCapacity"]])
-    
-    # make sure we don't exceed the carrying capacity
-    exeed_populations <- self$traits[["abundance"]] > self$traits[["carryingCapacity"]] #check where abundance exceeds the carrying capacity - result is TRUE or FALSE
-    exeed_populations[is.na(exeed_populations)] <- FALSE # handle missing values
-    self$traits[["abundance"]][exeed_populations] <-
-      self$traits[["carryingCapacity"]][exeed_populations] # where populations exceed carrying capacity, the abundance is changed to match carrying capacity
-    
   },
-  execution_priority = 5
+  execution_priority = 2
+)
+
+
+sim$add_process(
+  species = species_names,
+  process_name = "adult_mortality",
+  process_fun = function() {
+
+    self$traits[["totalAbundance"]] <-
+      matrix(
+        rbinom(
+          ncell(self$traits[["totalAbundance"]]),
+          self$traits[["totalAbundance"]],
+          self$traits[["yearlySurvivalProbability"]] *
+            self$traits[["overpopulation"]] *
+            self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
+        ),
+        nrow = nrow(self$traits[["totalAbundance"]]),
+        ncol = ncol(self$traits[["totalAbundance"]])
+      )
+  },
+  execution_priority = 3
 )
 
 
@@ -295,7 +259,46 @@ sim$add_process(
       weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
   },
-  execution_priority = 6
+  execution_priority = 4
+)
+
+
+sim$add_process(
+  species = species_names,
+  process_name = "dispersal_overpopulation",
+  process_fun = function() {
+    
+    
+    self$traits[["overpopulation"]] <-
+      1 / (
+        self$traits[["population_size"]] /
+          self$traits[["carry_capacity"]]
+      )
+    self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
+    
+    dispersing_population <- pmax(self$traits[["population_size"]] - self$traits[["carry_capacity"]], 0)
+    self$traits[["population_size"]] <- self$traits[["population_size"]] - dispersing_population
+    
+    dispersing_population <-
+      dispersal(
+        self$traits[["large_kernel"]],
+        dispersing_population,
+        self$sim$environment$current$habitat * self$traits[["overpopulation"]]
+      )
+    
+    dispersing_population <-
+      matrix(
+        rpois(ncell(dispersing_population), dispersing_population),
+        nrow = nrow(self$traits[["population_size"]]),
+        ncol = ncol(self$traits[["population_size"]])
+      )
+    
+    self$traits[["population_size"]] <-
+      self$traits[["population_size"]] +
+      dispersing_population
+    
+  },
+  execution_priority = 5
 )
 
 
@@ -307,7 +310,7 @@ sim$add_process(
       self[[i]]$traits[["abundance"]] <- trunc(self[[i]]$traits[["abundance"]])
     }
   },
-  execution_priority = 7
+  execution_priority = 6
 )
 
 
@@ -343,16 +346,17 @@ sim$add_process(
         sum(self[[i]]$traits[["juvenileAbundance"]] > 1, na.rm = TRUE)
     }
   },
-  execution_priority = 8
+  execution_priority = 7
 )
 
 # saving the results -----------------------------------------------------------
-# OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
+# OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 save_string <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results10Feb2025")
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
+
 sim$add_process(
   process_name = "save_results",
   process_fun = function() {
@@ -373,7 +377,7 @@ sim$add_process(
       )
     }
   },
-  execution_priority = 9
+  execution_priority = 8
 )
 
 # run simulation ---------------------------------------------------------------
