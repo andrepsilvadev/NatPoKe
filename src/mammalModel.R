@@ -2,7 +2,7 @@
 # HOW TO RUN metaRange FOR MAMMALS #
 ####################################
 # Ines Silva
-# 11 Feb 20025
+# 11 Feb 2025
 
 # GOAL: Running the model for mammals species
 
@@ -56,7 +56,7 @@ sim_name <- "example_01"
 # Landscape --------------------------------------------------------------------
 
 # load the environment
-sim_env <- sds(list.files(here("example/mammals_try2/clean_data_2species"), pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
+sim_env <- sds(list.files(here("data/temp_mammals_landscapes"), pattern = "_cropped_modified.tif", full.names = TRUE))
 ##################### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
 
 # create a simulation object ---------------------------------------------------
@@ -141,7 +141,7 @@ sim$add_process(
   species = species_names,
   process_name = "suitability_influence_population_parameter",
   process_fun = function() {
-    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojected")
+    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified")
     
     self$traits[["carryingCapacity"]] <-
       self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -160,7 +160,7 @@ sim$add_process(
     
     # how many of the adult population survive, based on the environment suitability
     self$traits[["adultAbundance"]] <-
-      self$traits[["adultAbundance"]] * self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
+      self$traits[["adultAbundance"]] * self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified")]]
     
     # calculate how many juveniles are produced
     self$traits[["juvenileAbundance"]] <- self$traits[["adultAbundance"]] * self$traits[["reproductionRate"]]
@@ -188,7 +188,7 @@ sim$add_process(
           self$traits[["totalAbundance"]],
           self$traits[["yearlySurvivalProbability"]] *
             self$traits[["overpopulation"]] *
-            self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
+            self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified")]]
         ),
         nrow = nrow(self$traits[["totalAbundance"]]),
         ncol = ncol(self$traits[["totalAbundance"]])
@@ -206,7 +206,7 @@ sim$add_process(
     # i.e. individuals disperse more likely into more suitable cells
     self$traits[["abundance"]] <- dispersal(
       abundance = self$traits[["abundance"]],
-      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]],
+      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
   },
   execution_priority = 4
