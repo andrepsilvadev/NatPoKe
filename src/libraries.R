@@ -4,10 +4,32 @@
 
 library(easypackages)
 easypackages::packages(
+  
+  # file paths & directories
+  "here",
+  "fs",
+  "tools",
+  
+  # file storage & reading
+  "googledrive",
+  "data.table",
+  "readr",
+  
+  # spatial data processing  
+  "terra",
+  "raster",
+  "sf",
+  "rnaturalearth",
+  "rnaturalearthdata",
+  
+  # modelling
+  "metaRange",
+  
+  # data manipulation & visulisation
     "dplyr",
-    "terra",
     "ggplot2",
-    "sf",
-    "rnaturalearth",
-    "rnaturalearthdata",
+    "stringr",
+    "tibble",
+    "tidyr",
+  
   prompt = FALSE)
