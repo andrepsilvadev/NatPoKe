@@ -1,6 +1,6 @@
-####################################
-# HOW TO RUN metaRange FOR MAMMALS #
-####################################
+#####################################
+# RUNNING THE metaRange FOR MAMMALS #
+#####################################
 # Ines Silva
 # 11 Feb 2025
 
@@ -55,7 +55,9 @@ sim_name <- "example_01"
 # Landscape --------------------------------------------------------------------
 
 # load the environment
-sim_env <- sds(list.files(here("data/temp_mammals_landscapes"), pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
+sim_env <- sds(list.files(here("data/temp_mammals_landscapes"),
+                          pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
+invisible(gc())
 ##################### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
 
 # create a simulation object ---------------------------------------------------

@@ -56,8 +56,7 @@ combined_traits_data <- merge(combined_traits_data, landscape_df, by = "Species"
 # STEP 3 # Format dataframe for metaRange
 ##########
 
-
-spData <- tibble(
+species_traits <- tibble(
   Index = 1:nrow(combined_traits_data), # species index
   Species = combined_traits_data$Species, # scientific name WITHOUT spaces
   Family = combined_traits_data$Family, # family
@@ -75,8 +74,13 @@ spData <- tibble(
   drop_na()
 
 # check NA's
-sapply(spData, function(x) sum(is.na(x))) # number NA per column
-sapply(spData, function(x) sum(is.na(x)/length(x))) # proportion NA per column
+sapply(species_traits, function(x) sum(is.na(x))) # number NA per column
+sapply(species_traits, function(x) sum(is.na(x)/length(x))) # proportion NA per column
 
 # write table to .csv file
-write_csv(spData, file = file.path(here("data"),"metaRangeSpeciesDataframe.csv")) 
+write_csv(species_traits, file = file.path(here("data"),"metaRangeSpeciesDataframe.csv"))
+
+# remove unecessary objects
+rm(combined_traits_data)
+rm(landscape_df)
+rm(rast_obj)
