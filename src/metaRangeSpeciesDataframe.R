@@ -1,31 +1,23 @@
-###############################################
-# FORMATING metaRange SPECIES INPUT DATAFRAME #
-###############################################
+#####################################
+# FORMATING SPECIES INPUT DATAFRAME #
+#####################################
 # Ines Silva
 # 04 Feb 2025
 
-# GOAL: Format the pre-existing species traits dataframe to serve as input in the
-# metaRange model based on the current landscape
+# GOAL: Format the pre-existing combined_traits_data.csv to serve as input for the
+# metaRange model 
 
-# packages
-library(readr)
-library(here)
-library(terra)
-library(stringr) # to remove spaces between words
-library(tibble)
-library(dplyr)
-library(tidyr)
 
-##########################
-# Import Trait Dataframe #
-##########################
+##########
+# STEP 1 # Import Trait Dataframe 
+##########
 
 combined_traits_data <- read_csv(here("data", "combined_traits_data_20250110.csv")) %>% 
   mutate(Species = stringr::str_replace_all(Species, " ", ""))
 
-#####################
-# Import Landscapes #
-#####################
+##########
+# STEP 2 # Import Landscapes
+##########
 
 landscapes <- list.files(path = here("example/mammals_try2/clean_data_2species"),
            pattern = "_suitability_cropped_modified.tif",
@@ -60,9 +52,9 @@ crs(rast_obj)
 # merge with combined traits dataframe
 combined_traits_data <- merge(combined_traits_data, landscape_df, by = "Species", all.x = TRUE)
 
-####################
-# FORMAT DATAFRAME #
-####################
+##########
+# STEP 3 # Format dataframe for metaRange
+##########
 
 
 spData <- tibble(
