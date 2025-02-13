@@ -4,7 +4,7 @@
 # MIS
 # 31 Jan 2025
 
-# GOAL: Build a script to same metaRange simulations output as a dataframe with 
+# GOAL: Build a script to save metaRange simulations output as a dataframe with 
 # all variables and species with coordinates
 
 ##########
@@ -15,7 +15,7 @@
 results_list <- list()
 
 # Define raster types
-raster_types <- c("abundance", "reproductionRate", "mortality", "carrying_capacity", "dispersal_distance")
+raster_types <- c("abundance", "reproductionRate", "mortality")
 
 # Read species data
 species_traits <- read.csv(here("data","metaRangeSpeciesDataframe.csv"))
@@ -33,7 +33,7 @@ for (sp in species_names) {
   for (raster_type in raster_types) {
     
     # find the raster files (for a sps and raster type)
-    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results12Feb2025"), 
+    flist <- list.files(here("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results13Feb2025"), 
                         pattern = paste0(sp, "_", raster_type, ".tif"), full.names = TRUE)
     
     # skip if no files found print WARNING
@@ -85,14 +85,30 @@ for (sp in species_names) {
   results_list[[sp]] <- merged_species_data
 }
 
+# remove r obj to save space
+rm(r)
+invisible(gc()) 
+
+# remove raster_data obj to save space
+rm(raster_data)
+invisible(gc()) 
+
+# remove species_data obj to save space
+rm(species_data)
+invisible(gc())
+
+# remove merged_species_data obj to save space
+rm(merged_species_data)
+invisible(gc())
+
 # combine all results for all species into one big data frame
 final_results <- do.call(rbind, results_list)
+invisible(gc())
 
 # check results!!!!!!!!!!!
 head(final_results)
 
-
-write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results12Feb2025/metaRangeOutputs12Fev2025.csv" )
+write.csv(final_results, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results12Feb2025/metaRangeOutputs12Fev2025.csv" )
 invisible(gc())
 
 #####################
@@ -104,12 +120,12 @@ library(ggplot2)
 library(dplyr)
 library(terra)
 
-results06feb <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/metaRangeOutputs06Fev2025v2.csv")
-results06feb$taxa <- "Mammal"
+results13feb <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results12Feb2025/metaRangeOutputs12Fev2025.csv")
+results13feb$taxa <- "Mammal"
 
 
 # Total number of individuals (TNIND) per year and cellid
-TNIND <- results06feb %>%
+TNIND <- results13feb %>%
   group_by(species, taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
