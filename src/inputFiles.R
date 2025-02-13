@@ -99,7 +99,7 @@ for (r in raster_files) {
   
   # crop the raster to the bounding box
   cropped_raster <- terra::crop(sp_raster, bbox_SW)
-  cropped_raster <- terra::crop(sp_raster, extent(sweden))
+  #cropped_raster <- terra::crop(sp_raster, extent(sweden))
   
   # duplicate the layers 25 times
   duplicated_raster <- duplicate_layers(cropped_raster, times = 25)
@@ -121,7 +121,7 @@ for (landscape in landscape_SW) {
   r <- rast(landscape)
   
   # reproject to SWEREF99 TM (EPSG:3006)
-  r_utm <- project(r, "EPSG:3006")
+  r_utm <- project(r, "EPSG:3006", res = 1000)
   
   # output filename
   output_filename <- gsub("\\.tif$", "_reprojected.tif", landscape)
@@ -129,4 +129,10 @@ for (landscape in landscape_SW) {
   # save reprojected raster
   writeRaster(r_utm, output_filename, overwrite = TRUE)
 }
-
+# 
+# ## changing from meters to km
+# rena <- rast(here("data/temp_mammals_landscapes", "Rangifertarandus_suitability_cropped_modified_reprojected.tif"))
+# crs(rena)
+# extent(rena) <- extent(c(xmin(rena), xmax(rena), ymin(rena), ymax(rena))/1000)
+# projection(rena) <- gsub("units=m", "units=km", projection(rena))
+# 

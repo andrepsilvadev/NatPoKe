@@ -33,7 +33,7 @@ for (sp in species_names) {
   for (raster_type in raster_types) {
     
     # find the raster files (for a sps and raster type)
-    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2"), 
+    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results12Feb2025"), 
                         pattern = paste0(sp, "_", raster_type, ".tif"), full.names = TRUE)
     
     # skip if no files found print WARNING
@@ -92,7 +92,7 @@ final_results <- do.call(rbind, results_list)
 head(final_results)
 
 
-write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/metaRangeOutputs06Fev2025v2.csv" )
+write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results12Feb2025/metaRangeOutputs12Fev2025.csv" )
 invisible(gc())
 
 #####################
@@ -106,6 +106,34 @@ library(terra)
 
 results06feb <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/metaRangeOutputs06Fev2025v2.csv")
 results06feb$taxa <- "Mammal"
+
+
+# Total number of individuals (TNIND) per year and cellid
+TNIND <- results06feb %>%
+  group_by(species, taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
+  dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
+                   n = n()) %>% 
+  dplyr::select(!n) %>% 
+  group_by(species, taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
+  dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
+
+
+# Total number of individuals per year
+TNIND_yr <- TNIND %>% # n cells used for the calculus
+  group_by(species, taxa, biome, scenario, timestep) %>%
+  dplyr::summarize(mean_yr = mean(mean_TNIND, na.rm = TRUE), # cell mean 
+                   sd_yr = sd(mean_TNIND, na.rm = TRUE),
+                   n = n()) %>% 
+  dplyr::select(!n) 
+
+TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr)) + 
+  geom_line() + 
+  facet_wrap(scenario~ species, ncol = 5) +
+  labs(y = "Total number of individuals") +
+  theme_minimal() +
+  geom_vline(xintercept = 5, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
+
+
 
 
 mean_abund <- results06feb %>% 
