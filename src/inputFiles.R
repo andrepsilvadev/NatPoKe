@@ -12,7 +12,7 @@
 # STEP 1 # Import Species Trait Dataframe 
 ##########
 
-species_traits <- read.csv(here("data","metaRangeSpeciesDataframe.csv"))
+species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 ##########
 # Step 2 # Retrieve Global Suitability Landscapes from Google drive 
@@ -55,7 +55,7 @@ download_matching_files <- function(drive_path, species_list, local_folder) {
 
 download_matching_files(drive_path = "SRIT-database/user/global_suitability_landscapes",
                         species_list = species_traits$Species,
-                        local_folder = "data/global_suitability_landscapes")
+                        local_folder = file.path(dirinput, "global_suitability_landscapes"))
 
 
 ##########
@@ -69,7 +69,7 @@ download_matching_files(drive_path = "SRIT-database/user/global_suitability_land
 # sweden <- st_read("https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/gadm41_SWE.gpkg")
 # 
 # # list rasters
-# raster_files <- list.files(here("data/global_suitability_landscapes"),
+# raster_files <- list.files(file.path(dirinput, "global_suitability_landscapes"),
 #                            pattern = "_suitability.tif$", full.names = TRUE)
 # # define the bounding box
 # bbox_SW <- ext(6.306152, 17.248535, 59.288332, 62.769811)
@@ -92,13 +92,14 @@ download_matching_files(drive_path = "SRIT-database/user/global_suitability_land
 #   duplicated_raster <- duplicate_layers(cropped_raster, times = 25)
 #   
 #   # save processed raster
-#   output_path <- file.path(here("data/temp_mammals_landscapes"), tools::file_path_sans_ext(basename(r)))
+
+#   output_path <- file.path(dirinput, "temp_mammals_landscapes"), tools::file_path_sans_ext(basename(r)))
 #   writeRaster(duplicated_raster, paste0(output_path, "_cropped_modified.tif"), overwrite = TRUE)
 # }
 # 
 # ## reprojecting
 # 
-# landscape_SW <- list.files(path = here("data/temp_mammals_landscapes"),
+# landscape_SW <- list.files(path = file.path(dirinput, "temp_mammals_landscapes")),
 #                            pattern = "_suitability_cropped_modified.tif",
 #                            full.names = TRUE)
 # 
@@ -118,8 +119,8 @@ download_matching_files(drive_path = "SRIT-database/user/global_suitability_land
 # }
 
 # 
-# ## changing from meters to km
-# rena <- rast(here("data/temp_mammals_landscapes", "Rangifertarandus_suitability_cropped_modified_reprojected.tif"))
+# ## changing from meters to km DEPRECATED SEE IF WE CAN DELETELATER
+# rena <- rast(file.path(dirinput,"temp_mammals_landscapes"), "Rangifertarandus_suitability_cropped_modified_reprojected.tif"))
 # crs(rena)
 # extent(rena) <- extent(c(xmin(rena), xmax(rena), ymin(rena), ymax(rena))/1000)
 # projection(rena) <- gsub("units=m", "units=km", projection(rena))
