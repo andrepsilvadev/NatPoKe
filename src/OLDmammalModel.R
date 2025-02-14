@@ -43,6 +43,8 @@ library(tools) # for file without paths
 ## Species Trait Dataframe -----------------------------------------------------
 
 species_traits <- read.csv(here("data","metaRangeSpeciesDataframe.csv"))
+# TO USE LATER WHEN EVERYTHING IS FULLY OPERATIONAL
+#species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 # setting up the simulation ----------------------------------------------------
 
@@ -58,10 +60,8 @@ sim_name <- "example_01"
 
 # load the environment
 sim_env <- sds(list.files(here("data/temp_mammals_landscapes"), pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
-#####################
-#### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
-
-rast(here("example/mammals_try2/clean_data_2species", "Rangifertarandus_suitability_cropped_modified_reprojected.tif"))
+# TO USE LATER WHEN EVERYTHING IS FULLY OPERATIONAL
+#sim_env <- sds(list.files(file.path(dirinput, "temp_mammals_landscapes"), pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
 
 # create a simulation object ---------------------------------------------------
 
@@ -301,6 +301,8 @@ sim$add_process(
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
 save_string <- here("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results13Feb2025")
+# SAVE_STRING = dirout
+
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
@@ -320,6 +322,7 @@ sim$add_process(
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
         path = save_string,
+        #path = dirout # TO USE LATER WHEN EVERYTHING IS FULLY OPERATIONAL
         overwrite = TRUE
       )
     }
@@ -339,12 +342,11 @@ print("simulation finished")
 ################################
 
 # output file path
-output_file <- here("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results13Feb2025", 
-                    "metaRangeSimulationSettings.txt")
+#output_file <- here("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results13Feb2025", "metaRangeSimulationSettings.txt")
 
 # define the species names
 species_names <- species_traits$Species
-sink(output_file)
+sink(dirout)
 
 # write overall summary of simumlation
 cat("### Overall Simulation Summary ###\n")
