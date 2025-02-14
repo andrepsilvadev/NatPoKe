@@ -2,5 +2,7 @@
 
 ## settings & libraries
 
-generalSettings.R <- 
+generalSettings.R <-
+libraries.R <-
+customFunctions.R <-
 
