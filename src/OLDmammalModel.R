@@ -313,7 +313,7 @@ sim$add_process(
     for (species in species_names) {
       # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
       suffix <- "BAU_Tropical_Asia_"
-      save_species(
+        save_species(
         # pass the species object
         self[[species]],
         # specify traits we want to save
@@ -329,6 +329,44 @@ sim$add_process(
   },
   execution_priority = 9
 )
+
+################################################################################
+####################### CHECK WITH ANDRE IF WE WANT THIS #######################
+################################################################################
+
+# sim$add_process(
+#   process_name = "save_results",
+#   process_fun = function() {
+#     for (species in species_names) {
+#       suffix <- "BAU_Tropical_Asia_"
+#       temp_raster <- tempfile(fileext = ".tif")
+#       
+#       save_species(
+#         self[[species]],
+#         traits = c("abundance", "reproductionRate"),
+#         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
+#         path = temp_raster,
+#         overwrite = TRUE
+#       )
+#       
+#       # Upload the saved raster to the "Outputs" folder in Google Drive
+#       drive_upload(
+#         media = temp_raster,
+#         name = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_", species, ".tif"),
+#         path = as_id(dirout),
+#         overwrite = TRUE
+#       )
+#       
+#       unlink(temp_raster)  # Cleanup
+#     }
+#   },
+#   execution_priority = 9
+# )
+
+################################################################################
+####################### CHECK WITH ANDRE IF WE WANT THIS #######################
+################################################################################
+
 
 # run simulation ---------------------------------------------------------------
 
