@@ -156,53 +156,14 @@ sim$add_process(
 
 sim$add_process(
   species = species_names,
-  process_name = "reproduction_age_structured",
+  process_name = "demography_Beverton&Holt",
   process_fun = function() {
     
-    # how many of the adult population survive, based on the environment suitability
-    self$traits[["abundance"]] <-
-      self$traits[["abundance"]] * self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]
-    
-    # calculate how many juveniles are produced
-    self$traits[["juvenileAbundance"]] <- self$traits[["abundance"]] * self$traits[["reproductionRate"]]
-    
-    
-    # how many of the juveniles grow up and become adults
-    self$traits[["abundance"]] <-
-      self$traits[["abundance"]] +
-      self$traits[["juvenileAbundance"]] *
-      (1 - self$traits[["juvenileAbundance"]] / self$traits[["carryingCapacity"]])
+    # HERE WE NEED TO SPECIFY THE BEVERTON & HOLT MODEL
+    ## EITHER BUILDING A CUSTOM FUNCTION OR USING ONE 
+    ## FROM AN EXISTING PACKAGE (see if FSA or any from Derek Ogle have one alreafy)
   },
   execution_priority = 2
-)
-
-
-sim$add_process(
-  species = species_names,
-  process_name = "adult_mortality",
-  process_fun = function() {
-
-    self$traits[["overpopulation"]] <-
-      1 / (
-        self$traits[["abundance"]] /
-          self$traits[["carry_capacity"]]
-      )
-    self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
-    
-    self$traits[["abundance"]] <-
-      matrix(
-        rbinom(
-          ncell(self$traits[["abundance"]]),
-          self$traits[["abundance"]],
-          self$traits[["yearly_survival_probability"]] *
-            self$traits[["overpopulation"]] *
-            self$sim$environment$current$survival_probability
-        ),
-        nrow = nrow(self$traits[["abundance"]]),
-        ncol = ncol(self$traits[["abundance"]])
-      )
-  },
-  execution_priority = 3
 )
 
 
@@ -217,7 +178,7 @@ sim$add_process(
       weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
   },
-  execution_priority = 4
+  execution_priority = 3
 )
 
 
@@ -229,13 +190,13 @@ sim$add_process(
     
     self$traits[["overpopulation"]] <-
       1 / (
-        self$traits[["population_size"]] /
+        self$traits[["abundance"]] /
           self$traits[["carry_capacity"]]
       )
     self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
     
-    dispersing_population <- pmax(self$traits[["population_size"]] - self$traits[["carry_capacity"]], 0)
-    self$traits[["population_size"]] <- self$traits[["population_size"]] - dispersing_population
+    dispersing_population <- pmax(self$traits[["abundance"]] - self$traits[["carry_capacity"]], 0)
+    self$traits[["abundance"]] <- self$traits[["abundance"]] - dispersing_population
     
     dispersing_population <-
       dispersal(
@@ -247,16 +208,16 @@ sim$add_process(
     dispersing_population <-
       matrix(
         rpois(ncell(dispersing_population), dispersing_population),
-        nrow = nrow(self$traits[["population_size"]]),
-        ncol = ncol(self$traits[["population_size"]])
+        nrow = nrow(self$traits[["abundance"]]),
+        ncol = ncol(self$traits[["abundance"]])
       )
     
-    self$traits[["population_size"]] <-
-      self$traits[["population_size"]] +
+    self$traits[["abundance"]] <-
+      self$traits[["abundance"]] +
       dispersing_population
     
   },
-  execution_priority = 5
+  execution_priority = 4
 )
 
 
@@ -268,7 +229,7 @@ sim$add_process(
       self[[i]]$traits[["abundance"]] <- trunc(self[[i]]$traits[["abundance"]])
     }
   },
-  execution_priority = 6
+  execution_priority = 5
 )
 
 
@@ -304,7 +265,7 @@ sim$add_process(
         sum(self[[i]]$traits[["juvenileAbundance"]] > 1, na.rm = TRUE)
     }
   },
-  execution_priority = 7
+  execution_priority = 6
 )
 
 # saving the results -----------------------------------------------------------
@@ -335,7 +296,7 @@ sim$add_process(
       )
     }
   },
-  execution_priority = 8
+  execution_priority = 7
 )
 
 # run simulation ---------------------------------------------------------------
