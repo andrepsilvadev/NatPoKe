@@ -56,7 +56,7 @@ sim_name <- "example_01"
 # Landscape --------------------------------------------------------------------
 
 # load the environment
-sim_env <- sds(list.files(here("data/temp_mammals_landscapes"), pattern = "_cropped_modified.tif", full.names = TRUE))
+sim_env <- sds(list.files(here("data/temp_mammals_landscapes"), pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
 
 invisible(gc())
 ##################### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
@@ -143,7 +143,7 @@ sim$add_process(
   species = species_names,
   process_name = "suitability_influence_population_parameter",
   process_fun = function() {
-    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified")
+    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojected")
     
     self$traits[["carryingCapacity"]] <-
       self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -198,7 +198,7 @@ sim$add_process(
     # i.e. individuals disperse more likely into more suitable cells
     self$traits[["abundance"]] <- dispersal(
       abundance = self$traits[["abundance"]],
-      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified")]],
+      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
   },
   execution_priority = 3
@@ -303,7 +303,7 @@ sim$add_process(
         # pass the species object
         self[[species]],
         # specify traits we want to save
-        traits = c("abundance", "reproductionRate"),
+        traits = "abundance",
         # a prefix for each time step
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
