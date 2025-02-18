@@ -301,7 +301,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
-save_string <- here("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results13Feb2025")
+save_string <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025_OLD")
 # SAVE_STRING = dirout
 
 # Note: Saving the results is a process that takes the longest time
@@ -318,7 +318,7 @@ sim$add_process(
         # pass the species object
         self[[species]],
         # specify traits we want to save
-        traits = c("abundance","reproductionRate"),
+        traits = "abundance",
         # a prefix for each time step
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
@@ -330,43 +330,6 @@ sim$add_process(
   },
   execution_priority = 9
 )
-
-################################################################################
-####################### CHECK WITH ANDRE IF WE WANT THIS #######################
-################################################################################
-
-# sim$add_process(
-#   process_name = "save_results",
-#   process_fun = function() {
-#     for (species in species_names) {
-#       suffix <- "BAU_Tropical_Asia_"
-#       temp_raster <- tempfile(fileext = ".tif")
-#       
-#       save_species(
-#         self[[species]],
-#         traits = c("abundance", "reproductionRate"),
-#         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
-#         path = temp_raster,
-#         overwrite = TRUE
-#       )
-#       
-#       # Upload the saved raster to the "Outputs" folder in Google Drive
-#       drive_upload(
-#         media = temp_raster,
-#         name = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_", species, ".tif"),
-#         path = as_id(dirout),
-#         overwrite = TRUE
-#       )
-#       
-#       unlink(temp_raster)  # Cleanup
-#     }
-#   },
-#   execution_priority = 9
-# )
-
-################################################################################
-####################### CHECK WITH ANDRE IF WE WANT THIS #######################
-################################################################################
 
 
 # run simulation ---------------------------------------------------------------
@@ -381,11 +344,11 @@ print("simulation finished")
 ################################
 
 # output file path
-#output_file <- here("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results13Feb2025", "metaRangeSimulationSettings.txt")
+output_file <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025_OLD", "metaRangeSimulationSettings.txt")
 
 # define the species names
 species_names <- species_traits$Species
-sink(dirout)
+sink(output_file)
 
 # write overall summary of simumlation
 cat("### Overall Simulation Summary ###\n")

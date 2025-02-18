@@ -42,6 +42,7 @@ library(tools) # for file without paths
 # import Species Trait Dataframe -----------------------------------------------
 species_traits <- read.csv(here("data","metaRangeSpeciesDataframe.csv"))
 
+
 # setting up the simulation ----------------------------------------------------
 
 # setup
@@ -55,8 +56,8 @@ sim_name <- "example_01"
 # Landscape --------------------------------------------------------------------
 
 # load the environment
-sim_env <- sds(list.files(here("data/temp_mammals_landscapes"),
-                          pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
+sim_env <- sds(list.files(here("data/temp_mammals_landscapes"), pattern = "_cropped_modified.tif", full.names = TRUE))
+
 invisible(gc())
 ##################### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
 
@@ -142,7 +143,7 @@ sim$add_process(
   species = species_names,
   process_name = "suitability_influence_population_parameter",
   process_fun = function() {
-    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojected")
+    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified")
     
     self$traits[["carryingCapacity"]] <-
       self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -153,15 +154,37 @@ sim$add_process(
   execution_priority = 1
 )
 
+#################################
+# THIS IS YET TO BE IMPLEMENTED #
+#################################
+
+# sim$add_process(
+#   species = species_names,
+#   process_name = "demography_Beverton&Holt",
+#   process_fun = function() {
+#     
+#     # HERE WE NEED TO SPECIFY THE BEVERTON & HOLT MODEL
+#     ## EITHER BUILDING A CUSTOM FUNCTION OR USING ONE 
+#     ## FROM AN EXISTING PACKAGE (see if FSA or any from Derek Ogle have one alreafy)
+#   },
+#   execution_priority = 2
+# )
+
+#################################
+#################################
+#################################
+
 
 sim$add_process(
   species = species_names,
-  process_name = "demography_Beverton&Holt",
+  process_name = "reproduction",
   process_fun = function() {
-    
-    # HERE WE NEED TO SPECIFY THE BEVERTON & HOLT MODEL
-    ## EITHER BUILDING A CUSTOM FUNCTION OR USING ONE 
-    ## FROM AN EXISTING PACKAGE (see if FSA or any from Derek Ogle have one alreafy)
+    self$traits[["abundance"]] <-
+      ricker_reproduction_model(
+        self$traits[["abundance"]],
+        self$traits[["reproductionRate"]],
+        self$traits[["carryingCapacity"]]
+      )
   },
   execution_priority = 2
 )
@@ -175,50 +198,43 @@ sim$add_process(
     # i.e. individuals disperse more likely into more suitable cells
     self$traits[["abundance"]] <- dispersal(
       abundance = self$traits[["abundance"]],
-      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]],
+      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
   },
   execution_priority = 3
 )
 
 
-sim$add_process(
-  species = species_names,
-  process_name = "dispersal_overpopulation",
-  process_fun = function() {
-    
-    
-    self$traits[["overpopulation"]] <-
-      1 / (
-        self$traits[["abundance"]] /
-          self$traits[["carry_capacity"]]
-      )
-    self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
-    
-    dispersing_population <- pmax(self$traits[["abundance"]] - self$traits[["carry_capacity"]], 0)
-    self$traits[["abundance"]] <- self$traits[["abundance"]] - dispersing_population
-    
-    dispersing_population <-
-      dispersal(
-        self$traits[["large_kernel"]],
-        dispersing_population,
-        self$sim$environment$current$habitat * self$traits[["overpopulation"]]
-      )
-    
-    dispersing_population <-
-      matrix(
-        rpois(ncell(dispersing_population), dispersing_population),
-        nrow = nrow(self$traits[["abundance"]]),
-        ncol = ncol(self$traits[["abundance"]])
-      )
-    
-    self$traits[["abundance"]] <-
-      self$traits[["abundance"]] +
-      dispersing_population
-    
-  },
-  execution_priority = 4
-)
+# sim$add_process(
+#   species = species_names,
+#   process_name = "dispersal_overpopulation",
+#   process_fun = function() {
+# 
+# 
+#     self$traits[["overpopulation"]] <-
+#       1 / (
+#         self$traits[["abundance"]] /
+#           self$traits[["carryCapacity"]]
+#       )
+#     self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
+# 
+#     dispersing_population <- pmax(self$traits[["abundance"]] - self$traits[["carryCapacity"]], 0)
+#     self$traits[["abundance"]] <- self$traits[["abundance"]] - dispersing_population
+# 
+#     dispersing_population <-
+#       matrix(
+#         rpois(ncell(dispersing_population), dispersing_population),
+#         nrow = nrow(self$traits[["abundance"]]),
+#         ncol = ncol(self$traits[["abundance"]])
+#       )
+# 
+#     self$traits[["abundance"]] <-
+#       self$traits[["abundance"]] +
+#       dispersing_population
+# 
+#   },
+#   execution_priority = 4
+# )
 
 
 sim$add_process(
@@ -271,7 +287,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
-save_string <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results13Feb2025")
+save_string <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025"
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
@@ -282,12 +298,12 @@ sim$add_process(
     
     for (species in species_names) {
       # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
-      suffix <- "BAU_Tropical_Asia_"
+      suffix <- "BAU_Boreal_SMALL_"
       save_species(
         # pass the species object
         self[[species]],
         # specify traits we want to save
-        traits = c("abundance","reproductionRate"),
+        traits = c("abundance", "reproductionRate"),
         # a prefix for each time step
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
@@ -311,8 +327,7 @@ print("simulation finished")
 ################################
 
 # output file path
-output_file <- here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results13Feb2025", 
-                    "metaRangeSimulationSettings.txt")
+output_file <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/simulationSettings.txt"
 
 # define the species names
 species_names <- species_traits$Species
