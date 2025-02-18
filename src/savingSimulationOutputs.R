@@ -33,7 +33,7 @@ for (sp in species_names) {
   for (raster_type in raster_types) {
     
     # find the raster files (for a sps and raster type)
-    flist <- list.files(here("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results13Feb2025"), 
+    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025"), 
                         pattern = paste0(sp, "_", raster_type, ".tif"), full.names = TRUE)
     
     # skip if no files found print WARNING
@@ -56,6 +56,14 @@ for (sp in species_names) {
       # convert raster to data frame (with coordinates and values)
       raster_data <- terra::as.data.frame(r, xy = TRUE, na.rm = TRUE, row.names = FALSE)
       invisible(gc())
+      
+      # Assign unique cell ID based on (x, y) order
+      if (!exists("global_cell_lookup")) {
+        global_cell_lookup <- unique(raster_data[, c("x", "y")])  # Get unique coordinates
+        global_cell_lookup$cellid <- sprintf("%02d", seq_len(nrow(global_cell_lookup)))  # Assign IDs
+      }
+      # Merge the cell IDs back
+      raster_data <- merge(raster_data, global_cell_lookup, by = c("x", "y"))
       
       # add more info as new columns
       raster_data$scenario <- filename_parts[1] # BAU
@@ -108,7 +116,8 @@ invisible(gc())
 # check results!!!!!!!!!!!
 head(final_results)
 
-write.csv(final_results, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results12Feb2025/metaRangeOutputs12Fev2025.csv" )
+write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025/metaRangeOutputs18Fev2025.csv",
+          row.names = FALSE)
 invisible(gc())
 
 #####################
