@@ -5,7 +5,7 @@
 # 14 Feb 2025
 
 # create a working directory for each simulation run ---------------------------
-runpath <- file.path("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs", runname)
+runpath <- file.path("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs", runname)
 dir.create(runpath, showWarnings = TRUE)
 dir.create(file.path(runpath, "Inputs"), showWarnings = TRUE)
 dir.create(file.path(runpath, "Outputs"), showWarnings = TRUE)
