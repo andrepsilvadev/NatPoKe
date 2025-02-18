@@ -9,7 +9,7 @@ source("./src/libraries.R") # load necessary packages
 source("./src/customFunctions.R") # load customized functions
 
 # working directories ----------------------------------------------------------
-runname <- "14Feb2025"
+runname <- "18Feb2025"
 source("./src/generalSettings.R") # paths and spatial settings
 
 # Input Files ------------------------------------------------------------------
@@ -19,7 +19,7 @@ source("./src/metaRangeSpeciesDataframe.R") # species dataframe
 source("./src/inputFiles.R") # load global suitability raster files & crop 
 
 # models -----------------------------------------------------------------------
-#source("./mammalModel.R") # run metaRange model for mammals species
+source("./mammalModel.R") # run metaRange model for mammals species
 source("./OLDmammalModel.R") # CURRENT model which runs for mammals but it is not the most accurate version YET!
 #source("./birdsModel.R") # run metaRange model for bird species !! DOES NOT EXIST YET !!
 #source("./largeTreesModel.R") # run metaRange model for large tree species !! DOES NOT EXIST YET !!
