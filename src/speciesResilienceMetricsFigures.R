@@ -13,58 +13,15 @@ library(rnaturalearth) # for world maps
 library(rnaturalearthdata) # for world maps
 library(sf)
 library(here)
+library(data.table)
 
-###########################################
-# CREATE DUMMY DATASET BASED ON MetaRange #
-###########################################
+###############
+# IMPORT DATA #
+###############
 
-# import data
-example_01_res_df <- read_csv(
-  "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/example_01_res_df.csv")
-
-# Define scenarios, biomes, species, and taxa
-scenarios <- c("BAU", "policy A", "policy B", "policy C", "policy D", "policy E", "policy F")
-biomes <- c("Tropical forests", "Boreal forests")
-species <- c("SpeciesA", "SpeciesB", "SpeciesC", "SpeciesD", "SpeciesE")
-taxa <- data.frame(
-  species = species,
-  taxa = c("Mammal", "Mammal", "Bird", "Insect", "Insect")
-)
-
-# Create dummy_dataset of scenarios and biomes
-dummy_dataset <- expand.grid(
-  scenario = scenarios,
-  biome = biomes
-)
-
-# Repeat each combination for time steps (1 to 20) and cell IDs (01 to 10)
-dummy_dataset <- dummy_dataset[rep(1:nrow(dummy_dataset), each = 20 * 10), ]
-dummy_dataset$time <- rep(rep(1:20, each = 10), times = nrow(dummy_dataset) / (20 * 10))
-dummy_dataset$cell_id <- sprintf("%02d", rep(1:10, times = nrow(dummy_dataset) / 10))
-
-# Add regions based on biome
-dummy_dataset <- dummy_dataset[rep(1:nrow(dummy_dataset), each = 3), ]
-dummy_dataset$region <- ifelse(
-  dummy_dataset$biome == "Boreal forests",
-  rep(c("North America", "Europe"), length.out = nrow(dummy_dataset)),
-  rep(c("South America", "Africa", "South Asia"), length.out = nrow(dummy_dataset))
-)
-
-# Repeat for all species
-dummy_dataset <- dummy_dataset[rep(1:nrow(dummy_dataset), each = length(species)), ]
-dummy_dataset$species <- rep(species, times = nrow(dummy_dataset) / length(species))
-
-# Add taxa based on species
-dummy_dataset <- merge(dummy_dataset, taxa, by = "species")
-
-# Add random abundance values
-set.seed(123) # For reproducibility
-dummy_dataset$n_abundance <- round(runif(nrow(dummy_dataset), min = 5, max = 50))
-
-# Reorder columns for clarity
-dummy_dataset <- dummy_dataset[, c("scenario", "biome", "region", "time", "cell_id", "species", "taxa", "n_abundance")]
-#write.csv(dummy_dataset, "~/NatPoKe/data/dummy_dataset_Jan2025.csv")
-invisible(gc())
+run20250218 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025/metaRangeOutputs18Fev2025.csv")
+head(run20250218)
+run20250218$taxa <- "Mammal"
 
 ###############################
 # TOTAL NUMBER OF INDIVIDUALS #
@@ -81,25 +38,25 @@ t_policy <- 5
 ## three cells it would be (2+3)/2 = 2.5 moose
 
 # Total number of individuals (TNIND) per year and cellid
-TNIND <- dummy_dataset %>%
-  group_by(species, taxa, biome, scenario, time, cell_id) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
-  dplyr::summarize(sum_TNIND = sum(n_abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
+TNIND <- run20250218 %>%
+  group_by(species, taxa, biome, scenario, timestep, cellid) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
+  dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
   dplyr::select(!n) %>% 
-  group_by(species, taxa, biome, scenario, time, cell_id) %>% # KEEP SIM BUT REMOVE REP HERE
+  group_by(species, taxa, biome, scenario, timestep, cellid) %>% # KEEP SIM BUT REMOVE REP HERE
   dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
 
 
 # Total number of individuals per year
 TNIND_yr <- TNIND %>% # n cells used for the calculus
-  group_by(species, taxa, biome, scenario, time) %>%
+  group_by(species, taxa, biome, scenario, timestep) %>%
   dplyr::summarize(mean_yr = mean(mean_TNIND, na.rm = TRUE), # cell mean 
                    sd_yr = sd(mean_TNIND, na.rm = TRUE),
                    n = n()) %>% 
   dplyr::select(!n) %>% 
-  dplyr::filter(time >= t_burnin)
+  dplyr::filter(timestep >= t_burnin)
 
-TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = time, y = mean_yr)) + 
+TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr)) + 
   geom_line() + 
   facet_wrap(scenario~ species, scales = "free_y", ncol = 5) +
   labs(y = "Total number of individuals") +
@@ -114,9 +71,9 @@ TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = time, y = mean_yr)) +
 # calculate post policy mean value for the recovery time metric 
 # to be possible in one go with the other metrics)
 post_disturbance_values <- TNIND_yr %>%
-  filter(time >= t_burnin) %>% # remove burn-in period
-  mutate(period = ifelse(time >= t_burnin &
-                           time <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
+  filter(timestep >= t_burnin) %>% # remove burn-in period
+  mutate(period = ifelse(timestep >= t_burnin &
+                           timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
   group_by(biome, species, scenario, period, taxa) %>%
   filter(period == "Post") %>% # filter for the post policy period only
   summarise(mean_post = mean(mean_yr, na.rm = TRUE))
@@ -124,8 +81,8 @@ invisible(gc())
 
 # calculate all stability metrics per biome, policy & species
 stability_sps <- TNIND_yr %>%
-  filter(time >= t_burnin) %>% # remove burn-in period
-  mutate(period = ifelse(time >= t_burnin & time <= t_policy, "Pre", "Post")) %>%  # code pre and post policy
+  filter(timestep >= t_burnin) %>% # remove burn-in period
+  mutate(period = ifelse(timestep >= t_burnin & timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy
   left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "taxa")) %>%
   group_by(biome, species, scenario, period, taxa) %>%
   summarise(mean = mean(mean_yr, na.rm = TRUE),
@@ -134,10 +91,10 @@ stability_sps <- TNIND_yr %>%
             # find min. nº of individuals
             max = max(mean_yr, na.rm = TRUE),
             # find max. nº of individuals
-            impact_year = time[which.min(mean_yr)],
+            impact_year = timestep[which.min(mean_yr)],
             # find the year the pop. reaches a min. value in the post policy period
-            recovery_year = ifelse(any(time > t_policy & mean_yr >= mean_post),
-                                   min(time[time > t_policy & mean_yr >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
+            recovery_year = ifelse(any(timestep > t_policy & mean_yr >= mean_post),
+                                   min(timestep[timestep > t_policy & mean_yr >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
                                    NA), .groups = "drop") %>%
   pivot_wider(names_from = period, values_from = c(mean, min, max, impact_year, recovery_year)) %>%
   dplyr::select(!c(impact_year_Pre, recovery_year_Pre)) %>% # remove year of min. nº of individuals in the pre policy period and the year in which the nº ind is equal to the mean values of the post policy period
@@ -225,9 +182,9 @@ figure1 <- stability_avg_long %>%
 figure1
 invisible(gc())
 
-ggsave(plot = figure1,
-       file = here("output", "dummy_figures", "Figure1_Impact&Recovery.tiff"),
-       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+# ggsave(plot = figure1,
+#        file = here("output", "dummy_figures", "Figure1_Impact&Recovery.tiff"),
+#        bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
 
@@ -269,6 +226,6 @@ suplementary_figure1 <- stability_avg_long %>%
 suplementary_figure1
 invisible(gc())
 
-ggsave(plot = suplementary_figure1,
-       file = here("output", "dummy_figures", "Suplementary_figure1_TimeImpact&TimeRecovery.tiff"),
-       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+# ggsave(plot = suplementary_figure1,
+#        file = here("output", "dummy_figures", "Suplementary_figure1_TimeImpact&TimeRecovery.tiff"),
+#        bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
