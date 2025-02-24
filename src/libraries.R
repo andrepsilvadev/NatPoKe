@@ -31,5 +31,7 @@ easypackages::packages(
     "stringr",
     "tibble",
     "tidyr",
+    "rphylopic",
+    "viridis",
   
   prompt = FALSE)

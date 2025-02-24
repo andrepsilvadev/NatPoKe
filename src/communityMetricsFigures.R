@@ -2,20 +2,6 @@
 ######## MIS ########
 ##### 13 JAN 25 #####
 
-
-# Packages
-library(readr)
-library(dplyr)
-library(tidyr) # for pivot_wider()
-library(ggplot2)
-library(viridis)
-#library(ggsci)
-library(rnaturalearth) # for world maps
-library(rnaturalearthdata) # for world maps
-library(sf)
-library(rphylopic) # for icon on plots
-library(here)
-
 # import dummy dataset
 run20250224 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv")
 
