@@ -64,6 +64,7 @@ invisible(gc())
 # create a simulation object ---------------------------------------------------
 
 sim <- create_simulation(sim_env)
+invisible(gc())
 
 # We have already created our suitability layer, so we can just add them to the simulation
 # in the order they are in the SDS.
@@ -158,36 +159,52 @@ sim$add_process(
 # THIS IS YET TO BE IMPLEMENTED #
 #################################
 
+
+beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survival_rate) {
+  # Safeguarding the input
+  # you may remove this part if you are sure that the input is correct
+  survival_rate <- ifelse(survival_rate > 1, 1, survival_rate)
+  survival_rate <- ifelse(survival_rate < 0, 0, survival_rate)
+  reproduction_rate <- ifelse(reproduction_rate < 0, 0, reproduction_rate)
+  
+  
+  abundance <- abundance * survival_rate
+  abundance_t1 <- (reproduction_rate * abundance) /
+    (1 + ((reproduction_rate - 1) / carrying_capacity) * abundance)
+  abundance_t1[abundance_t1 < 0] <- 0
+  return(abundance_t1)
+}
+
+sim$add_process(
+   species = species_names,
+   process_name = "demography_Beverton_Holt",
+   process_fun = function(){
+     self$traits[["abundance"]] <- beverton_holt(abundance = self$traits[["abundance"]],
+                               reproduction_rate = self$traits[["reproductionRate"]],
+                               carrying_capacity = self$traits[["carryingCapacity"]],
+                               survival_rate = self$traits[["yearlySurvivalRate"]] )
+     },
+   execution_priority = 2
+ )
+
+#################################
+#################################
+#################################
+
+
 # sim$add_process(
 #   species = species_names,
-#   process_name = "demography_Beverton&Holt",
+#   process_name = "reproduction",
 #   process_fun = function() {
-#     
-#     # HERE WE NEED TO SPECIFY THE BEVERTON & HOLT MODEL
-#     ## EITHER BUILDING A CUSTOM FUNCTION OR USING ONE 
-#     ## FROM AN EXISTING PACKAGE (see if FSA or any from Derek Ogle have one alreafy)
+#     self$traits[["abundance"]] <-
+#       ricker_reproduction_model(
+#         self$traits[["abundance"]],
+#         self$traits[["reproductionRate"]],
+#         self$traits[["carryingCapacity"]]
+#       )
 #   },
 #   execution_priority = 2
 # )
-
-#################################
-#################################
-#################################
-
-
-sim$add_process(
-  species = species_names,
-  process_name = "reproduction",
-  process_fun = function() {
-    self$traits[["abundance"]] <-
-      ricker_reproduction_model(
-        self$traits[["abundance"]],
-        self$traits[["reproductionRate"]],
-        self$traits[["carryingCapacity"]]
-      )
-  },
-  execution_priority = 2
-)
 
 
 sim$add_process(
@@ -287,7 +304,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
-save_string <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025"
+save_string <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025"
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
@@ -327,7 +344,7 @@ print("simulation finished")
 ################################
 
 # output file path
-output_file <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/simulationSettings.txt"
+output_file <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/simulationSettings.txt"
 
 # define the species names
 species_names <- species_traits$Species
