@@ -19,9 +19,9 @@ library(data.table)
 # IMPORT DATA #
 ###############
 
-run20250218 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results12Feb2025/metaRangeOutputs12Fev2025.csv")
-head(run20250218)
-run20250218$taxa <- "Mammal"
+run20250224 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv")
+head(run20250224)
+run20250224$taxa <- "Mammal"
 
 ###############################
 # TOTAL NUMBER OF INDIVIDUALS #
@@ -38,7 +38,7 @@ t_policy <- 5
 ## three cells it would be (2+3)/2 = 2.5 moose
 
 # Total number of individuals (TNIND) per year and cellid
-TNIND <- run20250218 %>%
+TNIND <- run20250224 %>%
   group_by(species, taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
@@ -56,7 +56,7 @@ TNIND_yr <- TNIND %>% # n cells used for the calculus
   dplyr::select(!n) %>% 
   dplyr::filter(timestep >= t_burnin)
 
-TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr)) + 
+TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group = species)) + 
   geom_line() + 
   facet_wrap(scenario~ species, scales = "free_y", ncol = 5) +
   labs(y = "Total number of individuals") +
@@ -182,9 +182,9 @@ figure1 <- stability_avg_long %>%
 figure1
 invisible(gc())
 
-# ggsave(plot = figure1,
-#        file = here("output", "dummy_figures", "Figure1_Impact&Recovery.tiff"),
-#        bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+ggsave(plot = figure1,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure1_Impact&Recovery.tiff",
+       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
 

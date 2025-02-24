@@ -17,7 +17,7 @@ library(rphylopic) # for icon on plots
 library(here)
 
 # import dummy dataset
-dummy_dataset <- read_csv(here("data", "dummy_dataset_Jan2025.csv"))
+run20250224 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv")
 
 # specify burn in timestep & policy start
 t_burnin <- 2
@@ -43,23 +43,24 @@ uuid_insect <- get_uuid(name = "Apolygus lucorum", n = 1)
 
 ### Tpecies richness per cell in the landscape
 
-community_df <- dummy_dataset %>%
-  group_by(biome, scenario, time, cell_id, region, taxa) %>%
+community_df <- run20250224 %>%
+  group_by(biome, scenario, timestep, x, y, region, taxa) %>%
   dplyr::summarize(Sps_richness = n_distinct(species))# calculate species richness by counting the nº of species in each group
 invisible(gc())
 
 ### Species Diversity (Shannon_Wiener_Index) -----------------------------------
 
 # calculate the Shannon index
-Shannon_index <- dummy_dataset %>%
-  dplyr::filter(n_abundance != 0) %>% # keep only cells where species exist 
-  group_by(biome, scenario, time, cell_id) %>%
-  dplyr::mutate(p_i = n_abundance / sum(n_abundance),
+Shannon_index <- run20250224 %>%
+  dplyr::filter(abundance != 0) %>% # keep only cells where species exist 
+  group_by(biome, scenario, timestep, x, y) %>%
+  dplyr::mutate(p_i = abundance / sum(abundance),
                 # calculate proportion of individuals of species i
                 ln_p_i = ifelse(p_i > 0, log(p_i), 0)) %>%  # in case pi is 0
   # up until here the table has values for each species, then info is summarised
   dplyr::summarize(Shannon_Wiener_Index = -sum(p_i * ln_p_i))  # calculate the Shannon-Wiener index
 invisible(gc())
+
 
 ### Functional Diversity (Funct_diversity_Index) -------------------------------
 
@@ -108,7 +109,7 @@ community_df_year <- community_df %>%
 invisible(gc())
 
 # write this dataframe into a .csv to feed NatPoKe_Task2_Spatially_explicit_maps.R script
-#write.csv(community_df_year, "~/NatPoKe/data/community_df_peryear_Jan2025.csv")
+write.csv(community_df_year, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/community_df_peryear_24Feb2025.csv")
 
 # change community metrics per year from wide to LONG format for plots
 community_df_year_long <- community_df_year %>%
@@ -190,9 +191,9 @@ shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
 # save shannon_over_time plot
-# #ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_ShannonWienerOverTime.tiff"), # path
-#        shannon_over_time, # plot
-#        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+ggsave(path = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_ShannonWienerOverTime.tiff", # path
+       shannon_over_time, # plot
+       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
 
 
