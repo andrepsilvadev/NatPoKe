@@ -110,10 +110,18 @@ invisible(gc())
 # check results!!!!!!!!!!!
 head(final_results)
 
+final_results <- final_results %>% 
+  left_join(species_traits, by = c("species" = "Species")) %>% 
+  dplyr::select(!c("Index", "Family", "Order"))
+
+
 write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv",
           row.names = FALSE)
 invisible(gc())
 
+final_results <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv")
+
+head(final_results)
 #####################
 # JUST TESTING DATA #
 #####################
@@ -156,19 +164,3 @@ TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group =
 ggsave(plot = TNIND_per_year, file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/totalNumberIndividuals24Feb2025.tiff",
        bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
 
-
-mean_abund <- results06feb %>% 
-  group_by(x, y) %>%
-  mutate(cell_id = cur_group_id()) %>%
-  ungroup() %>% 
-  group_by(scenario, biome, region, taxa, species, timestep) %>%
-  dplyr::filter(abundance != 0) %>% 
-  summarise(mean_abundance = mean(abundance, na.rm = TRUE))
-
-ggplot(mean_abund, aes(x= timestep , y = mean_abundance, group = species, fill = species)) +
-  geom_line()
-
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/BAU_Tropical_Asia_001_Rangifertarandus_abundance.tif"))
-
-ncell(rast(here("data/boreal_forests", "Rangifertarandus_suitability_cropped_modified_reprojected.tif")))
-ncell(rast(here("data/boreal_forests", "Rangifertarandus_suitability_cropped_modified.tif")))

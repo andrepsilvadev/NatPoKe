@@ -43,15 +43,15 @@ uuid_insect <- get_uuid(name = "Apolygus lucorum", n = 1)
 
 ### Tpecies richness per cell in the landscape
 
-community_df <- run20250224 %>%
-  group_by(biome, scenario, timestep, x, y, region, taxa) %>%
+community_df <- final_results %>%
+  group_by(biome, scenario, timestep, x, y, region, Taxa) %>%
   dplyr::summarize(Sps_richness = n_distinct(species))# calculate species richness by counting the nº of species in each group
 invisible(gc())
 
 ### Species Diversity (Shannon_Wiener_Index) -----------------------------------
 
 # calculate the Shannon index
-Shannon_index <- run20250224 %>%
+Shannon_index <- final_results %>%
   dplyr::filter(abundance != 0) %>% # keep only cells where species exist 
   group_by(biome, scenario, timestep, x, y) %>%
   dplyr::mutate(p_i = abundance / sum(abundance),
@@ -65,19 +65,15 @@ invisible(gc())
 ### Functional Diversity (Funct_diversity_Index) -------------------------------
 
 # create trophic levels because dummy dataset did not have any 
-# DELETE LATER when real data is used
-trophic_levels <- c("herbivore", "carnivore", "omnivore")
 
-Funct_diversity <- dummy_dataset %>%
-  dplyr::filter(n_abundance != 0) %>% # keep only cells where species exist
-  mutate(trophic_level = ifelse(dummy_dataset$species %in% c("SpeciesA", "SpeciesB"), "herbivore",
-                                ifelse(dummy_dataset$species == "SpeciesC", "omnivore",
-                                       ifelse(dummy_dataset$species %in% c("SpeciesD", "SpeciesE"), "carnivore", NA)))) %>%
-  group_by(biome, scenario, time, cell_id, trophic_level) %>%
-  dplyr::summarize(Total_abundance = sum(n_abundance, na.rm = TRUE)) %>%
-  group_by(biome, scenario, time, cell_id, trophic_level) %>%
+
+Funct_diversity <- final_results %>%
+  dplyr::filter(abundance != 0) %>% # keep only cells where species exist
+  group_by(biome, scenario, timestep, x, y, TrophicLevel) %>%
+  dplyr::summarize(Total_abundance = sum(abundance, na.rm = TRUE)) %>%
+  group_by(biome, scenario, timestep, x, y, TrophicLevel) %>%
   dplyr::summarise(Fmean_abundance = mean(Total_abundance, na.rm = TRUE)) %>%
-  group_by(biome, scenario, time, cell_id) %>%
+  group_by(biome, scenario, timestep, x, y) %>%
   dplyr::mutate(Fp_i = Fmean_abundance / sum(Fmean_abundance),
                 # calculate proportion of individuals of fucntional group i
                 Fln_p_i = ifelse(Fp_i > 0, log(Fp_i), 0)) %>%  # in case Fpi is 0
@@ -87,21 +83,20 @@ invisible(gc())
 
 # join all community metrics into one dataframe
 community_df <- community_df %>%
-  group_by(biome, scenario, time, cell_id) %>%
-  left_join(select(Shannon_index, Shannon_Wiener_Index, biome, scenario, time, cell_id),
-            by = c("biome", "scenario", "time", "cell_id")) %>%
-  left_join(select(Funct_diversity,
-                   Funct_diversity_Index,
+  group_by(biome, scenario, timestep, x, y) %>%
+  left_join(Shannon_index, select(Shannon_Wiener_Index, biome, scenario, timestep, x, y),
+            by = c("biome", "scenario", "timestep", "x", "y")) %>%
+  left_join(Funct_diversity, select(Funct_diversity_Index,
                    biome,
                    scenario,
-                   time,
-                   cell_id),
-            by = c("biome", "scenario", "time", "cell_id"))
+                   timestep,
+                   x, y),
+            by = c("biome", "scenario", "timestep", "x", "y"))
 invisible(gc())
 
 # average community metrics per year -------------------------------------------
 community_df_year <- community_df %>%
-  group_by(biome, scenario, time, taxa) %>%
+  group_by(biome, scenario, timestep, Taxa) %>%
   dplyr::summarise(
     mean_Sps_richness_yr = mean(Sps_richness, na.rm = TRUE),
     mean_Shannon_Index_yr = mean(Shannon_Wiener_Index, na.rm = TRUE),
@@ -109,23 +104,23 @@ community_df_year <- community_df %>%
 invisible(gc())
 
 # write this dataframe into a .csv to feed NatPoKe_Task2_Spatially_explicit_maps.R script
-write.csv(community_df_year, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/community_df_peryear_24Feb2025.csv")
+write.csv(community_df_year, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/community_df_peryear_24Feb2025.csv")
 
 # change community metrics per year from wide to LONG format for plots
 community_df_year_long <- community_df_year %>%
   pivot_longer(cols = c("mean_Sps_richness_yr", "mean_Shannon_Index_yr", "mean_Funct_Div_yr"),
                names_to = 'variables',
                values_to = 'values') %>%
-  dplyr::filter(time >= t_burnin) # remove burn-in period
+  dplyr::filter(timestep >= t_burnin) # remove burn-in period
 invisible(gc())
 
 ############
 # FIGURE 2 # Community metrics per policy in both biomes per taxa (one figure per community metric)
 ############
 
-taxas <- unique(dummy_dataset$taxa)
+taxas <- unique(final_results$Taxa)
 variables <- unique(c(community_df_year_long$variables))
-biome_names <- c("Tropical forests" = "Tropical forests ", "Boreal forests" = "Boreal forests")
+biome_names <- c("Tropical forests" = "Tropical forests ", "Boreal" = "Boreal forests")
 vars_names <- c("mean_Sps_richness_yr" = "Species \n Richness", "mean_Shannon_Index_yr" = "Shannon Wienner \nIndex", "mean_Funct_Div_yr" = "Functional \nDiversity")
 
 # split full dataframe per variable
@@ -136,10 +131,10 @@ variable_data <- split(community_df_year_long, community_df_year_long$variables)
 
 # get the top-right corner coordinates for each facet
 icon_positions_shannon <- variable_data$mean_Shannon_Index_yr %>%
-  group_by(biome, taxa) %>%
+  group_by(biome, Taxa) %>%
   summarise(
-    x = max(time) - 2,  # Add some padding to the max x
-    y = max(values) + 0.05  # Add padding to the max y
+    x = max(timestep) - 2,  # Add some padding to the max x
+    y = max(values)  # Add padding to the max y
   ) %>%
   ungroup()
 
@@ -147,19 +142,19 @@ icon_positions_shannon <- variable_data$mean_Shannon_Index_yr %>%
 icon_positions_shannon <- icon_positions_shannon %>%
   mutate(
     phylopic = case_when(
-      taxa == "Mammal" ~ uuid_mammal,
-      taxa == "Bird" ~ uuid_bird,
-      taxa == "Insect" ~ uuid_insect
+      Taxa == "Mammal" ~ uuid_mammal,
+      Taxa == "Bird" ~ uuid_bird,
+      Taxa == "Insect" ~ uuid_insect
     )
   )
 
 # build the plot
 shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
-                                aes(x = time, y = values, color = scenario)) +
+                                aes(x = timestep, y = values, color = scenario)) +
   geom_line() +
   #facet_wrap(biome ~ taxa, scales = "free", 
   # labeller = labeller(biome = as_labeller(biome_names), taxa = as_labeller(taxas))) +
-  facet_grid(biome ~ taxa, scales = "free",
+  facet_grid(biome ~ Taxa, scales = "free",
              labeller = labeller(
                biome = as_labeller(biome_names),
                taxa = as_labeller(taxas)),
@@ -169,7 +164,7 @@ shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
   #scale_color_discrete("Economic policy \nscenario") +
   coord_cartesian(clip = "off") +  # Allow plotting outside the panel
   geom_phylopic(data = icon_positions_shannon, aes(x = x, y = y, uuid = phylopic), 
-                size = 0.02, inherit.aes = FALSE) +  # Add PhyloPic icons
+                size = 0.0001, inherit.aes = FALSE) +  # Add PhyloPic icons
   theme_minimal() +
   theme(
     # remove gridlines 
@@ -191,7 +186,7 @@ shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
 # save shannon_over_time plot
-ggsave(path = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_ShannonWienerOverTime.tiff", # path
+ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_ShannonWienerOverTime.tiff", # path
        shannon_over_time, # plot
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
@@ -201,10 +196,10 @@ ggsave(path = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe
 
 # get the top-right corner coordinates for each facet
 icon_positions_functional <- variable_data$mean_Funct_Div_yr %>%
-  group_by(biome, taxa) %>%
+  group_by(biome, Taxa) %>%
   summarise(
-    x = max(time) - 2,  # Add some padding to the max x
-    y = max(values) + 0.05  # Add padding to the max y
+    x = max(timestep) - 2,  # Add some padding to the max x
+    y = max(values)  # Add padding to the max y
   ) %>%
   ungroup()
 
@@ -212,19 +207,19 @@ icon_positions_functional <- variable_data$mean_Funct_Div_yr %>%
 icon_positions_functional <- icon_positions_functional %>%
   mutate(
     phylopic = case_when(
-      taxa == "Mammal" ~ uuid_mammal,
-      taxa == "Bird" ~ uuid_bird,
-      taxa == "Insect" ~ uuid_insect
+      Taxa == "Mammal" ~ uuid_mammal,
+      Taxa == "Bird" ~ uuid_bird,
+      Taxa == "Insect" ~ uuid_insect
     )
   )
 
 # build the plot
 functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
-                            aes(x = time, y = values, color = scenario)) +
+                            aes(x = timestep, y = values, color = scenario)) +
   geom_line() +
   #facet_wrap(biome ~ taxa, scales = "free", 
   # labeller = labeller(biome = as_labeller(biome_names), taxa = as_labeller(taxas))) +
-  facet_grid(biome ~ taxa, scales = "free",
+  facet_grid(biome ~ Taxa, scales = "free",
              labeller = labeller(
                biome = as_labeller(biome_names),
                taxa = as_labeller(taxas)),
@@ -234,7 +229,7 @@ functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
   #scale_color_discrete("Economic policy \nscenario") +
   coord_cartesian(clip = "off") +  # Allow plotting outside the panel
   geom_phylopic(data = icon_positions_functional, aes(x = x, y = y, uuid = phylopic), 
-                size = 0.02, inherit.aes = FALSE) +  # Add PhyloPic icons
+                size = 0.00015, inherit.aes = FALSE) +  # Add PhyloPic icons
   theme_minimal() +
   theme(
     # remove gridlines 
@@ -255,20 +250,20 @@ functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
     plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
-# # save functdiv_over_time plot
-# ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_FunctionalDiversityOverTime.tiff"), # path
-#        functdiv_over_time, # plot
-#        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+# save functdiv_over_time plot
+ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_FunctionalDiversityOverTime.tiff", # path
+      functdiv_over_time, # plot
+      bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
 
 # Species richness  ------------------------------------------------------------
 
 # get the top-right corner coordinates for each facet
 icon_positions_richness <- variable_data$mean_Sps_richness_yr %>%
-  group_by(biome, taxa) %>%
+  group_by(biome, Taxa) %>%
   summarise(
-    x = max(time) - 2,  # Add some padding to the max x
-    y = max(values) + 1  # Add padding to the max y
+    x = max(timestep) - 2,  # Add some padding to the max x
+    y = max(values) +0.05 # Add padding to the max y
   ) %>%
   ungroup()
 
@@ -276,19 +271,19 @@ icon_positions_richness <- variable_data$mean_Sps_richness_yr %>%
 icon_positions_richness <- icon_positions_richness %>%
   mutate(
     phylopic = case_when(
-      taxa == "Mammal" ~ uuid_mammal,
-      taxa == "Bird" ~ uuid_bird,
-      taxa == "Insect" ~ uuid_insect
+      Taxa == "Mammal" ~ uuid_mammal,
+      Taxa == "Bird" ~ uuid_bird,
+      Taxa == "Insect" ~ uuid_insect
     )
   )
 
 # build the plot
 richness_over_time <- ggplot(data = variable_data$mean_Sps_richness_yr,
-                             aes(x = time, y = values, color = scenario)) +
+                             aes(x = timestep, y = values, color = scenario)) +
   geom_line() +
   #facet_wrap(biome ~ taxa, scales = "free", 
   # labeller = labeller(biome = as_labeller(biome_names), taxa = as_labeller(taxas))) +
-  facet_grid(biome ~ taxa, scales = "free",
+  facet_grid(biome ~ Taxa, scales = "free",
              labeller = labeller(
                biome = as_labeller(biome_names),
                taxa = as_labeller(taxas)),
@@ -298,7 +293,7 @@ richness_over_time <- ggplot(data = variable_data$mean_Sps_richness_yr,
   #scale_color_discrete("Economic policy \nscenario") +
   coord_cartesian(clip = "off") +  # Allow plotting outside the panel
   geom_phylopic(data = icon_positions_richness, aes(x = x, y = y, uuid = phylopic), 
-                size = 0.2, inherit.aes = FALSE) +  # Add PhyloPic icons
+                size = 0.005, inherit.aes = FALSE) +  # Add PhyloPic icons
   theme_minimal() +
   theme(
     # remove gridlines 
@@ -319,11 +314,11 @@ richness_over_time <- ggplot(data = variable_data$mean_Sps_richness_yr,
     plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
-# # save functdiv_over_time plot
-# ggsave(paste0("~/NatPoKe/output/dummy_figures/","Figure2_SpeciesRichnessOverTime.tiff"), # path
-#        richness_over_time, # plot
-#        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
-# 
+# save functdiv_over_time plot
+ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_SpeciesRichnessOverTime.tiff", # path
+        richness_over_time, # plot
+        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+ 
 
 
 # IF WE WANT A MORE AUTOMATED WAY THAT MIGHT NOT WORK WITH DIFFERENT SCALES 

@@ -61,6 +61,8 @@ species_traits <- tibble(
   Species = combined_traits_data$Species, # scientific name WITHOUT spaces
   Family = combined_traits_data$Family, # family
   Order = combined_traits_data$Order, # order
+  TrophicLevel = combined_traits_data$trophic_level, # trophic level with 3 factors
+  Taxa = "Mammal",
   BodyMass = combined_traits_data$BodyMass, # species body mass (kg)
   CellResolution = as.numeric(combined_traits_data$pixel_size_x*combined_traits_data$pixel_size_y), # cell area  in Km2 (as santini data comes in Ind/km)
   #ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))),
@@ -78,7 +80,7 @@ sapply(species_traits, function(x) sum(is.na(x))) # number NA per column
 sapply(species_traits, function(x) sum(is.na(x)/length(x))) # proportion NA per column
 
 # write table to .csv file
-write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
+write_csv(species_traits, file = file.path(here("data","metaRangeSpeciesDataframe.csv")))
 
 # remove unecessary objects
 rm(combined_traits_data)
