@@ -6,6 +6,8 @@
 
 # GOAL: Build a script to save metaRange simulations output as a dataframe with 
 # all variables and species with coordinates
+library(here)
+library(terra)
 
 ##########
 # STEP 1 #  Select species and traits for which raster might exist
@@ -33,7 +35,7 @@ for (sp in species_names) {
   for (raster_type in raster_types) {
     
     # find the raster files (for a sps and raster type)
-    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025"), 
+    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025"), 
                         pattern = paste0(sp, "_", raster_type, ".tif"), full.names = TRUE)
     
     # skip if no files found print WARNING
@@ -56,14 +58,6 @@ for (sp in species_names) {
       # convert raster to data frame (with coordinates and values)
       raster_data <- terra::as.data.frame(r, xy = TRUE, na.rm = TRUE, row.names = FALSE)
       invisible(gc())
-      
-      # Assign unique cell ID based on (x, y) order
-      if (!exists("global_cell_lookup")) {
-        global_cell_lookup <- unique(raster_data[, c("x", "y")])  # Get unique coordinates
-        global_cell_lookup$cellid <- sprintf("%02d", seq_len(nrow(global_cell_lookup)))  # Assign IDs
-      }
-      # Merge the cell IDs back
-      raster_data <- merge(raster_data, global_cell_lookup, by = c("x", "y"))
       
       # add more info as new columns
       raster_data$scenario <- filename_parts[1] # BAU
@@ -116,7 +110,7 @@ invisible(gc())
 # check results!!!!!!!!!!!
 head(final_results)
 
-write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025/metaRangeOutputs18Fev2025.csv",
+write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv",
           row.names = FALSE)
 invisible(gc())
 
@@ -129,12 +123,11 @@ library(ggplot2)
 library(dplyr)
 library(terra)
 
-results13feb <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results12Feb2025/metaRangeOutputs12Fev2025.csv")
-results13feb$taxa <- "Mammal"
+final_results$taxa <- "Mammal"
 
 
 # Total number of individuals (TNIND) per year and cellid
-TNIND <- results13feb %>%
+TNIND <- final_results %>%
   group_by(species, taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
@@ -151,14 +144,17 @@ TNIND_yr <- TNIND %>% # n cells used for the calculus
                    n = n()) %>% 
   dplyr::select(!n) 
 
-TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr)) + 
+TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group = species)) + 
   geom_line() + 
-  facet_wrap(scenario~ species, ncol = 5) +
+  facet_wrap(scenario~ species, ncol = 2, scales="free_y") +
   labs(y = "Total number of individuals") +
   theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=1))
   geom_vline(xintercept = 5, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
 
-
+# saving the plot
+ggsave(plot = TNIND_per_year, file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/totalNumberIndividuals24Feb2025.tiff",
+       bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
 
 
 mean_abund <- results06feb %>% 
@@ -174,3 +170,5 @@ ggplot(mean_abund, aes(x= timestep , y = mean_abundance, group = species, fill =
 
 plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results06Feb2025v2/BAU_Tropical_Asia_001_Rangifertarandus_abundance.tif"))
 
+ncell(rast(here("data/boreal_forests", "Rangifertarandus_suitability_cropped_modified_reprojected.tif")))
+ncell(rast(here("data/boreal_forests", "Rangifertarandus_suitability_cropped_modified.tif")))
