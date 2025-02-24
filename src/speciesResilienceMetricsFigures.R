@@ -19,7 +19,7 @@ library(data.table)
 # IMPORT DATA #
 ###############
 
-run20250218 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/18Feb2025/metaRangeOutputs18Fev2025.csv")
+run20250218 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/results12Feb2025/metaRangeOutputs12Fev2025.csv")
 head(run20250218)
 run20250218$taxa <- "Mammal"
 
@@ -39,11 +39,11 @@ t_policy <- 5
 
 # Total number of individuals (TNIND) per year and cellid
 TNIND <- run20250218 %>%
-  group_by(species, taxa, biome, scenario, timestep, cellid) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
+  group_by(species, taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
   dplyr::select(!n) %>% 
-  group_by(species, taxa, biome, scenario, timestep, cellid) %>% # KEEP SIM BUT REMOVE REP HERE
+  group_by(species, taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
   dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
 
 
