@@ -40,7 +40,7 @@ library(tools) # for file without paths
 ###################
 
 # import Species Trait Dataframe -----------------------------------------------
-species_traits <- read.csv(here("data","metaRangeSpeciesDataframe.csv"))
+species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
 
 # setting up the simulation ----------------------------------------------------
@@ -56,7 +56,7 @@ sim_name <- "example_01"
 # Landscape --------------------------------------------------------------------
 
 # load the environment
-sim_env <- sds(list.files("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025/inputs",
+sim_env <- sds(list.files(dirinput,
                           pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
 
 invisible(gc())
@@ -151,10 +151,10 @@ sim$add_process(
     species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojected")
     
     self$traits[["carryingCapacity"]] <-
-      self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
+      self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]/100
     
     self$traits[["reproductionRate"]] <-
-      self$traits[["maxReproductionRate"]] * self$sim$environment$current[[species_suitability_name]]
+      self$traits[["maxReproductionRate"]] * self$sim$environment$current[[species_suitability_name]]/100
   },
   execution_priority = 1
 )
@@ -176,8 +176,6 @@ beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survi
   return(abundance_t1)
 }
 
-####################################
-
 sim$add_process(
    species = species_names,
    process_name = "demography_BevertonHolt",
@@ -198,7 +196,7 @@ sim$add_process(
     # i.e. individuals disperse more likely into more suitable cells
     self$traits[["abundance"]] <- dispersal(
       abundance = self$traits[["abundance"]],
-      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]],
+      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]]/100,
       dispersal_kernel = self$traits[["dispersalKernel"]])
   },
   execution_priority = 3
@@ -293,7 +291,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
-save_string <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025"
+save_string <- dirout
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
@@ -333,7 +331,7 @@ print("simulation finished")
 ################################
 
 # output file path
-output_file <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025/simulationSettings.txt"
+output_file <- file.path(dirout, "simulationSettings.txt")
 
 # define the species names
 species_names <- species_traits$Species

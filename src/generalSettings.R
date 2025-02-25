@@ -11,7 +11,7 @@ dir.create(file.path(runpath, "Inputs"), showWarnings = TRUE)
 dir.create(file.path(runpath, "Outputs"), showWarnings = TRUE)
 #dir.create(file.path(runpath, "Output_Maps"), showWarnings = TRUE)
 dirinput <- file.path(runpath, "Inputs")
-dirout <- file.path(runpath, "Ouputs")
+dirout <- file.path(runpath, "Outputs")
 
 
 # creating working directories in the drive -------(WORK IN PROGRESS) ----------

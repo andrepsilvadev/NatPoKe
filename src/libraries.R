@@ -35,3 +35,4 @@ easypackages::packages(
     "viridis",
   
   prompt = FALSE)
+

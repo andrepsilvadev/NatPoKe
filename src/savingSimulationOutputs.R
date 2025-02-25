@@ -20,7 +20,7 @@ results_list <- list()
 raster_types <- c("abundance", "reproductionRate", "mortality")
 
 # Read species data
-species_traits <- read.csv(here("data","metaRangeSpeciesDataframe.csv"))
+species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 species_names <- species_traits$Species
 
 ##########
@@ -35,7 +35,7 @@ for (sp in species_names) {
   for (raster_type in raster_types) {
     
     # find the raster files (for a sps and raster type)
-    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/25Feb2025"), 
+    flist <- list.files(dirout, 
                         pattern = paste0(sp, "_", raster_type, ".tif"), full.names = TRUE)
     
     # skip if no files found print WARNING
@@ -108,19 +108,18 @@ final_results <- do.call(rbind, results_list)
 invisible(gc())
 
 
-
+# add taxa and trophic level before writing final .csv
 final_results <- final_results %>% 
-  left_join(species_traits, by = c("species" = "Species")) %>% 
-  dplyr::select(!c("Index", "Family", "Order"))
+  left_join(species_traits %>% select(Species, TrophicLevel, Taxa), 
+            by = c("species" = "Species"))
 
 # check results!!!!!!!!!!!
 head(final_results)
 
-
-write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/25Feb2025/metaRangeOutputs25Fev2025.csv",
+# writing a .csv file
+write.csv(final_results, file.path(dirout, "metaRangeOutputs25Fev2025.csv"),
           row.names = FALSE)
 invisible(gc())
-
 
 #####################
 # JUST TESTING DATA #
@@ -131,8 +130,7 @@ library(ggplot2)
 library(dplyr)
 library(terra)
 
-
-
+#final_results$Taxa <- "Mammal"
 
 # Total number of individuals (TNIND) per year and cellid
 TNIND <- final_results %>%
@@ -161,6 +159,6 @@ TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group =
   geom_vline(xintercept = 5, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
 
 # saving the plot
-ggsave(plot = TNIND_per_year, file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/25Feb2025/totalNumberIndividuals25Feb2025.tiff",
+ggsave(plot = TNIND_per_year, file.path(dirout, "totalNumberIndividuals25Feb2025.tiff"),
        bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
 

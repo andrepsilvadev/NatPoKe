@@ -80,7 +80,7 @@ sapply(species_traits, function(x) sum(is.na(x))) # number NA per column
 sapply(species_traits, function(x) sum(is.na(x)/length(x))) # proportion NA per column
 
 # write table to .csv file
-write_csv(species_traits, file = file.path(here("data","metaRangeSpeciesDataframe.csv")))
+write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 # remove unecessary objects
 rm(combined_traits_data)
