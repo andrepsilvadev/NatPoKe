@@ -35,7 +35,7 @@ for (sp in species_names) {
   for (raster_type in raster_types) {
     
     # find the raster files (for a sps and raster type)
-    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025"), 
+    flist <- list.files(here("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/25Feb2025"), 
                         pattern = paste0(sp, "_", raster_type, ".tif"), full.names = TRUE)
     
     # skip if no files found print WARNING
@@ -107,21 +107,21 @@ invisible(gc())
 final_results <- do.call(rbind, results_list)
 invisible(gc())
 
-# check results!!!!!!!!!!!
-head(final_results)
+
 
 final_results <- final_results %>% 
   left_join(species_traits, by = c("species" = "Species")) %>% 
   dplyr::select(!c("Index", "Family", "Order"))
 
+# check results!!!!!!!!!!!
+head(final_results)
 
-write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv",
+
+write.csv(final_results, "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/25Feb2025/metaRangeOutputs25Fev2025.csv",
           row.names = FALSE)
 invisible(gc())
 
-final_results <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv")
 
-head(final_results)
 #####################
 # JUST TESTING DATA #
 #####################
@@ -131,22 +131,22 @@ library(ggplot2)
 library(dplyr)
 library(terra)
 
-final_results$taxa <- "Mammal"
+
 
 
 # Total number of individuals (TNIND) per year and cellid
 TNIND <- final_results %>%
-  group_by(species, taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
+  group_by(species, Taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
   dplyr::select(!n) %>% 
-  group_by(species, taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
+  group_by(species, Taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
   dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
 
 
 # Total number of individuals per year
 TNIND_yr <- TNIND %>% # n cells used for the calculus
-  group_by(species, taxa, biome, scenario, timestep) %>%
+  group_by(species, Taxa, biome, scenario, timestep) %>%
   dplyr::summarize(mean_yr = mean(mean_TNIND, na.rm = TRUE), # cell mean 
                    sd_yr = sd(mean_TNIND, na.rm = TRUE),
                    n = n()) %>% 
@@ -161,6 +161,6 @@ TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group =
   geom_vline(xintercept = 5, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
 
 # saving the plot
-ggsave(plot = TNIND_per_year, file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/totalNumberIndividuals24Feb2025.tiff",
+ggsave(plot = TNIND_per_year, file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/25Feb2025/totalNumberIndividuals25Feb2025.tiff",
        bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
 
