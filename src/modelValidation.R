@@ -5,6 +5,7 @@
 
 # GOAL: Compare mean species densities estimated from two sources.
 
+rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/NatPoKe/data/temp_mammals_landscapes/Alcesalces_suitability_cropped_modified.tif")
 
 # WHAT IS MODEL VALIDATION?
 # Model validation is the process of determining whether the model accurately
@@ -39,7 +40,8 @@ library(data.table)
   # (5) validationYear: The specific year (or time step) used for validation
 
 # (1) targetspecies
-targetspecies <- c("Alcesalces", "Lynxlynx")
+targetspecies <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
+  dplyr::pull(Species)
 
 # (2) independentDensity
 santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
@@ -48,16 +50,14 @@ santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/A
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # (3) estimatedDensity
-estimatedDensity <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/results_28Jan/final_results28Jan.tsv") %>% 
-  mutate(cell_id = paste0(x,y))
-
+estimatedDensity <- fread(file.path(dirout,"metaRangeOutputs25Fev2025.csv")) 
 
 
 # import a raster to get cell size
-size <- res(terra::rast(here("example/mammals_try2/clean_data_2species", "Lynxlynx_suitability_cropped_modified.tif")))
+size <- res(terra::rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojected.tif")))
 
 # (4) spData
-spData <- read.csv(here("example/mammals_try2/clean_data_2species", "target_metarange_mammals20250110.csv")) %>% 
+spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
   mutate(ModellingRes = size[[1]]*size[[2]])
   #IF WE WANT TO GO BACK TO THE ORIGINAL IDEA OF USING SANTINI'S "MEASUREMENTS" OF PREDICTED DENSITIES
   # to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022
@@ -104,15 +104,15 @@ validateModel1.1 <- function(
   predicted <- estimatedDensity %>%
     dplyr::filter(species %in% targetspecies) %>%
     dplyr::filter(timestep %in% validationYear) %>% # validate model at the equilibrium (burn-in years)
-    dplyr::group_by(species, cell_id) %>%
+    dplyr::group_by(species, x,y) %>%
     dplyr::summarise(
       meanNInd = mean(abundance),
       .groups = 'drop') %>%
     as.data.frame()
   
   spData2 <- spData %>%
-    dplyr::select(species, ModellingRes) %>%
-    #rename(species = Species) %>%
+    dplyr::select(Species, ModellingRes) %>%
+    rename(species = Species) %>%
     as.data.frame()
   
   estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
@@ -132,7 +132,7 @@ validationList <- validateModel1.1(
   independentDensity = santini2022,
   estimatedDensity = estimatedDensity,
   spData = spData,
-  validationYear = 8
+  validationYear = 5
 ) 
 
 #########################
@@ -141,7 +141,9 @@ validationList <- validateModel1.1(
 
 # since names do have a species in between words to look nice we have to replace names before plotting
 names_replace <- c("Alcesalces" = "Alces alces",
-                   "Lynxlynx" = "Lynx lynx")
+                   "Lynxlynx" = "Lynx lynx", 
+                   "Cervuselaphus" = "Cervus elaphus",
+                   "Rangifertarandus" = "Rangifer tarandus")
 
 validationList <- lapply(validationList, function(df) {
   df$species <- names_replace[df$species]
