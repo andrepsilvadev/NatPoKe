@@ -56,7 +56,8 @@ sim_name <- "example_01"
 # Landscape --------------------------------------------------------------------
 
 # load the environment
-sim_env <- sds(list.files(here("data/temp_mammals_landscapes"), pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
+sim_env <- sds(list.files("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025/inputs",
+                          pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
 
 invisible(gc())
 ##################### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
@@ -121,6 +122,7 @@ sim$add_globals(
 
 # add global variables ---------------------------------------------------------
 
+
 # add some global variables to track stats
 # i.e. we want to know:
 # - the total abundance of each species
@@ -132,8 +134,10 @@ names(species_sum_abundance) <- species_names
 for (i in species_names) {
   species_sum_abundance[[i]] <- list(
     "n_abundance" = vector("numeric", sim$number_time_steps),
-    "n_occupied" = vector("numeric", sim$number_time_steps),
-    "n_juveniles" = vector("numeric", sim$number_time_steps)
+    "mean_abundance" = vector("numeric", sim$number_time_steps),
+    "mean_rrate" = vector("numeric", sim$number_time_steps),
+    "mean_ccap" = vector("numeric", sim$number_time_steps),
+    "n_occupied" = vector("numeric", sim$number_time_steps)
   )
 }
 do.call(sim$add_globals, species_sum_abundance)
@@ -155,10 +159,7 @@ sim$add_process(
   execution_priority = 1
 )
 
-#################################
-# THIS IS YET TO BE IMPLEMENTED #
-#################################
-
+# Beverton & Holt function #
 
 beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survival_rate) {
   # Safeguarding the input
@@ -175,9 +176,11 @@ beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survi
   return(abundance_t1)
 }
 
+####################################
+
 sim$add_process(
    species = species_names,
-   process_name = "demography_Beverton_Holt",
+   process_name = "demography_BevertonHolt",
    process_fun = function(){
      self$traits[["abundance"]] <- beverton_holt(abundance = self$traits[["abundance"]],
                                reproduction_rate = self$traits[["reproductionRate"]],
@@ -186,26 +189,6 @@ sim$add_process(
      },
    execution_priority = 2
  )
-
-#################################
-#################################
-#################################
-
-
-# sim$add_process(
-#   species = species_names,
-#   process_name = "reproduction",
-#   process_fun = function() {
-#     self$traits[["abundance"]] <-
-#       ricker_reproduction_model(
-#         self$traits[["abundance"]],
-#         self$traits[["reproductionRate"]],
-#         self$traits[["carryingCapacity"]]
-#       )
-#   },
-#   execution_priority = 2
-# )
-
 
 sim$add_process(
   species = species_names,
@@ -223,34 +206,40 @@ sim$add_process(
 
 
 # sim$add_process(
-#   species = species_names,
-#   process_name = "dispersal_overpopulation",
-#   process_fun = function() {
-# 
-# 
-#     self$traits[["overpopulation"]] <-
-#       1 / (
-#         self$traits[["abundance"]] /
-#           self$traits[["carryCapacity"]]
-#       )
-#     self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
-# 
-#     dispersing_population <- pmax(self$traits[["abundance"]] - self$traits[["carryCapacity"]], 0)
-#     self$traits[["abundance"]] <- self$traits[["abundance"]] - dispersing_population
-# 
-#     dispersing_population <-
-#       matrix(
-#         rpois(ncell(dispersing_population), dispersing_population),
-#         nrow = nrow(self$traits[["abundance"]]),
-#         ncol = ncol(self$traits[["abundance"]])
-#       )
-# 
-#     self$traits[["abundance"]] <-
-#       self$traits[["abundance"]] +
-#       dispersing_population
-# 
-#   },
-#   execution_priority = 4
+#     species = species_names,
+#     process_name = "dispersal_overpopulation",
+#     process_fun = function() {
+#         self$traits[["overpopulation"]] <-
+#             1 / (
+#                 self$traits[["abundance"]] /
+#                     self$traits[["carryingCapacity"]]
+#             )
+#         self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
+
+#         dispersing_population <- pmax(self$traits[["abundance"]] - self$traits[["carryingCapacity"]], 0)
+#         self$traits[["abundance"]] <- self$traits[["abundance"]] - dispersing_population
+
+#         dispersing_population <-
+#             dispersal(
+#                 dispersal_kernel = self$traits[["dispersalKernel"]],
+#                 abundance = dispersing_population,
+#                 weights = self$sim$environment$current[[
+#                         paste0(self$name, "_suitability_cropped_modified_reprojected")
+#                     ]] * self$traits[["overpopulation"]]
+#             )
+
+#         dispersing_population <-
+#             matrix(
+#                 rpois(ncell(dispersing_population), dispersing_population),
+#                 nrow = nrow(self$traits[["abundance"]]),
+#                 ncol = ncol(self$traits[["abundance"]])
+#             )
+
+#         self$traits[["abundance"]] <-
+#             self$traits[["abundance"]] +
+#             dispersing_population
+#     },
+#     execution_priority = 4
 # )
 
 
@@ -304,7 +293,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
-save_string <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025"
+save_string <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025"
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
@@ -344,7 +333,7 @@ print("simulation finished")
 ################################
 
 # output file path
-output_file <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/simulationSettings.txt"
+output_file <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025/simulationSettings.txt"
 
 # define the species names
 species_names <- species_traits$Species
