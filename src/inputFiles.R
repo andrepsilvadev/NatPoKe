@@ -61,7 +61,101 @@ download_matching_files(drive_path = "SRIT-database/user/global_suitability_land
 ##########
 # STEP 3 # (just for testing the model) - Cropping & reprojecting for Sweden
 ##########
-# 
+
+library(here)
+library(terra)
+
+###########################
+## cropping & new layers ##
+
+# list rasters
+raster_files <- list.files(here("data/global_suitability_landscapes"),
+                           pattern = "_suitability.tif$", full.names = TRUE)
+# define the bounding box
+bbox_SW <- ext(12.774353, 15.526428, 61.796497, 62.595869)
+
+duplicate_layers <- function(raster, times) {
+  replicated <- list()
+  
+  # layer 1: Original raster
+  replicated[[1]] <- raster
+  
+  # layer 2: Exact copy of original raster
+  replicated[[2]] <- raster
+  
+  # layers 3 to `times`: suitability decreases progressivly by 1%
+  new_layer <- raster
+  for (i in 3:times) {
+    new_layer <- new_layer * 0.99  # Reduce by 1% each time
+    replicated[[i]] <- new_layer
+  }
+  
+  return(rast(replicated))
+}
+
+# Loop through each raster file
+for (r in raster_files) {
+  # read the raster
+  sp_raster <- rast(r)
+  
+  # transform values from 0-100 to 0-1
+  r_rescaled <- sp_raster/100
+  
+  # crop the raster to the bounding box
+  cropped_raster <- terra::crop(r_rescaled, bbox_SW)
+  
+  # duplicate the layers 25 times
+  duplicated_raster <- duplicate_layers(cropped_raster, times = 25)
+  
+  # save processed raster
+  output_path <- file.path("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025/inputs", tools::file_path_sans_ext(basename(r)))
+  writeRaster(duplicated_raster, paste0(output_path, "_cropped_modified.tif"), overwrite = TRUE)
+}
+
+# checking new layers
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025/inputs/Alcesalces_suitability_cropped_modified.tif"))
+
+##################
+## reprojecting ##
+
+landscape_SW <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025/inputs",
+                           pattern = "_suitability_cropped_modified.tif",
+                           full.names = TRUE)
+
+for (landscape in landscape_SW) {
+  
+  # load raster
+  r <- rast(landscape)
+  
+  # reproject to SWEREF99 TM (EPSG:3006) and convert to km
+  r_utm <- project(r, "EPSG:3006", res = 1000)
+  
+  # output filename
+  output_filename <- gsub("\\.tif$", "_reprojected.tif", landscape)
+  
+  # save reprojected raster
+  writeRaster(r_utm, output_filename, overwrite = TRUE)
+}
+
+# checking reprojection
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/25Feb2025/inputs/Alcesalces_suitability_cropped_modified_reprojected.tif"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ## cropping
 # 
 # # load Sweden boundary shapefile
@@ -187,12 +281,3 @@ for (landscape in landscape_SW) {
 
 
 
-
-
-# 
-# ## changing from meters to km DEPRECATED SEE IF WE CAN DELETELATER
-# rena <- rast(file.path(dirinput,"temp_mammals_landscapes"), "Rangifertarandus_suitability_cropped_modified_reprojected.tif"))
-# crs(rena)
-# extent(rena) <- extent(c(xmin(rena), xmax(rena), ymin(rena), ymax(rena))/1000)
-# projection(rena) <- gsub("units=m", "units=km", projection(rena))
-# 
