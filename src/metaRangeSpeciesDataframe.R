@@ -84,6 +84,6 @@ sapply(species_traits, function(x) sum(is.na(x)/length(x))) # proportion NA per 
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 # remove unecessary objects
-rm(rast_obj, res_x, res_y, filename, file)
-rm(combined_traits_data, landscape_df, landscapes)
+#rm(rast_obj, res_x, res_y, filename, file)
+#rm(combined_traits_data, landscape_df, landscapes)
 
