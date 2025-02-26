@@ -27,6 +27,7 @@ easypackages::packages(
   
   # data manipulation & visulisation
     "dplyr",
+    "tidyverse",
     "ggplot2",
     "stringr",
     "tibble",

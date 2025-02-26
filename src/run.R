@@ -9,7 +9,7 @@ source("./src/libraries.R") # load necessary packages
 source("./src/customFunctions.R") # load customized functions
 
 # working directories ----------------------------------------------------------
-runname <- "26Feb2025"
+runname <- "26Feb2025_runA"
 source("./src/generalSettings.R") # paths and spatial settings
 
 # Input Files ------------------------------------------------------------------
@@ -28,14 +28,14 @@ source("./src/savingSimulationOutputs.R")
 #this script needs to be changed to deal with very big data #20250225 FOR NOW ITS OK
 
 # metrics and plotting figures -------------------------------------------------
-source("./src/speciesResilienceMetricsFigures.R") # calculate and plot stability metrics for all taxa
+source("./speciesResilienceMetricsFigures.R") # calculate and plot stability metrics for all taxa
 # builds 2 figures with impact & recovery values plus time to impact & recovery
 
-source("./src/communityMetricsFigures.R") # calculate community metrics and build plots over time
+source("./communityMetricsFigures.R") # calculate community metrics and build plots over time
 
 
-source("./src/spatiallyExplicitMaps.R") # build spatially explicit maps of the world to show community metrics
+source("./spatiallyExplicitMaps.R") # build spatially explicit maps of the world to show community metrics
 
 # model validation and sensitivity analysis ------------------------------------
-source("./modelValidation.R")
+source("./src/modelValidation.R")
 source("./sensitivityAnalysis.R")

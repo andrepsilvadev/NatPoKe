@@ -19,8 +19,8 @@ combined_traits_data <- read_csv(here("data", "combined_traits_data_20250110.csv
 # STEP 2 # Import Landscapes
 ##########
 
-landscapes <- list.files(path = here("example/mammals_try2/clean_data_2species"),
-           pattern = "_suitability_cropped_modified.tif",
+landscapes <- list.files(path = dirinput,
+           pattern = "_suitability_cropped_modified_reprojectedKm.tif",
            full.names = TRUE)
 
 # create empty dataframe
@@ -42,13 +42,14 @@ for (file in landscapes) {
   # put those sizes into the dataframe
   landscape_df <- rbind(landscape_df, data.frame(Species = species,
                                                  # for now 20250296 we are simplifying because we know pixels are 5km
-                                                 pixel_size_x = 5, # this should be the pixel size * 110
-                                                 pixel_size_y = 5) # this should be the pixel size * 110
+                                                 pixel_size_x = res_x, # this should be the pixel size * 110
+                                                 pixel_size_y = res_y) # this should be the pixel size * 110
                         ) 
+  # remove uncessary objects
 }
-# check pixels sizes
-#landscape_df
-crs(rast_obj)
+
+
+
 # merge with combined traits dataframe
 combined_traits_data <- merge(combined_traits_data, landscape_df, by = "Species", all.x = TRUE)
 
@@ -83,6 +84,6 @@ sapply(species_traits, function(x) sum(is.na(x)/length(x))) # proportion NA per 
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 # remove unecessary objects
-rm(combined_traits_data)
-rm(landscape_df)
-rm(rast_obj)
+rm(rast_obj, res_x, res_y, filename, file)
+rm(combined_traits_data, landscape_df, landscapes)
+

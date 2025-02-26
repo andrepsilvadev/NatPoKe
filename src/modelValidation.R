@@ -5,7 +5,6 @@
 
 # GOAL: Compare mean species densities estimated from two sources.
 
-rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/NatPoKe/data/temp_mammals_landscapes/Alcesalces_suitability_cropped_modified.tif")
 
 # WHAT IS MODEL VALIDATION?
 # Model validation is the process of determining whether the model accurately
@@ -44,17 +43,17 @@ targetspecies <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) 
   dplyr::pull(Species)
 
 # (2) independentDensity
-santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
+santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
   # santini's dataframe has species names with spaces but metaRange does not like spaces
   # remove spaces again
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # (3) estimatedDensity
-estimatedDensity <- fread(file.path(dirout,"metaRangeOutputs25Fev2025.csv")) 
+estimatedDensity <- fread(file.path(dirout, paste0("metaRangeOutputs", runname, ".csv"))) 
 
 
 # import a raster to get cell size
-size <- res(terra::rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojected.tif")))
+size <- res(terra::rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojectedKm.tif")))
 
 # (4) spData
 spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
@@ -100,7 +99,7 @@ validateModel1.1 <- function(
       meanDensity = PredMd
     )
   
-  ## species density estimated by rangeshifter
+  ## species density estimated by metaRange
   predicted <- estimatedDensity %>%
     dplyr::filter(species %in% targetspecies) %>%
     dplyr::filter(timestep %in% validationYear) %>% # validate model at the equilibrium (burn-in years)
@@ -132,7 +131,7 @@ validationList <- validateModel1.1(
   independentDensity = santini2022,
   estimatedDensity = estimatedDensity,
   spData = spData,
-  validationYear = 5
+  validationYear = 3
 ) 
 
 #########################
@@ -168,10 +167,9 @@ pvalidation1 <- ggplot(validationList$independentDensity, aes(species)) +
 pvalidation1
 
 # saving the plot
-# ggsave(path = paste0("./output/", runname, "/Outputs"),
-#        filename = "ComparisonToIndependentModel.png",
-#        plot = pvalidation1,
-#        dpi = 600, width = 25, height = 10, units = "cm", bg = "white")
+ggsave(filename = file.path(dirout, paste0("ModelValidation", runname, ".tiff")),
+        plot = pvalidation1,
+       bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
 
 
 end.time <- Sys.time() # end the clock

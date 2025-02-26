@@ -6,8 +6,6 @@
 
 # GOAL: Build a script to save metaRange simulations output as a dataframe with 
 # all variables and species with coordinates
-library(here)
-library(terra)
 
 ##########
 # STEP 1 #  Select species and traits for which raster might exist
@@ -110,14 +108,14 @@ invisible(gc())
 
 # add taxa and trophic level before writing final .csv
 final_results <- final_results %>% 
-  left_join(species_traits %>% select(Species, TrophicLevel, Taxa), 
+  left_join(species_traits %>% dplyr::select(Species, TrophicLevel, Taxa), 
             by = c("species" = "Species"))
 
 # check results!!!!!!!!!!!
 head(final_results)
 
 # writing a .csv file
-write.csv(final_results, file.path(dirout, "metaRangeOutputs25Fev2025.csv"),
+write.csv(final_results, file.path(dirout, paste0("metaRangeOutputs", runname, ".csv")),
           row.names = FALSE)
 invisible(gc())
 
@@ -159,6 +157,6 @@ TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group =
   geom_vline(xintercept = 5, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
 
 # saving the plot
-ggsave(plot = TNIND_per_year, file.path(dirout, "totalNumberIndividuals25Feb2025.tiff"),
+ggsave(plot = TNIND_per_year, file.path(dirout, paste0("totalNumberIndividuals", runname, ".tiff")),
        bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
 

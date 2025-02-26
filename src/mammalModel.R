@@ -41,7 +41,7 @@ library(tools) # for file without paths
 
 # import Species Trait Dataframe -----------------------------------------------
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
-
+species_traits$reproductionRate <- species_traits$reproductionRate*2
 
 # setting up the simulation ----------------------------------------------------
 
@@ -57,7 +57,7 @@ sim_name <- "example_01"
 
 # load the environment
 sim_env <- sds(list.files(dirinput,
-                          pattern = "_cropped_modified_reprojected.tif", full.names = TRUE))
+                          pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
 
 invisible(gc())
 ##################### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
@@ -148,7 +148,7 @@ sim$add_process(
   species = species_names,
   process_name = "suitability_influence_population_parameter",
   process_fun = function() {
-    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojected")
+    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojectedKm")
     
     self$traits[["carryingCapacity"]] <-
       self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -196,7 +196,7 @@ sim$add_process(
     # i.e. individuals disperse more likely into more suitable cells
     self$traits[["abundance"]] <- dispersal(
       abundance = self$traits[["abundance"]],
-      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojected")]],
+      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojectedKm")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
   },
   execution_priority = 3
