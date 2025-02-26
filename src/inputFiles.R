@@ -67,12 +67,21 @@ library(terra)
 
 ###########################
 ## cropping & new layers ##
+###########################
 
+print("Retrieving global suitability rasters")
 # list rasters
 raster_files <- list.files(here("data/global_suitability_landscapes"),
                            pattern = "_suitability.tif$", full.names = TRUE)
-# define the bounding box
-bbox_SW <- ext(12.774353, 15.526428, 61.796497, 62.595869)
+# micro-extent bbox
+#bbox_SW <- ext(12.774353, 15.526428, 61.796497, 62.595869)
+
+# regional-extent bbox
+bbox_SW <- ext(6.299125, 17.2476, 59.28353, 62.78255)
+
+# sweden bbox
+#bbox_SW <- ext(6.306152, 17.248535, 59.288332, 62.769811)
+
 
 duplicate_layers <- function(raster, times) {
   replicated <- list()
@@ -93,6 +102,7 @@ duplicate_layers <- function(raster, times) {
   return(rast(replicated))
 }
 
+print("Creating a dynamic landscape")
 # Loop through each raster file
 for (r in raster_files) {
   # read the raster
@@ -117,13 +127,52 @@ plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif")))
 
 rm(bbox_SW, sp_raster, cropped_raster, duplicated_raster, r_rescaled)
 invisible(gc())
+
+
 ##################
 ## reprojecting ##
+##################
+
+# https://gis.stackexchange.com/questions/226170/rescaling-coordinates-of-rasters-shapefiles-and-spatial-objects-from-meters-to
+ 
+# library(terra)
+# library(raster)
+# 
+# # Load the SpatRaster (with multiple layers)
+# r <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif"))
+# 
+# # Convert SpatRaster to RasterStack
+# r_raster <- stack(r)  # This preserves all layers
+# 
+# # Get original CRS
+# orig_crs <- crs(r)
+# 
+# # Rescale extent (divide by 1000 to convert meters to kilometers)
+# extent(r_raster) <- extent(r_raster) / 1000
+# 
+# # Modify CRS to indicate the new unit is kilometers
+# new_crs <- gsub("UNIT\\[\"metre\",1\\]", "UNIT[\"kilometre\",1000]", orig_crs)
+# 
+# # Apply modified CRS
+# crs(r_raster) <- new_crs
+# 
+# # Convert back to SpatRaster while keeping all layers
+# r_km <- rast(r_raster)
+# 
+# values(r) == values(r_km)
+# 
+# plot(r)
+# plot(r_km)
+# # Save the transformed raster
+# writeRaster(r_km, file.path(dirinput, "Alcesalces_suitability_km.tif"), overwrite=TRUE)
+
+
 
 landscape_SW <- list.files(path = dirinput,
                            pattern = "_suitability_cropped_modified.tif",
                            full.names = TRUE)
 
+print("Reprojecting and converting meters to km")
 for (landscape in landscape_SW) {
   
   # load raster
@@ -132,38 +181,103 @@ for (landscape in landscape_SW) {
   # reproject to SWEREF99 TM (EPSG:3006) 
   r_utm <- project(r, "EPSG:3006")
   
+  # convert to rasterStack
+  r_raster <- stack(r_utm)
+  
+  # get original CRS
+  orig_crs <- crs(r_utm)
+  
+  # Rescale extent (divide by 1000 to convert meters to kilometers)
+  extent(r_raster) <- extent(r_raster) / 1000
+  
+  # Modify CRS to indicate the new unit is kilometers
+  new_crs <- gsub("UNIT\\[\"metre\",1\\]", "UNIT[\"kilometre\",1000]", orig_crs)
+  
+  # Apply modified CRS
+  crs(r_raster) <- new_crs
+  
+  # Convert back to SpatRaster while keeping all layers
+  r_km <- rast(r_raster)
+
   # output filename
-  output_filename <- gsub("\\.tif$", "_reprojected.tif", landscape)
+  output_filename <- gsub("\\.tif$", "_reprojectedKm.tif", landscape)
   
   # save reprojected raster
-  writeRaster(r_utm, output_filename, overwrite = TRUE)
+  writeRaster(r_km, output_filename, overwrite = TRUE)
 }
 
-reprojected_crops <- list.files(path = dirinput,
-                           pattern = "_suitability_cropped_modified_reprojected.tif",
-                           full.names = TRUE)
+rm(r, r_raster, r_km)
+
+
+#plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojectedKm.tif")))
 
 
 
-
-rm(r, r_utm)
-invisible(gc())
-# checking reprojection
-plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif")))
-
-r <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif"))
-r
-
-
-
-r2 <- r
-res(r2) <- res(r)/1000
-r2 <- resample(r, r2)
-r2
-
-
-
-
+# 
+# library(terra)
+# library(raster)
+# 
+# # Load the SpatRaster
+# r <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif"))
+# 
+# # Convert SpatRaster to RasterStack (CRS is preserved)
+# r_raster <- stack(r)
+# 
+# # Get original CRS (EPSG:3006)
+# orig_crs <- crs(r)  # This is still in meters
+# 
+# # Convert extent from meters to kilometers (scale coordinates properly)
+# r_km <- terra::project(r, orig_crs, scale = 0.001)  # Proper unit conversion
+# 
+# # Save the transformed raster
+# writeRaster(r_km, file.path(dirinput, "Alcesalces_suitability_km.tif"), overwrite=TRUE)
+# 
+# # Compare extents
+# ext(r)   # Before (meters)
+# ext(r_km) # After (kilometers)
+# 
+# # Compare resolutions
+# res(r)   # Before (meters)
+# res(r_km) # After (kilometers)
+# 
+# # Compare coordinate values
+# xy_meters <- crds(r)  # Before
+# xy_km <- crds(r_km)  # After
+# head(xy_meters)
+# head(xy_km)
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# # Convert extent from meters to kilometers
+# new_ext <- ext(r) / 1000  # Scale spatial extent
+# 
+# # Convert resolution from meters to kilometers
+# new_res <- res(r) / 1000  # Scale resolution
+# 
+# # Create a new raster with transformed extent and resolution
+# r_km <- rast(ncol=ncol(r), nrow=nrow(r), ext=new_ext, crs=crs(r), resolution=new_res)
+# 
+# # Resample original raster to match the new resolution
+# r_km <- resample(r, r_km, method="bilinear")
+# 
+# # Save the transformed raster
+# writeRaster(r_km, file.path(dirinput, "Alcesalces_suitability_km.tif"), overwrite=TRUE)
+# 
+# plot(r)
+# plot(r_km)
+# 
+# # Save the transformed raster
+# writeRaster(r_km, file.path(dirinput, "your_raster_km.tif"), overwrite=TRUE)
 
 
 

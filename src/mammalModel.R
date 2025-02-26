@@ -41,7 +41,7 @@ library(tools) # for file without paths
 
 # import Species Trait Dataframe -----------------------------------------------
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
-species_traits$reproductionRate <- species_traits$reproductionRate*2
+#species_traits$reproductionRate <- species_traits$reproductionRate*2
 
 # setting up the simulation ----------------------------------------------------
 
