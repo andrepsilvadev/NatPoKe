@@ -9,11 +9,11 @@ source("./src/libraries.R") # load necessary packages
 source("./src/customFunctions.R") # load customized functions
 
 # working directories ----------------------------------------------------------
-runname <- "25Feb2025_runA"
+runname <- "26Feb2025"
 source("./src/generalSettings.R") # paths and spatial settings
 
 # Input Files ------------------------------------------------------------------
-#source("./src/metaRangeSpeciesDataframe.R") # species dataframe
+source("./src/metaRangeSpeciesDataframe.R") # species dataframe
 
 # CHECK this script before running
 source("./src/inputFiles.R") # load global suitability raster files & crop 

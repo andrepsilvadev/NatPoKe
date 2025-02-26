@@ -70,8 +70,8 @@ species_traits <- tibble(
   initialAbundance = ceiling(as.numeric(combined_traits_data$IndsHaCell)*CellResolution), # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
   carryingCapacity = ceiling(as.numeric(combined_traits_data$TargetHaDensity)*CellResolution), # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
   reproductionRate = combined_traits_data$Stage1Fecundity, # Litter size
-  dispersalDistance = combined_traits_data$MeanDisp, # mean dispersal distance based om trophic level (km, Schloss et al. 2012)
-  dispersalMaxDistance = combined_traits_data$LongDisp, # maximum long distance dispersal based on trophic level (km, Schloss et al. 2012)
+  dispersalDistance = combined_traits_data$MeanDisp * 1000, # mean dispersal distance based om trophic level (km, Schloss et al. 2012)
+  dispersalMaxDistance = combined_traits_data$LongDisp * 1000, # maximum long distance dispersal based on trophic level (km, Schloss et al. 2012)
   yearlySurvivalRate = 1- combined_traits_data$Stage1Mortality) %>%
   drop_na()
 

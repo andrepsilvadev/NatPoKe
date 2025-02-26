@@ -115,6 +115,8 @@ for (r in raster_files) {
 # checking new layers
 plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif")))
 
+rm(bbox_SW, sp_raster, cropped_raster, duplicated_raster, r_rescaled)
+invisible(gc())
 ##################
 ## reprojecting ##
 
@@ -128,10 +130,10 @@ for (landscape in landscape_SW) {
   r <- rast(landscape)
   
   # original resolution in meters
-  orig_res <- res(r)/1000 # convert from meters to km
+  #orig_res <- res(r)/1000 # convert from meters to km
   
   # reproject to SWEREF99 TM (EPSG:3006) 
-  r_utm <- project(r, "EPSG:3006", res = orig_res)
+  r_utm <- project(r, "EPSG:3006")
   
   # output filename
   output_filename <- gsub("\\.tif$", "_reprojected.tif", landscape)
@@ -140,8 +142,10 @@ for (landscape in landscape_SW) {
   writeRaster(r_utm, output_filename, overwrite = TRUE)
 }
 
+rm(r, r_utm)
+invisible(gc())
 # checking reprojection
-#plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif")))
+plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif")))
 
 
 
