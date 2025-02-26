@@ -83,7 +83,7 @@ duplicate_layers <- function(raster, times) {
   # layer 2: Exact copy of original raster
   replicated[[2]] <- raster
   
-  # layers 3 to `times`: suitability decreases progressivly by 1%
+  # layers 3 to end - suitability decreases progressivly by 1%
   new_layer <- raster
   for (i in 3:times) {
     new_layer <- new_layer * 0.99  # Reduce by 1% each time
@@ -133,7 +133,7 @@ for (landscape in landscape_SW) {
   #orig_res <- res(r)/1000 # convert from meters to km
   
   # reproject to SWEREF99 TM (EPSG:3006) 
-  r_utm <- project(r, "EPSG:3006")
+  r_utm <- project(r, "EPSG:3006", res = 2.943493)
   
   # output filename
   output_filename <- gsub("\\.tif$", "_reprojected.tif", landscape)
