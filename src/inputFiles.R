@@ -129,11 +129,8 @@ for (landscape in landscape_SW) {
   # load raster
   r <- rast(landscape)
   
-  # original resolution in meters
-  #orig_res <- res(r)/1000 # convert from meters to km
-  
   # reproject to SWEREF99 TM (EPSG:3006) 
-  r_utm <- project(r, "EPSG:3006", res = 2.943493)
+  r_utm <- project(r, "EPSG:3006")
   
   # output filename
   output_filename <- gsub("\\.tif$", "_reprojected.tif", landscape)
@@ -142,17 +139,27 @@ for (landscape in landscape_SW) {
   writeRaster(r_utm, output_filename, overwrite = TRUE)
 }
 
+reprojected_crops <- list.files(path = dirinput,
+                           pattern = "_suitability_cropped_modified_reprojected.tif",
+                           full.names = TRUE)
+
+
+
+
 rm(r, r_utm)
 invisible(gc())
 # checking reprojection
 plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif")))
 
+r <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif"))
+r
 
 
 
-
-
-
+r2 <- r
+res(r2) <- res(r)/1000
+r2 <- resample(r, r2)
+r2
 
 
 
