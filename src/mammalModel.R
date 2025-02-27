@@ -41,7 +41,9 @@ library(tools) # for file without paths
 
 # import Species Trait Dataframe -----------------------------------------------
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
-#species_traits$reproductionRate <- species_traits$reproductionRate*2
+species_traits$reproductionRate <- species_traits$reproductionRate*2
+species_traits$carryingCapacity <- species_traits$carryingCapacity*2
+
 
 # setting up the simulation ----------------------------------------------------
 
@@ -90,7 +92,6 @@ for (i in seq_len(nrow(species_traits))) {
     population_level = TRUE,
     
     "abundance" = species_traits[["initialAbundance"]][i],
-    "juvenileAbundance" = 0, # we only need this for one species in the example, but we can just add the trait to all species
     "reproductionRate" = species_traits[["reproductionRate"]][i],
     "carryingCapacity" = species_traits[["carryingCapacity"]][i],
     "yearlySurvivalRate" = species_traits[["yearlySurvivalRate"]]
@@ -278,11 +279,18 @@ sim$add_process(
       self$globals[[i]][["n_abundance"]][[self$get_current_time_step()]] <-
         current_abu # for sps still alive save total abundance for each time step
       
+      self$globals[[i]][["mean_abundance"]][[self$get_current_time_step()]] <-
+        mean(self[[i]]$traits[["abundance"]], na.rm = TRUE) # mean abundance of species in the landscape
+      
+      self$globals[[i]][["mean_rrate"]][[self$get_current_time_step()]] <-
+        mean(self[[i]]$traits[["reproductionRate"]], na.rm = TRUE) # mean reproduction rate
+      
+      self$globals[[i]][["mean_ccap"]][[self$get_current_time_step()]] <-
+        mean(self[[i]]$traits[["carryingCapacity"]], na.rm = TRUE) # mean carrying capacity
+      
       self$globals[[i]][["n_occupied"]][[self$get_current_time_step()]] <-
         sum(self[[i]]$traits[["abundance"]] > 1, na.rm = TRUE) # sum up all cells occupied by each alive sps
       
-      self$globals[[i]][["n_juveniles"]][[self$get_current_time_step()]] <- # sum up all juveniles (INSERTED BY ME COULD BE WRING IT SHOULD BE SIMILIAR TO n_abundance THINK ITS MISSING A STEP)
-        sum(self[[i]]$traits[["juvenileAbundance"]] > 1, na.rm = TRUE)
     }
   },
   execution_priority = 6
@@ -291,7 +299,7 @@ sim$add_process(
 # saving the results -----------------------------------------------------------
 
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
-save_string <- dirout
+
 # Note: Saving the results is a process that takes the longest time
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
@@ -302,7 +310,7 @@ sim$add_process(
     
     for (species in species_names) {
       # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
-      suffix <- "BAU_Boreal_SMALL_"
+      suffix <- "SSP1_Boreal_SMALL_"
       save_species(
         # pass the species object
         self[[species]],
@@ -311,7 +319,7 @@ sim$add_process(
         # a prefix for each time step
         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
         # where should it be saved
-        path = save_string,
+        path = dirout,
         overwrite = TRUE
       )
     }
@@ -349,3 +357,6 @@ for (species in species_names) {
   cat("\n--------------------------------\n")  
 }
 sink()
+
+# remove unecessary objects
+rm(i, output_file, species, species_names, file, species_sum_abundance, this_species)

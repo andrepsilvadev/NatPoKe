@@ -19,15 +19,16 @@ library(data.table)
 # IMPORT DATA #
 ###############
 
-run20250224 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/metaRangeOutputs24Fev2025.csv")
+totalDataset <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/twoBadRuns.csv")
+invisible(gc())
 head(run20250224)
-run20250224$taxa <- "Mammal"
+
 
 ###############################
 # TOTAL NUMBER OF INDIVIDUALS #
 ###############################
 
-t_burnin <- 2
+t_burnin <- 1
 t_policy <- 5
 
 # !!! BE CAREFULL !!! #
@@ -38,18 +39,18 @@ t_policy <- 5
 ## three cells it would be (2+3)/2 = 2.5 moose
 
 # Total number of individuals (TNIND) per year and cellid
-TNIND <- run20250224 %>%
-  group_by(species, taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
+TNIND <- totalDataset %>%
+  group_by(species, Taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
   dplyr::select(!n) %>% 
-  group_by(species, taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
+  group_by(species, Taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
   dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
 
 
 # Total number of individuals per year
 TNIND_yr <- TNIND %>% # n cells used for the calculus
-  group_by(species, taxa, biome, scenario, timestep) %>%
+  group_by(species, Taxa, biome, scenario, timestep) %>%
   dplyr::summarize(mean_yr = mean(mean_TNIND, na.rm = TRUE), # cell mean 
                    sd_yr = sd(mean_TNIND, na.rm = TRUE),
                    n = n()) %>% 
@@ -58,10 +59,14 @@ TNIND_yr <- TNIND %>% # n cells used for the calculus
 
 TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group = species)) + 
   geom_line() + 
-  facet_wrap(scenario~ species, scales = "free_y", ncol = 5) +
+  facet_wrap(scenario~ species, scales = "free_y", ncol = 4) +
   labs(y = "Total number of individuals") +
   theme_minimal() +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
+
+ggsave(plot = TNIND_per_year,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Feb2025/TotalNumberIndividualsTwoBadRuns.tiff",
+       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
 ################################
@@ -74,7 +79,7 @@ post_disturbance_values <- TNIND_yr %>%
   filter(timestep >= t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep >= t_burnin &
                            timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
-  group_by(biome, species, scenario, period, taxa) %>%
+  group_by(biome, species, scenario, period, Taxa) %>%
   filter(period == "Post") %>% # filter for the post policy period only
   summarise(mean_post = mean(mean_yr, na.rm = TRUE))
 invisible(gc())
@@ -83,8 +88,8 @@ invisible(gc())
 stability_sps <- TNIND_yr %>%
   filter(timestep >= t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep >= t_burnin & timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy
-  left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "taxa")) %>%
-  group_by(biome, species, scenario, period, taxa) %>%
+  left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "Taxa")) %>%
+  group_by(biome, species, scenario, period, Taxa) %>%
   summarise(mean = mean(mean_yr, na.rm = TRUE),
             # find mean nº of individuals
             min = min(mean_yr, na.rm = TRUE),
@@ -112,7 +117,7 @@ invisible(gc())
 
 # average stability metrics ACROSS TAXA
 stability_avg <- stability_sps %>%
-  group_by(biome, scenario, taxa) %>%
+  group_by(biome, scenario, Taxa) %>%
   dplyr::summarize(
     impact_avg = mean(impact, na.rm = TRUE),
     impact_sd = sd(impact, na.rm = TRUE),
@@ -151,7 +156,7 @@ custom_colors <- c("Bird" = "#38b2fe", "Mammal" = "#ffab27", "Insect" = "#99cc00
 # Updated plot
 figure1 <- stability_avg_long %>%
   dplyr::filter(metric %in% c("impact", "recovery")) %>%
-  ggplot(aes(x = scenario, y = avg, fill = taxa)) +
+  ggplot(aes(x = scenario, y = avg, fill = Taxa)) +
   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
   geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
@@ -183,7 +188,7 @@ figure1
 invisible(gc())
 
 ggsave(plot = figure1,
-       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure1_Impact&Recovery.tiff",
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/Figure1_Impact&RecoveryTwoBadRuns.tiff",
        bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
@@ -195,7 +200,7 @@ ggsave(plot = figure1,
 # Updated plot
 suplementary_figure1 <- stability_avg_long %>%
   dplyr::filter(metric %in% c("timeimpact", "timerecovery")) %>%
-  ggplot(aes(x = scenario, y = avg, fill = taxa)) +
+  ggplot(aes(x = scenario, y = avg, fill = Taxa)) +
   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
   geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
@@ -226,6 +231,6 @@ suplementary_figure1 <- stability_avg_long %>%
 suplementary_figure1
 invisible(gc())
 
-# ggsave(plot = suplementary_figure1,
-#        file = here("output", "dummy_figures", "Suplementary_figure1_TimeImpact&TimeRecovery.tiff"),
-#        bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+ggsave(plot = suplementary_figure1,
+        file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/SuplementaryFig1_TimeImpact&TimeRecoveryTwoBadRuns.tiff",
+        bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")

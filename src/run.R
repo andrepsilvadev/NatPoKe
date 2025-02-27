@@ -9,14 +9,16 @@ source("./src/libraries.R") # load necessary packages
 source("./src/customFunctions.R") # load customized functions
 
 # working directories ----------------------------------------------------------
-runname <- "26Feb2025_regionalExtent"
+runname <- "deleteLaterStuff"
 source("./src/generalSettings.R") # paths and spatial settings
 
 # Input Files ------------------------------------------------------------------
-source("./src/metaRangeSpeciesDataframe.R") # species dataframe
 
-# CHECK this script before running
-source("./src/inputFiles.R") # load global suitability raster files & crop 
+## load global suitability raster files & crop 
+source("./src/inputFiles.R") 
+
+## species dataframe
+source("./src/metaRangeSpeciesDataframe.R") 
 
 # models -----------------------------------------------------------------------
 source("./src/mammalModel.R") # run metaRange model for mammals species

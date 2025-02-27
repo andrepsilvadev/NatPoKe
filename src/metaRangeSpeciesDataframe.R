@@ -45,13 +45,15 @@ for (file in landscapes) {
                                                  pixel_size_x = res_x, # this should be the pixel size * 110
                                                  pixel_size_y = res_y) # this should be the pixel size * 110
                         ) 
-  # remove uncessary objects
+  # remove unecessary objects
+  rm( rast_obj, res_x, res_y, filename, species)
 }
 
 
 
 # merge with combined traits dataframe
 combined_traits_data <- merge(combined_traits_data, landscape_df, by = "Species", all.x = TRUE)
+rm(landscape_df, landscapes)
 
 ##########
 # STEP 3 # Format dataframe for metaRange
@@ -85,5 +87,5 @@ write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.c
 
 # remove unecessary objects
 #rm(rast_obj, res_x, res_y, filename, file)
-#rm(combined_traits_data, landscape_df, landscapes)
+rm(combined_traits_data)
 

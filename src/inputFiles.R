@@ -12,7 +12,7 @@
 # STEP 1 # Import Species Trait Dataframe 
 ##########
 
-species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
+#species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 ##########
 # Step 2 # Retrieve Global Suitability Landscapes from Google drive 
@@ -120,12 +120,15 @@ for (r in raster_files) {
   # save processed raster
   output_path <- file.path(dirinput, tools::file_path_sans_ext(basename(r)))
   writeRaster(duplicated_raster, paste0(output_path, "_cropped_modified.tif"), overwrite = TRUE)
+  
+  # remove unecessary objects
+  rm(sp_raster, r_rescaled, cropped_raster, duplicated_raster, output_path)
 }
 
 # checking new layers
 plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif")))
 
-rm(bbox_SW, sp_raster, cropped_raster, duplicated_raster, r_rescaled)
+rm(raster_files, bbox_SW)
 invisible(gc())
 
 
@@ -204,10 +207,11 @@ for (landscape in landscape_SW) {
   
   # save reprojected raster
   writeRaster(r_km, output_filename, overwrite = TRUE)
+  
+  # remove unecessary objects
+  rm(r, r_utm, r_raster, orig_crs, new_crs, r_km, output_filename)
 }
-
-rm(r, r_raster, r_km)
-
+rm(landscape, landscape_SW)
 
 #plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojectedKm.tif")))
 
