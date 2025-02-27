@@ -9,16 +9,16 @@ source("./src/libraries.R") # load necessary packages
 source("./src/customFunctions.R") # load customized functions
 
 # working directories ----------------------------------------------------------
-runname <- "deleteLaterStuff"
+runname <- "27Feb2025_afterLunch"
 source("./src/generalSettings.R") # paths and spatial settings
 
 # Input Files ------------------------------------------------------------------
+## species dataframe
+source("./src/metaRangeSpeciesDataframe.R") 
 
 ## load global suitability raster files & crop 
 source("./src/inputFiles.R") 
-
-## species dataframe
-source("./src/metaRangeSpeciesDataframe.R") 
+# if a specie smodelling resolution is 1 this will throw a warning. It's ok!
 
 # models -----------------------------------------------------------------------
 source("./src/mammalModel.R") # run metaRange model for mammals species

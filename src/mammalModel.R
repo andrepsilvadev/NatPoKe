@@ -41,8 +41,9 @@ library(tools) # for file without paths
 
 # import Species Trait Dataframe -----------------------------------------------
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
-species_traits$reproductionRate <- species_traits$reproductionRate*2
-species_traits$carryingCapacity <- species_traits$carryingCapacity*2
+#species_traits$reproductionRate <- species_traits$reproductionRate*2
+#species_traits$carryingCapacity <- species_traits$carryingCapacity*4
+#species_traits$initialAbundance <- species_traits$initialAbundance*2
 
 
 # setting up the simulation ----------------------------------------------------
@@ -359,4 +360,4 @@ for (species in species_names) {
 sink()
 
 # remove unecessary objects
-rm(i, output_file, species, species_names, file, species_sum_abundance, this_species)
+rm(i, output_file, species, species_names, species_sum_abundance, this_species)
