@@ -43,8 +43,11 @@ library(tools) # for file without paths
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 #species_traits$reproductionRate <- species_traits$reproductionRate*2
 #species_traits$carryingCapacity <- species_traits$carryingCapacity*4
-#species_traits$initialAbundance <- species_traits$initialAbundance*2
+species_traits$initialAbundance <- species_traits$initialAbundance*100
+#species_traits$dispersalDistance <- species_traits$dispersalDistance*2
 
+# write table to .csv file
+write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 # setting up the simulation ----------------------------------------------------
 
@@ -169,8 +172,8 @@ beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survi
   survival_rate <- ifelse(survival_rate > 1, 1, survival_rate)
   survival_rate <- ifelse(survival_rate < 0, 0, survival_rate)
   reproduction_rate <- ifelse(reproduction_rate < 0, 0, reproduction_rate)
-  
-  
+
+
   abundance <- abundance * survival_rate
   abundance_t1 <- (reproduction_rate * abundance) /
     (1 + ((reproduction_rate - 1) / carrying_capacity) * abundance)
@@ -190,6 +193,21 @@ sim$add_process(
    execution_priority = 2
  )
 
+
+# sim$add_process(
+#   species = species_names,
+#   process_name = "reproduction",
+#   process_fun = function() {
+#     self$traits[["abundance"]] <-
+#       ricker_reproduction_model(
+#         self$traits[["abundance"]],
+#         self$traits[["reproductionRate"]],
+#         self$traits[["carryingCapacity"]]
+#       )
+#   },
+#   execution_priority = 2
+# )
+
 sim$add_process(
   species = species_names,
   process_name = "dispersal_process",
@@ -206,40 +224,40 @@ sim$add_process(
 
 
 # sim$add_process(
-#     species = species_names,
-#     process_name = "dispersal_overpopulation",
-#     process_fun = function() {
-#         self$traits[["overpopulation"]] <-
-#             1 / (
-#                 self$traits[["abundance"]] /
-#                     self$traits[["carryingCapacity"]]
-#             )
-#         self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
-
-#         dispersing_population <- pmax(self$traits[["abundance"]] - self$traits[["carryingCapacity"]], 0)
-#         self$traits[["abundance"]] <- self$traits[["abundance"]] - dispersing_population
-
-#         dispersing_population <-
-#             dispersal(
-#                 dispersal_kernel = self$traits[["dispersalKernel"]],
-#                 abundance = dispersing_population,
-#                 weights = self$sim$environment$current[[
-#                         paste0(self$name, "_suitability_cropped_modified_reprojected")
-#                     ]] * self$traits[["overpopulation"]]
-#             )
-
-#         dispersing_population <-
-#             matrix(
-#                 rpois(ncell(dispersing_population), dispersing_population),
-#                 nrow = nrow(self$traits[["abundance"]]),
-#                 ncol = ncol(self$traits[["abundance"]])
-#             )
-
-#         self$traits[["abundance"]] <-
-#             self$traits[["abundance"]] +
-#             dispersing_population
-#     },
-#     execution_priority = 4
+#    species = species_names,
+#    process_name = "dispersal_overpopulation",
+#    process_fun = function() {
+#        self$traits[["overpopulation"]] <-
+#            1 / (
+#                self$traits[["abundance"]] /
+#                    self$traits[["carryingCapacity"]]
+#            )
+#        self$traits[["overpopulation"]][self$traits[["overpopulation"]] > 1] <- 1
+# 
+#        dispersing_population <- pmax(self$traits[["abundance"]] - self$traits[["carryingCapacity"]], 0)
+#        self$traits[["abundance"]] <- self$traits[["abundance"]] - dispersing_population
+# 
+#        dispersing_population <-
+#            dispersal(
+#                dispersal_kernel = self$traits[["dispersalKernel"]],
+#                abundance = dispersing_population,
+#                weights = self$sim$environment$current[[
+#                        paste0(self$name, "_suitability_cropped_modified_reprojectedKm")
+#                    ]] * self$traits[["overpopulation"]]
+#            )
+# 
+#        dispersing_population <-
+#            matrix(
+#                rpois(ncell(dispersing_population), dispersing_population),
+#                nrow = nrow(self$traits[["abundance"]]),
+#                ncol = ncol(self$traits[["abundance"]])
+#            )
+# 
+#        self$traits[["abundance"]] <-
+#            self$traits[["abundance"]] +
+#            dispersing_population
+#    },
+#    execution_priority = 4
 # )
 
 
@@ -361,3 +379,39 @@ sink()
 
 # remove unecessary objects
 rm(i, output_file, species, species_names, species_sum_abundance, this_species)
+
+# CHECKING MODEL RESULTS (deleteLater when working)
+
+tiff(file.path(dirout, "MeanAbundancePerCell_plots.tiff"),width = 300, height = 230, units = "mm", res = 1200, compression = "lzw")
+
+par(mfrow=c(2,2))
+plot(
+  sim$globals[["Alcesalces"]][["mean_abundance"]],
+  type = "l",
+  xlab = "Time",
+  ylab = "Abundance",
+  main = "Alcesalces"
+)
+plot(
+  sim$globals[["Cervuselaphus"]][["mean_abundance"]],
+  type = "l",
+  xlab = "Time",
+  ylab = "Abundance",
+  main = "Cervuselaphus"
+)
+plot(
+  sim$globals[["Lynxlynx"]][["mean_abundance"]],
+  type = "l",
+  xlab = "Time",
+  ylab = "Abundance",
+  main = "Lynxlynx"
+)
+plot(
+  sim$globals[["Rangifertarandus"]][["mean_abundance"]],
+  type = "l",
+  xlab = "Time",
+  ylab = "Abundance",
+  main = "Rangifertarandus"
+)
+dev.off()
+

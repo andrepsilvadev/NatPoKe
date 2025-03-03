@@ -131,7 +131,7 @@ validationList <- validateModel1.1(
   independentDensity = santini2022,
   estimatedDensity = estimatedDensity,
   spData = spData,
-  validationYear = 3
+  validationYear = 2
 ) 
 
 #########################

@@ -126,7 +126,7 @@ for (r in raster_files) {
 }
 
 # checking new layers
-plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif")))
+plot(rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified.tif")))
 
 rm(raster_files, bbox_SW)
 invisible(gc())
@@ -204,10 +204,10 @@ for (landscape in landscape_SW) {
   species_name <- gsub("_.*", "", species_name) # Remove everything after the first underscore
   
   # Get the corresponding modeling resolution
-  species_res <- species_traits$ModellingRes[species_traits$Species == species_name]
+  species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name]/(species_traits$CellResolution[species_traits$Species == species_name]/2))
   
   # aggregate raster by Modelling resolution to match species
-  agregated_raster <- raster::aggregate(x = r_raster, fact = species_res, fun = mean)
+  agregated_raster <- raster::aggregate(x = r_raster, fact = species_fact, fun = mean)
   extent(agregated_raster) <- extent(r_raster)
   
   # Convert back to SpatRaster while keeping all layers
