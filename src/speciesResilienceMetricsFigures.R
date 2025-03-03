@@ -19,6 +19,11 @@ library(data.table)
 # IMPORT DATA #
 ###############
 
+### DO NOT FORGET ###
+# When the model is workning we need to add a simple pice of code combining
+# several runs together before this
+### DO NOT FORGET ###
+
 totalDataset <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/twoBadRuns.csv")
 invisible(gc())
 head(run20250224)
@@ -55,7 +60,7 @@ TNIND_yr <- TNIND %>% # n cells used for the calculus
                    sd_yr = sd(mean_TNIND, na.rm = TRUE),
                    n = n()) %>% 
   dplyr::select(!n) %>% 
-  dplyr::filter(timestep >= t_burnin)
+  dplyr::filter(timestep > t_burnin)
 
 TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group = species)) + 
   geom_line() + 
@@ -76,8 +81,8 @@ ggsave(plot = TNIND_per_year,
 # calculate post policy mean value for the recovery time metric 
 # to be possible in one go with the other metrics)
 post_disturbance_values <- TNIND_yr %>%
-  filter(timestep >= t_burnin) %>% # remove burn-in period
-  mutate(period = ifelse(timestep >= t_burnin &
+  filter(timestep > t_burnin) %>% # remove burn-in period
+  mutate(period = ifelse(timestep > t_burnin &
                            timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
   group_by(biome, species, scenario, period, Taxa) %>%
   filter(period == "Post") %>% # filter for the post policy period only
@@ -86,7 +91,7 @@ invisible(gc())
 
 # calculate all stability metrics per biome, policy & species
 stability_sps <- TNIND_yr %>%
-  filter(timestep >= t_burnin) %>% # remove burn-in period
+  filter(timestep > t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep >= t_burnin & timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy
   left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "Taxa")) %>%
   group_by(biome, species, scenario, period, Taxa) %>%
