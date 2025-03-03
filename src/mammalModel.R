@@ -43,7 +43,7 @@ library(tools) # for file without paths
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 #species_traits$reproductionRate <- species_traits$reproductionRate*2
 #species_traits$carryingCapacity <- species_traits$carryingCapacity*4
-species_traits$initialAbundance <- species_traits$initialAbundance*100
+#species_traits$initialAbundance <- species_traits$initialAbundance*100
 #species_traits$dispersalDistance <- species_traits$dispersalDistance*2
 
 # write table to .csv file
@@ -385,6 +385,7 @@ rm(i, output_file, species, species_names, species_sum_abundance, this_species)
 tiff(file.path(dirout, "MeanAbundancePerCell_plots.tiff"),width = 300, height = 230, units = "mm", res = 1200, compression = "lzw")
 
 par(mfrow=c(2,2))
+
 plot(
   sim$globals[["Alcesalces"]][["mean_abundance"]],
   type = "l",
@@ -413,5 +414,6 @@ plot(
   ylab = "Abundance",
   main = "Rangifertarandus"
 )
+mtext(paste0("Mean Abundance Per Cell Over Time", runname), side = 3, line = - 2, outer = TRUE)
 dev.off()
 

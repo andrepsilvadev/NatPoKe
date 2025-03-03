@@ -72,15 +72,16 @@ species_traits <- tibble(
   #ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))),
   ModellingRes = ceiling(sqrt(combined_traits_data$MaxHomeRange)),
   #ProjRes = ModellingRes*1000,
-  initialAbundance = ceiling(as.numeric(combined_traits_data$IndsHaCell)*CellResolution), # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
-  carryingCapacity = ceiling(as.numeric(combined_traits_data$TargetHaDensity)*CellResolution), # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
+  #initialAbundance = 50,
+  initialAbundance = ceiling(as.numeric(combined_traits_data$IndsHaCell)*(ModellingRes^2)), # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
+  carryingCapacity = ceiling(as.numeric(combined_traits_data$TargetHaDensity)*(ModellingRes^2)), # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
   reproductionRate = combined_traits_data$Stage1Fecundity, # Litter size
-  dispersalDistance = combined_traits_data$MeanDisp, # mean dispersal distance based om trophic level (km, Schloss et al. 2012)
+  dispersalDistance = ifelse(combined_traits_data$MeanDisp <= ModellingRes, ModellingRes + 1, combined_traits_data$MeanDisp), # mean dispersal distance based om trophic level (km, Schloss et al. 2012)
   dispersalMaxDistance = combined_traits_data$LongDisp, # maximum long distance dispersal based on trophic level (km, Schloss et al. 2012)
   yearlySurvivalRate = 1- combined_traits_data$Stage1Mortality) %>%
   drop_na() %>% 
   # filter our species
-  dplyr::filter(Species %in% c("Alcesalces", "Cervuselaphus", "Lynxlynx", "Rangifertarandus"))
+  dplyr::filter(Species %in% c("Alcesalces", "Cervuselaphus", "Lynxlynx", "Rangifertarandus")) 
 
 # check NA's
 sapply(species_traits, function(x) sum(is.na(x))) # number NA per column
