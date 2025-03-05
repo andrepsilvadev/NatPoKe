@@ -10,6 +10,7 @@ source("~/data/src/customFunctions.R") # functions
 
 # Define input variables of CHELSA rasters
 scenarios <- c("ssp126", "ssp585")
+scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
 variables <- c("bio1", "bio12")
 years <- c("2011-2040", "2041-2070", "2071-2100") # first year/timeperiod will be used as a baseline for change calculation
 # variable name for title name
@@ -107,7 +108,8 @@ continents <- load_select_continents(continent_names)
 continents <- st_transform(continents, crs(load_raster(scenarios[1], variables[1], years[1])))
 
 # Define continent geometries
-#continent_geoms <- list(
+        # create a list that is automated
+continent_geoms <- list(
   Africa = continents %>% filter(continent == "Africa"),
   South_America = continents %>% filter(continent == "South America"),
   Asia = continents %>% filter(continent == "Asia")
@@ -153,6 +155,27 @@ for (scenario in scenarios) {
     }
   }
 }
+
+# Function to stack rasters
+stack_rasters <- function(variable, year) {
+  scenarios_list <- list(
+    paste0(scenario_names[1], "_", year) = get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name)),
+    paste0(scenario_names[2], "_", year) = get(paste0("ClimateChange_", scenarios [2],"_", variable, "_", year, "_", biome_name))
+  )
+  
+  # Create a raster stack from the list of scenarios
+  scenarios_stack <- rast(scenarios_list)
+  
+  # Assign names to the raster stack layers
+  names(scenarios_stack) <- names(scenarios_list)
+  
+  # Save the raster stack
+  stack_output_file <- file.path(output_path, paste0("scenarios_stack_", variable, "_", year, "_", biome_name, ".tif"))
+  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
+  
+  return(scenarios_stack)
+}
+
 
 # Calculate changes and crop/mask to continents
 for (variable in variables) {
@@ -221,13 +244,13 @@ for (variable in variables) {
           heights = unit(c(0.5), "null")
         ),
         arrangeGrob(
-          textGrob("SSP1 RCP2.6", rot = 90, gp = gpar(fontsize = 16)),
+          textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16)),
           plots[["ssp126_africa"]], plots[["ssp126_asia"]], plots[["ssp126_south_america"]], # adapt to scenario and continent
           ncol = 4,
           widths = unit(c(0.5, 5, 5, 5), "null")
         ),
         arrangeGrob(
-          textGrob("SSP5 RCP8.5", rot = 90, gp = gpar(fontsize = 16)),
+          textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16)),
           plots[["ssp585_africa"]], plots[["ssp585_asia"]], plots[["ssp585_south_america"]], # adapt to scenario and continent
           ncol = 4,
           widths = unit(c(0.5, 5, 5, 5), "null")
