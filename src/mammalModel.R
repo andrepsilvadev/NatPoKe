@@ -41,10 +41,28 @@ library(tools) # for file without paths
 
 # import Species Trait Dataframe -----------------------------------------------
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
-#species_traits$reproductionRate <- species_traits$reproductionRate*2
+
+# modify initialAbundance based on species
+species_traits <- species_traits %>%
+  mutate(initialAbundance = case_when(
+    Species == "Alcesalces" ~ initialAbundance * 8,
+    Species == "Cervuselaphus" ~ initialAbundance * 4,
+    Species == "Lynxlynx" ~ initialAbundance * 15,
+    Species == "Rangifertarandus" ~ initialAbundance * 4,
+    TRUE ~ initialAbundance  # Keep original value if species doesn't match
+  ),
+        yearlySurvivalRate = case_when(
+    Species == "Lynxlynx" ~ yearlySurvivalRate + 0.2,
+    TRUE ~ yearlySurvivalRate 
+        ))
+
+
+
+
+#species_traits$reproductionRate <- species_traits$reproductionRate*1.5
 #species_traits$carryingCapacity <- species_traits$carryingCapacity*4
-#species_traits$initialAbundance <- species_traits$initialAbundance*100
-#species_traits$dispersalDistance <- species_traits$dispersalDistance*2
+#species_traits$initialAbundance <- species_traits$initialAbundance*2
+#species_traits$dispersalDistance <- species_traits$dispersalDistance*1.5
 
 # write table to .csv file
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
@@ -323,28 +341,28 @@ sim$add_process(
 # because writing a raster to disk is slow
 # So think about when you want to save results (each time step vs jsut the last one)
 
-sim$add_process(
-  process_name = "save_results",
-  process_fun = function() {
-    
-    for (species in species_names) {
-      # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
-      suffix <- "SSP1_Boreal_SMALL_"
-      save_species(
-        # pass the species object
-        self[[species]],
-        # specify traits we want to save
-        traits = "abundance",
-        # a prefix for each time step
-        prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
-        # where should it be saved
-        path = dirout,
-        overwrite = TRUE
-      )
-    }
-  },
-  execution_priority = 7
-)
+# sim$add_process(
+#   process_name = "save_results",
+#   process_fun = function() {
+#     
+#     for (species in species_names) {
+#       # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
+#       suffix <- "SSP1_Boreal_SMALL_"
+#       save_species(
+#         # pass the species object
+#         self[[species]],
+#         # specify traits we want to save
+#         traits = "abundance",
+#         # a prefix for each time step
+#         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
+#         # where should it be saved
+#         path = dirout,
+#         overwrite = TRUE
+#       )
+#     }
+#   },
+#   execution_priority = 7
+# )
 
 # run simulation ---------------------------------------------------------------
 
