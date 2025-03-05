@@ -1,6 +1,6 @@
-## Name: ClimateChange_TimePeriods.R ##
+## Name: ClimateChangeTimePeriods.R ##
 ## Authors: Jorinde-M. Rieger ##
-## Description: Applies functions to calculate spatial explicit temperature and precipitation change in the a given Biome
+## Description: Applies functions to calculate spatial explicit temperature and precipitation change in a given Biome
   ## for the ssp126 and ssp585 scenarios in various time periods ##
 ## Date: March 5th 2025 ##
 
@@ -11,9 +11,9 @@ source("~/data/src/customFunctions.R") # functions
 # Define input variables of CHELSA rasters
 scenarios <- c("ssp126", "ssp585")
 variables <- c("bio1", "bio12")
-years <- c("2011-2040", "2041-2070", "2071-2100") # first year/timeperiod will be used as baseline for change calculation
+years <- c("2011-2040", "2041-2070", "2071-2100") # first year/timeperiod will be used as a baseline for change calculation
 # variable name for title name
-# scenario names printable
+# Scenario names printable
 
 # Define the file paths
 base_path <- "/data/CHELSA_gfdl-esm4_V.2.1"
