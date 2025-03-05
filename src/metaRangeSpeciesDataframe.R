@@ -69,8 +69,8 @@ species_traits <- tibble(
   BodyMass = combined_traits_data$BodyMass, # species body mass (kg)
   CellResolution = 3.076948*3.076948,
   #CellResolution = as.numeric(combined_traits_data$pixel_size_x*combined_traits_data$pixel_size_y), # cell area  in Km2 (as santini data comes in Ind/km)
-  ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))),
-  #ModellingRes = ceiling(sqrt(combined_traits_data$MaxHomeRange)),
+  #ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))),
+  ModellingRes = ceiling(sqrt(combined_traits_data$MaxHomeRange)),
   #ProjRes = ModellingRes*1000,
   #initialAbundance = 50,
   initialAbundance = ceiling(as.numeric(combined_traits_data$IndsHaCell)*(ModellingRes^2)), # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
