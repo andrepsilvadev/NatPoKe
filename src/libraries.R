@@ -34,6 +34,9 @@ easypackages::packages(
     "tidyr",
     "rphylopic",
     "viridis",
+    "circlize",
+    "grid",
+    "gridExtra",
   
   prompt = FALSE)
 
