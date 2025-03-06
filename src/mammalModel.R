@@ -12,7 +12,7 @@
 
 # Model input files
     ## (1) Global Suitability Landscapes - for each species to model
-    ## (2) Species Trait Database
+    ## (2) Species Trait Dataframe
 
 # Model Output files
 ## should follow this structure:
@@ -21,85 +21,69 @@
 
 
 # RANDOM DUMMY MISTAKES TO AVOID
-    ## 1 - species name CANNOT have spaces or "_"
+    ## 1 - species names CANNOT have spaces or "_"
     ## 2 - species for which we do not have a suitability raster cannot be in the .csv file
     ## 3 - max_dispersal_dist HAS to be an INTEGRER! So I added as.integer() into that line 
     ## 4 - when this "self$sim$environment$current[[species_suitability_name]]" appears make sure species_suitability is the EXACT same name as the name of the raster imported with sds()
 
-# packages
-library(terra)
-library(here)
-library(metaRange)
-library(readr)
-library(raster)
-library(sf)
-library(tools) # for file without paths
-
-###################
-# metaRange MODEL #
-###################
+####################
+# input trait data #
+####################
 
 # import Species Trait Dataframe -----------------------------------------------
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
 # modify initialAbundance based on species
-species_traits <- species_traits %>%
-  mutate(initialAbundance = case_when(
-    Species == "Alcesalces" ~ initialAbundance * 8,
-    Species == "Cervuselaphus" ~ initialAbundance * 4,
-    Species == "Lynxlynx" ~ initialAbundance * 15,
-    Species == "Rangifertarandus" ~ initialAbundance * 4,
-    TRUE ~ initialAbundance  # Keep original value if species doesn't match
-  ),
-        yearlySurvivalRate = case_when(
-    Species == "Lynxlynx" ~ yearlySurvivalRate + 0.2,
-    TRUE ~ yearlySurvivalRate 
-        ))
+# species_traits <- species_traits %>%
+#   mutate(initialAbundance = case_when(
+#     Species == "Alcesalces" ~ initialAbundance * 8,
+#     Species == "Cervuselaphus" ~ initialAbundance * 4,
+#     Species == "Lynxlynx" ~ initialAbundance * 15,
+#     Species == "Rangifertarandus" ~ initialAbundance * 4,
+#     TRUE ~ initialAbundance  # Keep original value if species doesn't match
+#   ),
+#         yearlySurvivalRate = case_when(
+#     Species == "Lynxlynx" ~ yearlySurvivalRate + 0.2,
+#     TRUE ~ yearlySurvivalRate 
+#         ))
 
-
-
-
-#species_traits$reproductionRate <- species_traits$reproductionRate*1.5
+species_traits$reproductionRate <- species_traits$reproductionRate*1.5
 #species_traits$carryingCapacity <- species_traits$carryingCapacity*4
-#species_traits$initialAbundance <- species_traits$initialAbundance*2
+species_traits$initialAbundance <- species_traits$initialAbundance*10
 #species_traits$dispersalDistance <- species_traits$dispersalDistance*1.5
 
 # write table to .csv file
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
-# setting up the simulation ----------------------------------------------------
+#############################
+# setting up the simulation #
+#############################
 
-# setup
+# setup-------------------------------------------------------------------------
 set_verbosity(2L) # 0L for no output, 1L for progress updates, 2L for debug
 options(scipen = 999)
 set.seed(1)
 
-# simulation parameters
-sim_name <- "example_01"
+sim_name <- "example_01"# simulation parameters
 
 # Landscape --------------------------------------------------------------------
-
-# load the environment
 sim_env <- sds(list.files(dirinput,
                           pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
-
 invisible(gc())
-##################### HERE THE PATH TO THE ENVIRONMENT FILES SHOULD BE THE suitabilities folder
 
 # create a simulation object ---------------------------------------------------
-
 sim <- create_simulation(sim_env)
 invisible(gc())
 
-# We have already created our suitability layer, so we can just add them to the simulation
-# in the order they are in the SDS.
+# Timesteps --------------------------------------------------------------------
 # To have an aditional burn-in period, we set the time layer mapping to 1 for the first 5 time steps
-# > c(rep(1, 5), seq_len(min(nlyr(sim_env))))
 # >  1  1  1  1  1  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20
 
-sim$set_time_layer_mapping(c(rep(1, 5), seq_len(min(nlyr(sim_env)))))
+sim$set_time_layer_mapping(c(rep(1, 100), seq_len(min(nlyr(sim_env)))))
 
-# add species ------------------------------------------------------------------
+########################
+# add species & traits #
+########################
 
 # we loop over the species_traits data frame and add the species to the simulation
 for (i in seq_len(nrow(species_traits))) {
@@ -108,12 +92,13 @@ for (i in seq_len(nrow(species_traits))) {
   # "register" the species with the simulation
   sim$add_species(this_species)
   
-  # add traits that need to bes strored at the population level
+  # add traits that need to be stored at the population level
   sim$add_traits(
     species = this_species,
     population_level = TRUE,
     
     "abundance" = species_traits[["initialAbundance"]][i],
+    "dispersal_change" = 0,
     "reproductionRate" = species_traits[["reproductionRate"]][i],
     "carryingCapacity" = species_traits[["carryingCapacity"]][i],
     "yearlySurvivalRate" = species_traits[["yearlySurvivalRate"]]
@@ -144,14 +129,6 @@ sim$add_globals(
 )
 
 # add global variables ---------------------------------------------------------
-
-
-# add some global variables to track stats
-# i.e. we want to know:
-# - the total abundance of each species
-# - the total number of suitable cells for each species ????? WHERE IS THIS ?????
-# - the total number of occupied cells for each species
-# Note: this is mainly for debugging purposes, to save data, there are better ways
 species_sum_abundance <- vector("list", length(species_names))
 names(species_sum_abundance) <- species_names
 for (i in species_names) {
@@ -165,7 +142,9 @@ for (i in species_names) {
 }
 do.call(sim$add_globals, species_sum_abundance)
 
-# add processes ----------------------------------------------------------------
+#################
+# add processes #
+#################
 
 sim$add_process(
   species = species_names,
@@ -182,60 +161,30 @@ sim$add_process(
   execution_priority = 1
 )
 
-# Beverton & Holt function #
-
-beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survival_rate) {
-  # Safeguarding the input
-  # you may remove this part if you are sure that the input is correct
-  survival_rate <- ifelse(survival_rate > 1, 1, survival_rate)
-  survival_rate <- ifelse(survival_rate < 0, 0, survival_rate)
-  reproduction_rate <- ifelse(reproduction_rate < 0, 0, reproduction_rate)
-
-
-  abundance <- abundance * survival_rate
-  abundance_t1 <- (reproduction_rate * abundance) /
-    (1 + ((reproduction_rate - 1) / carrying_capacity) * abundance)
-  abundance_t1[abundance_t1 < 0] <- 0
-  return(abundance_t1)
-}
-
 sim$add_process(
-   species = species_names,
-   process_name = "demography_BevertonHolt",
-   process_fun = function(){
-     self$traits[["abundance"]] <- beverton_holt(abundance = self$traits[["abundance"]],
-                               reproduction_rate = self$traits[["reproductionRate"]],
-                               carrying_capacity = self$traits[["carryingCapacity"]],
-                               survival_rate = self$traits[["yearlySurvivalRate"]] )
-     },
-   execution_priority = 2
- )
-
-
-# sim$add_process(
-#   species = species_names,
-#   process_name = "reproduction",
-#   process_fun = function() {
-#     self$traits[["abundance"]] <-
-#       ricker_reproduction_model(
-#         self$traits[["abundance"]],
-#         self$traits[["reproductionRate"]],
-#         self$traits[["carryingCapacity"]]
-#       )
-#   },
-#   execution_priority = 2
-# )
+  species = species_names,
+  process_name = "demography_BevertonHolt",
+  process_fun = function(){
+    self$traits[["abundance"]] <- beverton_holt(abundance = self$traits[["abundance"]],
+                                                reproduction_rate = self$traits[["reproductionRate"]],
+                                                carrying_capacity = self$traits[["carryingCapacity"]],
+                                                survival_rate = self$traits[["yearlySurvivalRate"]] )
+  },
+  execution_priority = 2
+)
 
 sim$add_process(
   species = species_names,
   process_name = "dispersal_process",
   process_fun = function() {
+    self$traits[["dispersal_change"]] <- trunc(self$traits[["abundance"]])
     # weighted dispersal
     # i.e. individuals disperse more likely into more suitable cells
     self$traits[["abundance"]] <- dispersal(
       abundance = self$traits[["abundance"]],
       weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojectedKm")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
+    self$traits[["dispersal_change"]] <- self$traits[["abundance"]] - self$traits[["dispersal_change"]]
   },
   execution_priority = 3
 )
@@ -337,22 +286,18 @@ sim$add_process(
 
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
-# Note: Saving the results is a process that takes the longest time
-# because writing a raster to disk is slow
-# So think about when you want to save results (each time step vs jsut the last one)
-
 # sim$add_process(
 #   process_name = "save_results",
 #   process_fun = function() {
-#     
+# 
 #     for (species in species_names) {
 #       # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
-#       suffix <- "SSP1_Boreal_SMALL_"
+#       suffix <- "BAU_Boreal_regionalExtent_"
 #       save_species(
 #         # pass the species object
 #         self[[species]],
 #         # specify traits we want to save
-#         traits = "abundance",
+#         traits = c("abundance","dispersal_change"),
 #         # a prefix for each time step
 #         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
 #         # where should it be saved
@@ -364,16 +309,18 @@ sim$add_process(
 #   execution_priority = 7
 # )
 
-# run simulation ---------------------------------------------------------------
+##################
+# run simulation #
+##################
 
 set_verbosity(1L)
 print("starting simulation")
 sim$begin()
 print("simulation finished")
 
-################################
-# PRINTING SIMULATION SETTINGS #
-################################
+##################
+# print settings #
+##################
 
 # output file path
 output_file <- file.path(dirout, "simulationSettings.txt")
@@ -398,10 +345,11 @@ sink()
 # remove unecessary objects
 rm(i, output_file, species, species_names, species_sum_abundance, this_species)
 
-# CHECKING MODEL RESULTS (deleteLater when working)
+#################
+# check results #
+#################
 
 tiff(file.path(dirout, "MeanAbundancePerCell_plots.tiff"),width = 300, height = 230, units = "mm", res = 1200, compression = "lzw")
-
 par(mfrow=c(2,2))
 
 plot(
@@ -434,4 +382,5 @@ plot(
 )
 mtext(paste0("Mean Abundance Per Cell Over Time", runname), side = 3, line = - 2, outer = TRUE)
 dev.off()
+
 
