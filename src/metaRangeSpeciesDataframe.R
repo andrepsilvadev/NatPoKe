@@ -4,56 +4,39 @@
 # Ines Silva
 # 04 Feb 2025
 
-# GOAL: Format the pre-existing combined_traits_data.csv to serve as input for the
-# metaRange model 
-
 
 ##########
-# STEP 1 # Import Trait Dataframe 
+# STEP 1 # Define area and species to model
 ##########
 
-combined_traits_data <- read_csv(here("data", "combined_traits_data_20250110.csv")) %>% 
-  mutate(Species = stringr::str_replace_all(Species, " ", "")) 
+selected_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
+
+selected_continent <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
+
+selected_species <- c("Alces alces", "Cervus elaphus", "Lynx lynx", "Rangifer tarandus")
 
 ##########
-# STEP 2 # Import Landscapes
+# STEP 2 # Import Trait Dataframe 
 ##########
 
-# landscapes <- list.files(path = dirinput,
-#            pattern = "_suitability_cropped_modified_reprojectedKm.tif",
-#            full.names = TRUE)
-# 
-# # create empty dataframe
-# landscape_df <- data.frame(Species = character(),
-#                            pixel_size_x = numeric(),
-#                            pixel_size_y = numeric(),
-#                            stringsAsFactors = FALSE)
-# 
-# # loop through each file and extract pixel size
-# for (file in landscapes) {
-#   rast_obj <- rast(file)  # Read raster
-#   res_x <- res(rast_obj)[1]  # Pixel size in x direction
-#   res_y <- res(rast_obj)[2]  # Pixel size in y direction
-#   
-#   # get species name (first word before "_")
-#   filename <- basename(file)
-#   species <- strsplit(filename, "_")[[1]][1]
-#   
-#   # put those sizes into the dataframe
-#   landscape_df <- rbind(landscape_df, data.frame(Species = species,
-#                                                  # for now 20250296 we are simplifying because we know pixels are 5km
-#                                                  pixel_size_x = res_x, # this should be the pixel size * 110
-#                                                  pixel_size_y = res_y) # this should be the pixel size * 110
-#                         ) 
-#   # remove unecessary objects
-#   rm( rast_obj, res_x, res_y, filename, species)
-# }
-# 
-# 
-# 
-# # merge with combined traits dataframe
-# combined_traits_data <- merge(combined_traits_data, landscape_df, by = "Species", all.x = TRUE)
-# rm(landscape_df, landscapes)
+combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-06.csv")) %>% 
+  # filter for prefered area & species
+  filter(BIOME_NAME == selected_biome & CONTINENT == selected_continent & Species %in% selected_species) %>% 
+  mutate(
+    Trophic = case_when(
+      # based on Schloss 2012
+      Diet.Meat >= 90 ~ "Carnivore",
+      Diet.Plant >= 90 ~ "Herbivore",
+      TRUE ~ NA_character_
+    ),
+    trophic_level = case_when(
+      # from original database
+      trophic_level == 1 ~ "Herbivore",
+      trophic_level == 2 ~ "Omnivore",
+      trophic_level == 3 ~ "Carnivore",
+      TRUE ~ as.character(trophic_level) 
+    )
+  )
 
 ##########
 # STEP 3 # Format dataframe for metaRange
@@ -61,27 +44,28 @@ combined_traits_data <- read_csv(here("data", "combined_traits_data_20250110.csv
 
 species_traits <- tibble(
   Index = 1:nrow(combined_traits_data), # species index
-  Species = combined_traits_data$Species, # scientific name WITHOUT spaces
-  Family = combined_traits_data$Family, # family
-  Order = combined_traits_data$Order, # order
+  Species = stringr::str_replace_all(combined_traits_data$sci_name, " ", ""), # scientific name WITHOUT spaces
+  Family = combined_traits_data$family.x, # family
+  Order = combined_traits_data$order_, # order
   TrophicLevel = combined_traits_data$trophic_level, # trophic level with 3 factors
   Taxa = "Mammal",
-  BodyMass = combined_traits_data$BodyMass, # species body mass (kg)
-  CellResolution = 3.076948*3.076948,
-  #CellResolution = as.numeric(combined_traits_data$pixel_size_x*combined_traits_data$pixel_size_y), # cell area  in Km2 (as santini data comes in Ind/km)
-  #ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))),
-  ModellingRes = ceiling(sqrt(combined_traits_data$MaxHomeRange)),
+  BodyMass = combined_traits_data$Mass.g / 1000, # species body mass (kg)
+  CellResolution = 3.076948*3.076948, # Cell area (km2)
+  #ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))), # ANDRE'S MODELLING RES
+  ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRang_km2)), # STEFAN'S MODELLING RES
   #ProjRes = ModellingRes*1000,
-  #initialAbundance = 50,
-  initialAbundance = ceiling(as.numeric(combined_traits_data$IndsHaCell)*(ModellingRes^2)), # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
-  carryingCapacity = ceiling(as.numeric(combined_traits_data$TargetHaDensity)*(ModellingRes^2)), # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
-  reproductionRate = combined_traits_data$Stage1Fecundity, # Litter size
-  dispersalDistance = ifelse(combined_traits_data$MeanDisp <= ModellingRes, ModellingRes + 1, combined_traits_data$MeanDisp), # mean dispersal distance based om trophic level (km, Schloss et al. 2012)
-  dispersalMaxDistance = combined_traits_data$LongDisp, # maximum long distance dispersal based on trophic level (km, Schloss et al. 2012)
-  yearlySurvivalRate = 1- combined_traits_data$Stage1Mortality) %>%
-  drop_na() %>% 
-  # filter our species
-  dplyr::filter(Species %in% c("Alcesalces", "Cervuselaphus", "Lynxlynx", "Rangifertarandus")) 
+  initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd)*(ModellingRes^2)), # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
+  carryingCapacity = ceiling(as.numeric(combined_traits_data$up75)*(ModellingRes^2)), # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
+  reproductionRate = combined_traits_data$litter_size_n, # Litter size
+  dispersalDistance = ifelse(
+    combined_traits_data$trophic_level == "Carnivore", pmax(3.45 * BodyMass^0.89, ModellingRes + 1), # Mean dispersal distance according to Schloss et al. 2012 (based on trophic level)
+    ifelse(combined_traits_data$trophic_level == "Herbivore", pmax(1.45 * BodyMass^0.54, ModellingRes + 1), NA)), # If the computed value is smaller than the modelling resolution, it is adjusted to be at least (ModellingRes + 1).
+  dispersalMaxDistance = case_when(
+    combined_traits_data$trophic_level == "Carnivore" ~ 40.7 * BodyMass^0.81,
+    combined_traits_data$trophic_level == "Herbivore" ~ 3.31 * BodyMass^0.65, TRUE ~ NA_real_), # Maximum long-distance dispersal according to Schloss et al. 2012 (based on trophic level)
+  yearlySurvivalRate = 1 - (BodyMass^-0.25)  # based on McCarthy 2008 and Savage 2004
+  ) %>%
+  drop_na()  
 
 # check NA's
 sapply(species_traits, function(x) sum(is.na(x))) # number NA per column
