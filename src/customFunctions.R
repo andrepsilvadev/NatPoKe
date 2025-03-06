@@ -36,3 +36,19 @@ calculate_land_use_percentages <- function(raster_stack, land_use_types, land_us
   
   return(percentage_df)
 }
+
+# Beverton & Holt demographic model
+beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survival_rate) {
+  # Safeguarding the input
+  # you may remove this part if you are sure that the input is correct
+  survival_rate <- ifelse(survival_rate > 1, 1, survival_rate)
+  survival_rate <- ifelse(survival_rate < 0, 0, survival_rate)
+  reproduction_rate <- ifelse(reproduction_rate < 0, 0, reproduction_rate)
+  
+  
+  abundance <- abundance * survival_rate
+  abundance_t1 <- (reproduction_rate * abundance) /
+    (1 + ((reproduction_rate - 1) / carrying_capacity) * abundance)
+  abundance_t1[abundance_t1 < 0] <- 0
+  return(abundance_t1)
+}
