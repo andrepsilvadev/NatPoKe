@@ -2,19 +2,20 @@
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate spatial explicit temperature and precipitation change in a given Biome
   ## for the ssp126 and ssp585 scenarios in various time periods ##
-## Date: March 5th 2025 ##
+## Date: March 7th 2025 ##
 
 # Settings & libraries -------------------------------------------
 source("~/data/src/libraries.R") # libraries
 source("~/data/src/customFunctions.R") # functions
 
 # Input variables -------------------------------------------
-# Define input variables of CHELSA rasters
+# Define input variables
 scenarios <- c("ssp126", "ssp585")
 scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
 variables <- c("bio1", "bio12")
 variable_names <- c("Temperature", "Precipitation")
 y_labels <- c("Annual Daily Mean Air Temperatures (°C)", "Annual Mean Precipitation Amount (kg m-2 year-1)")
+value_units <- c("°C", "kg m-2 year-1")
 years <- c("2011-2040", "2041-2070", "2071-2100") # first year/timeperiod will be used as a baseline for change calculation
 
 # Define the file paths
@@ -53,9 +54,30 @@ crop_mask_raster <- function(raster, biome_sp) {
   mask(crop(raster, biome_sp), biome_sp)
 }
 
-# Function to calculate changes
-calculate_change <- function(raster_future, raster_present) {
-  raster_future - raster_present
+# Function to stack rasters
+stack_rasters <- function(variable, year) {
+  scenarios_list <- list(
+    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name)),
+    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name))
+  )
+  
+  # Assign names to the list elements
+  names(scenarios_list) <- c(paste0(scenario_names[1], "_", year), paste0(scenario_names[2], "_", year))
+  
+  # Create a raster stack from the list of scenarios
+  scenarios_stack <- rast(scenarios_list)
+  
+  # Assign names to the raster stack layers
+  names(scenarios_stack) <- names(scenarios_list)
+  
+  # Save the raster stack
+  stack_output_file <- file.path(output_path, paste0("scenarios_stack_", variable, "_", year, "_", biome_name, ".tif"))
+  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
+  
+  # Assign the raster stack to a variable in the environment
+  assign(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name)), scenarios_stack, envir = .GlobalEnv)
+  
+  return(scenarios_stack)
 }
 
 # Function to extract mean values from a raster stack
@@ -81,7 +103,13 @@ plot_timeChanges <- function(mean_values_df, value_type, y_label) {
       x = "Year",
       y = y_label
     ) +
-    theme_minimal()
+    theme_minimal()+
+    theme(
+      axis.title.x = element_text(size = 14, margin = margin(t = 10)),  # Increase gap for x-axis title
+      axis.title.y = element_text(size = 14, margin = margin(r = 10)),   # Increase gap for y-axis title
+      legend.title = element_text(size = 14),
+      legend.text = element_text(size = 12)
+    )
 }
 
 # Function to load and select continents
@@ -102,6 +130,11 @@ crop_and_mask_continent <- function(raster, continent_geom) {
 # Function to crop the biome boundaries to the continents
 crop_biome_to_continent <- function(biome, continent_geom) {
   st_intersection(biome, continent_geom)
+}
+
+# Function to calculate changes
+calculate_change <- function(raster_future, raster_present) {
+  raster_future - raster_present
 }
 
 # Function to plot the changes
@@ -127,7 +160,7 @@ plot_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_
 
 
 # Prepare the climate scenarios rasters for further calculations and graphical representation -------------------------------------------
-# Load and select the biome
+# Load the selected biome
 biome_sf <- load_select_biome(biome_name)
 
 # Loop through the scenarios, variables, and years for the biome
@@ -165,31 +198,8 @@ for (scenario in scenarios) {
     }
   }
 }
-
 # create a list as output?
 
-# Function to stack rasters
-stack_rasters <- function(variable, year) {
-  scenarios_list <- list(
-    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name)),
-    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name))
-  )
-  
-  # Assign names to the list elements
-  names(scenarios_list) <- c(paste0(scenario_names[1], "_", year), paste0(scenario_names[2], "_", year))
-  
-  # Create a raster stack from the list of scenarios
-  scenarios_stack <- rast(scenarios_list)
-  
-  # Assign names to the raster stack layers
-  names(scenarios_stack) <- names(scenarios_list)
-  
-  # Save the raster stack
-  stack_output_file <- file.path(output_path, paste0("scenarios_stack_", variable, "_", year, "_", biome_name, ".tif"))
-  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
-  
-  return(scenarios_stack)
-}
 
 # Loop through the variables and years to create raster stacks
 for (variable in variables) {
@@ -200,16 +210,14 @@ for (variable in variables) {
 
 # Calculate and create Climate Change graphics over time -------------------------------------------
 # Define consistent color palette for the scenarios
-scenario_colors <- c(
-  scenario_names[1] = "#1f77b4",
-  scenario_names[2] = "#ff7f0e"
-)
+scenario_colors <- setNames(
+  c("#1f77b4", "#ff7f0e"), scenario_names)
 
 # Loop through the variables and years to extract mean values and create plots
 mean_values_list <- list()
 for (variable in variables) {
   for (year in years) {
-    raster_stack <- get(paste0("scenarios_stack_", variable, "_", year, "_", biome_name))
+    raster_stack <- get(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name)))
     if (variable == variables[1]) {
       mean_values_list[[paste0(variable, "_", year)]] <- extract_mean_values(raster_stack, rep(year, each = nlyr(raster_stack)), variable_names[1])
     } else {
@@ -223,23 +231,36 @@ mean_values_df <- do.call(rbind, mean_values_list)
 
 # Remove the year suffix from scenario names
 mean_values_df <- mean_values_df %>%
-  mutate(Scenario = gsub("_\\d{4}_\\d{4}$", "", Scenario))
+  mutate(Scenario = gsub("_\\d{4}-\\d{4}$", "", Scenario))
 
-# Split the data frame into temperature and precipitation data frames
-mean_temps_df <- mean_values_df %>% filter(Value_Type == variable_names[1])
-mean_preci_df <- mean_values_df %>% filter(Value_Type == variable_names[2])
+# Split the data frame into data frames according to variables
+variable1_df <- mean_values_df %>% filter(Value_Type == variable_names[1])
+variable2_df <- mean_values_df %>% filter(Value_Type == variable_names[2])
 
 # Create plots
-scenarios_temps_plot <- plot_timeChanges(mean_temps_df, variable_names[1], y_labels[1])
-scenarios_preci_plot <- plot_timeChanges(mean_preci_df, variable_names[2], y_labels[2])
+scenarios_variable1_plot <- plot_timeChanges(mean_variable1_df, variable_names[1], y_labels[1])
+scenarios_variable2_plot <- plot_timeChanges(mean_variable2_df, variable_names[2], y_labels[2])
 
 # Arrange the plots side by side
-combined_plot_time <- grid.arrange(scenarios_temps_plot, scenarios_preci_plot, ncol = 2,
-                              top = textGrob(biome_name))
+combined_plot_time <- grid.arrange(
+  arrangeGrob(
+    textGrob("(a)", gp = gpar(fontsize = 16)),
+    textGrob("(b)", gp = gpar(fontsize = 16)),
+    ncol = 2,
+    heights = unit(c(0.5), "null")
+  ),
+  arrangeGrob(
+    scenarios_variable1_plot, scenarios_variable2_plot, 
+    ncol = 2
+  ),
+  ncol = 1,
+  heights = unit(c(0.5, 5), "null"),
+  top = textGrob(biome_name, gp = gpar(fontsize = 18))
+)
 
 # Save the combined plot
 ggsave(filename = file.path(output_folder, 
-                           paste0("ClimateChange_", variable, "_timeChanges_", year, "_", biome_name, ".png")),
+                            paste0("ClimateChange_", variable, "_timeChanges_", year, "_", biome_name, ".png")),
        plot = combined_plot_time,
        width = 14, height = 7, dpi = 600)
 
@@ -252,12 +273,9 @@ continents <- load_select_continents(continent_names)
 continents <- st_transform(continents, crs(load_raster(scenarios[1], variables[1], years[1])))
 
 # Define continent geometries
-# create a list that is automated
-continent_geoms <- list(
-  Africa = continents %>% filter(continent == "Africa"),
-  South_America = continents %>% filter(continent == "South America"),
-  Asia = continents %>% filter(continent == "Asia")
-)
+continent_geoms <- setNames(lapply(continent_names, function(continent) {
+  continents %>% filter(continent == continent)
+}), continent_names)
 
 # Validate the geometries, corrects geometries
 biome_sf <- st_make_valid(biome_sf)
@@ -269,8 +287,8 @@ biome_continents <- lapply(continent_geoms, function(continent_geom) {
 
 # Calculate changes and crop/mask to continents
 for (variable in variables) {
-    for (scenario in scenarios) {
-      for (year in years[-1]) {
+  for (scenario in scenarios) {
+    for (year in years[-1]) {
       # Calculate changes
       change_raster <- calculate_change(
         get(paste0("ClimateChange_", scenario, "_", variable, "_", year, "_", biome_name)),
@@ -290,30 +308,48 @@ for (variable in variables) {
   }
 }
 
-# Create custom color ramps
-# fix scale external, min, max based rasters max min for temp and precipitation
-#minimum = min(change_raster - temperature)
+# Calculate the minimum and maximum values for the variables
+min_values <- list()
+max_values <- list()
 
-custom_color_ramp_temp <- colorRamp2(c(-5, 0, 5), c("blue","white", "red")) # this could be adapted dynamically to the max and min of all data for a given biome
-custom_color_ramp_precip <- colorRamp2(c(-950, 0, 950), c("saddlebrown", "yellow", "darkgreen")) # this could be adapted dynamically to the max and min of all data for a given biome
+for (variable in variables) {
+  min_value <- Inf
+  max_value <- -Inf
+  for (year in years[-1]) {
+    for (scenario in scenarios) {
+      for (continent in continent_names) {
+        raster_stack <- get(paste0("change_", scenario, "_", variable, "_", year, "_", tolower(continent)))
+        min_value <- min(min_value, min(values(raster_stack), na.rm = TRUE))
+        max_value <- max(max_value, max(values(raster_stack), na.rm = TRUE))
+      }
+    }
+  }
+  min_values[[variable]] <- round(min_value)
+  max_values[[variable]] <- round(max_value)
+}
+
+# Create custom color ramps based on the calculated min and max values
+color_ramps <- list(
+  variable_1 = colorRamp2(c(min_values[[variables[1]]], 0, max_values[[variables[1]]]), c("blue", "white", "red")),
+  variable_2 = colorRamp2(c(min_values[[variables[2]]], 0, max_values[[variables[2]]]), c("saddlebrown", "yellow", "darkgreen"))
+)
 
 # Create plots for each scenario, variable, and year
 # L apply
-# make plot names general, how can I access that?
 for (variable in variables) {
   for (year in years[-1]) {
     for (scenario in scenarios) {
       # Define the color ramp and fill label based on the variable
       if (variable == variables[1]) {
-        color_ramp <- custom_color_ramp_temp
-        fill_label <- "Change in °C"
-        min_value <- -5
-        max_value <- 5
+        color_ramp <- color_ramps[[variable_1]]
+        fill_label <- paste("Change in", value_units[1])
+        min_value <- min_values[[variable[1]]]
+        max_value <- max_values[[variable[1]]]
       } else {
-        color_ramp <- custom_color_ramp_precip
-        fill_label <- "Change in kg m-2 year-1"
-        min_value <- -950
-        max_value <- 950
+        color_ramp <- color_ramps[[variable_2]]
+        fill_label <- paste("Change in", value_units[2])
+        min_value <- min_values[[variable[2]]]
+        max_value <- max_values[[variable[2]]]
       }
       
       # Create plots for each continent and scenario
