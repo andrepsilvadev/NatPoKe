@@ -113,7 +113,6 @@ plot_timeChanges <- function(mean_values_df, value_type, y_label) {
 }
 
 # Function to load and select continents
-# add/create a list function
 load_select_continents <- function(continent_names) {
   continents <- ne_countries(scale = "medium", returnclass = "sf") %>%
     dplyr::filter(continent %in% continent_names) %>% 
@@ -238,8 +237,8 @@ variable1_df <- mean_values_df %>% filter(Value_Type == variable_names[1])
 variable2_df <- mean_values_df %>% filter(Value_Type == variable_names[2])
 
 # Create plots
-scenarios_variable1_plot <- plot_timeChanges(mean_variable1_df, variable_names[1], y_labels[1])
-scenarios_variable2_plot <- plot_timeChanges(mean_variable2_df, variable_names[2], y_labels[2])
+scenarios_variable1_plot <- plot_timeChanges(variable1_df, variable_names[1], y_labels[1])
+scenarios_variable2_plot <- plot_timeChanges(variable2_df, variable_names[2], y_labels[2])
 
 # Arrange the plots side by side
 combined_plot_time <- grid.arrange(
@@ -330,34 +329,33 @@ for (variable in variables) {
 
 # Create custom color ramps based on the calculated min and max values
 color_ramps <- list(
-  variable_1 = colorRamp2(c(min_values[[variables[1]]], 0, max_values[[variables[1]]]), c("blue", "white", "red")),
-  variable_2 = colorRamp2(c(min_values[[variables[2]]], 0, max_values[[variables[2]]]), c("saddlebrown", "yellow", "darkgreen"))
+  var1 = colorRamp2(c(min_values[[variables[1]]], 0, max_values[[variables[1]]]), c("blue", "white", "red")),
+  var2 = colorRamp2(c(min_values[[variables[2]]], 0, max_values[[variables[2]]]), c("saddlebrown", "yellow", "darkgreen"))
 )
 
 # Create plots for each scenario, variable, and year
-# L apply
 for (variable in variables) {
   for (year in years[-1]) {
     for (scenario in scenarios) {
       # Define the color ramp and fill label based on the variable
       if (variable == variables[1]) {
-        color_ramp <- color_ramps[[variable_1]]
+        color_ramp <- color_ramps[["var1"]]
         fill_label <- paste("Change in", value_units[1])
-        min_value <- min_values[[variable[1]]]
-        max_value <- max_values[[variable[1]]]
+        min_value <- min_values[[variables[1]]]
+        max_value <- max_values[[variables[1]]]
       } else {
-        color_ramp <- color_ramps[[variable_2]]
+        color_ramp <- color_ramps[["var2"]]
         fill_label <- paste("Change in", value_units[2])
-        min_value <- min_values[[variable[2]]]
-        max_value <- max_values[[variable[2]]]
+        min_value <- min_values[[variables[2]]]
+        max_value <- max_values[[variables[2]]]
       }
       
       # Create plots for each continent and scenario
       plots_spatial <- list()
       for (scenario in scenarios) {
         for (continent in names(continent_geoms)) {
-          plot <- plot_spatialChanges(get(paste0("change_", scenario, "_", variable, "_", year, "_", tolower(continent))), biome_continents[[continent]], color_ramp, fill_label, min_value, max_value)
-          plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
+        plot <- plot_spatialChanges(get(paste0("change_", scenario, "_", variable, "_", year, "_", tolower(continent))), biome_continents[[continent]], color_ramp, fill_label, min_value, max_value)
+        plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
         }
       }
       
@@ -372,19 +370,23 @@ for (variable in variables) {
         ),
         arrangeGrob(
           textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[scenarios[1],"_", tolower(continent)[1]]], plots_spatial[[scenarios[1],"_", tolower(continent)[2]]], plots_spatial[[scenarios[1],"_", tolower(continent)[3]]],
+          plots_spatial[[paste0(scenario, "_", tolower(continent_names[1]))]], 
+          plots_spatial[[paste0(scenario, "_", tolower(continent_names[2]))]], 
+          plots_spatial[[paste0(scenario, "_", tolower(continent_names[3]))]],
           ncol = 4,
           widths = unit(c(0.5, 5, 5, 5), "null")
         ),
         arrangeGrob(
           textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[scenarios[2],"_", tolower(continent)[1]]], plots_spatial[[scenarios[2],"_", tolower(continent)[2]]], plots_spatial[[scenarios[2],"_", tolower(continent)[3]]],
+          plots_spatial[[paste0(scenario, "_", tolower(continent_names[1]))]], 
+          plots_spatial[[paste0(scenario, "_", tolower(continent_names[2]))]], 
+          plots_spatial[[paste0(scenario, "_", tolower(continent_names[3]))]],
           ncol = 4,
           widths = unit(c(0.5, 5, 5, 5), "null")
         ),
         ncol = 1,
         heights = unit(c(0.5, 5, 5), "null"),
-        top = textGrob(paste0(ifelse(variable == variables[1],variable_names[1], variable_names[2]), " ", fill_label, " for the ", biome_name, " (", years[1], " vs. ", year,")"), gp = gpar(fontsize = 18))
+        top = textGrob(paste0(ifelse(variable == variables[1], variable_names[1], variable_names[2]), " ", fill_label, " for the ", biome_name, " (", years[1], " vs. ", year,")"), gp = gpar(fontsize = 18))
       )
       
       # Save the combined plot
