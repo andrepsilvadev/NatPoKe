@@ -100,7 +100,7 @@ stack_rasters <- function(year) {
 
 # Define the mapping function
 map_values_to_landUse <- function(x) {
-  value_to_land_use <- list(
+  value_to_landUse <- list(
     "190" = 1,  # Urban
     "10" = 2, "11" = 2, "12" = 2, "20" = 2, "30" = 2,  # Cropland
     "130" = 3,  # Pasture/Grassland
@@ -109,7 +109,13 @@ map_values_to_landUse <- function(x) {
     "210" = 6,  # Water
     "150" = 7, "151" = 7, "152" = 7, "153" = 7, "160" = 7, "170" = 7, "180" = 7, "200" = 7, "201" = 7, "202" = 7, "210" = 7, "220" = 7  # Barren or Other
   )
-  return(value_to_land_use[as.character(x)])
+  sapply(x, function(val) {
+    if (val %in% names(value_to_landUse)) {
+      return(value_to_landUse[[as.character(val)]])
+    } else {
+      return(NA)  # Handle values that do not map to any land-use type
+    }
+  })
 }
 
 # Function to calculate the percentages for each land-use type
