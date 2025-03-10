@@ -42,6 +42,9 @@ biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
 biome_name_short <- "Tropical Biome"
 continent_names <- c("Africa", "Asia", "South America")
 
+#biome_name <- "Boreal Forests/Taiga"
+#biome_name_short <- "Boreal Biome"
+#continent_names <- c("Europe", "North America")
 
 # Functions - later add them to CustomFunctions.R -------------------------------------------
 # Function to load rasters
@@ -51,9 +54,14 @@ load_raster <- function(scenario, year) {
     raster <- rast("~/data/data/stitched_lulc_esa_scenarios/lulc_esa_2015.tif")
     } else {
     file_path <- file.path(base_path, scenario, paste0("lulc_esa_gtap1_", scenario_file_names, "_", year, "_no_policy.tif"))
+    if (file.exists(file_path)){
     raster <- rast(file_path)
+    } else {
+      warning(paste("File does not exist:", file_path))
+      return(NULL)
     }
-    return(raster)
+  }
+return(raster)
 }
 
 # Function to aggregate rasters
@@ -278,8 +286,8 @@ for (scenario in scenarios) {
       output_file <- file.path(output_path, paste0("LandUseChange_", scenario, "_", year, "_agg.tif"))
       writeRaster(raster_biome, output_file, overwrite = TRUE)
       
-      # Assign the raster to ?
-      assign(paste0("LandUseChange_", scenario, "_", year, "_", biome_name), raster_biome)
+      # Assign the raster to name
+      assign(paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short), raster_biome)
     }
   }
 
@@ -310,7 +318,7 @@ LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = pe
   geom_line() +
   geom_point() +
   facet_wrap(~ landUse, scales = "free_y", ncol = 3) +
-  labs(title = paste0("Land Use Percentages of the "  biome_name_short, " Over Time by Scenario"),
+  labs(title = paste0("Land Use Percentages of the ",  biome_name_short, " Over Time by Scenario"),
        x = "Year",
        y = "Total Land Area (%)") +
   theme_minimal()
@@ -322,12 +330,12 @@ ggsave(filename = file.path(output_folder, paste0("LandUseChange_time_", biome_n
 
 # Calculate and create spatially explicit Land Use Change Maps -------------------------------------------
 # Calculate the percentage change for each land-use class
-base_year_rasters <- get(paste0("LandUseChange_", scenarios, "_", years[1], "_", biome_name)) # is there a scenario? since its the baseline 
+base_year_rasters <- get(paste0("LandUseChange_", scenarios, "_", years[1], "_", biome_name_short)) # is there a scenario? since its the baseline 
 target_year_rasters_list <- list()
 for (scenario in scenarios) {
   target_year_rasters <- list()
   for (year in years[-1]) {
-    target_year_rasters[[as.character(year)]] <- get(paste0("LandUseChange_", scenario, "_", year, "_", biome_name))
+    target_year_rasters[[as.character(year)]] <- get(paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short))
   }
   target_year_rasters_list[[scenario]] <- target_year_rasters
 }
