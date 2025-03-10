@@ -87,8 +87,8 @@ crop_mask_raster <- function(raster, biome_sp) {
 # Function to stack rasters
 stack_rasters <- function(year) {
   scenarios_list <- list(
-    get(paste0("LandUseChange_", scenarios[1],"_", variable, "_", year, "_", biome_name)),
-    get(paste0("LandUseChange_", scenarios[2],"_", variable, "_", year, "_", biome_name))
+    get(paste0("LandUseChange_", scenarios[1],"_", year, "_", biome_name_short)),
+    get(paste0("LandUseChange_", scenarios[2],"_", year, "_", biome_name_short))
   )
   
   # Assign names to the list elements
@@ -101,11 +101,11 @@ stack_rasters <- function(year) {
   names(scenarios_stack) <- names(scenarios_list)
   
   # Save the raster stack
-  stack_output_file <- file.path(output_path, paste0("LandUseChange_scenarioStack_", year, "_", biome_name, ".tif"))
+  stack_output_file <- file.path(output_path, paste0("LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
   writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
   # Assign the raster stack to a variable in the environment
-  assign(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name)), scenarios_stack, envir = .GlobalEnv)
+  assign(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
   
   return(scenarios_stack)
 }
@@ -157,7 +157,7 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
 # Function to process and map scenarios
 process_and_map_scenarios <- function(year) {
   # Load the raster stack for the year
-  raster_stack <- get(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name)))
+  raster_stack <- get(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
   
   # Map the values to land use types
   mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_landUse)
