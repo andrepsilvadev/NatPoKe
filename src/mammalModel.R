@@ -47,7 +47,7 @@ species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 #     TRUE ~ yearlySurvivalRate 
 #         ))
 
-species_traits$reproductionRate <- species_traits$reproductionRate*1.5
+species_traits$reproductionRate <- species_traits$reproductionRate*10
 #species_traits$carryingCapacity <- species_traits$carryingCapacity*4
 species_traits$initialAbundance <- species_traits$initialAbundance*10
 #species_traits$dispersalDistance <- species_traits$dispersalDistance*1.5

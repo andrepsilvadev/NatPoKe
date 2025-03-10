@@ -21,7 +21,7 @@ selected_species <- c("Alces alces", "Cervus elaphus", "Lynx lynx", "Rangifer ta
 
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-06.csv")) %>% 
   # filter for prefered area & species
-  filter(BIOME_NAME == selected_biome & CONTINENT == selected_continent & Species %in% selected_species) %>% 
+  filter(BIOME_NAME == selected_biome & CONTINENT == selected_continent & sci_name %in% selected_species) %>% 
   mutate(
     Trophic = case_when(
       # based on Schloss 2012
