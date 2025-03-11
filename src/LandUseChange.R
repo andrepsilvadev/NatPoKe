@@ -2,7 +2,7 @@
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate percentage changes over time and spatial explicit changes for a given Biome
   ## for the ssp126 and ssp585 scenarios in various years ##
-## Date: March 10th 2025 ##
+## Date: March 11th 2025 ##
 
 # Settings & libraries -------------------------------------------
 source("~/data/src/libraries.R") # libraries
@@ -38,7 +38,7 @@ output_path <- "~/data/data/stitched_lulc_esa_scenarios/outputData"
 output_folder <- "~/data/output"
 
 # Define the target resolution (based on the landUsePercentage rasters)
-target_resolution <- 0.277
+target_resolution <- 0.277 # the resolution is different form the mapping before should only be 0.027
 
 # Define the biome and continents
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
