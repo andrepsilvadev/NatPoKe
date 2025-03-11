@@ -148,7 +148,8 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
   percentage_df <- data.frame(
     time = time,
     landUse = landUse_names, # I took variable away, the same as landuse
-    percentage = landUse_percentages
+    variable = landUse_names,
+    value = landUse_percentages
   )
   
   return(percentage_df)
@@ -321,9 +322,10 @@ scenarios_percentages_df <- scenarios_percentages_df %>%
   mutate(Scenario = gsub("_\\d{4}$", "", Scenario))
 
 # Plot the land use change of the different scenarios
-LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = percentage, color = scenario_colors, group = Scenario)) +
+LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = value, color = Scenario, group = Scenario)) +
   geom_line() +
   geom_point() +
+  scale_color_manual(values = scenario_colors) +
   facet_wrap(~ landUse, scales = "free_y", ncol = 3) +
   labs(title = paste0("Land Use Percentages of the ",  biome_name_short, " Over Time by Scenario"),
        x = "Year",
