@@ -27,7 +27,10 @@ LULC_Types_names <- c(
   "Water",
   "Barren or other"
 )
-years <- c(2015, 2021, 2030, 2050, 2070, 2100) # first year/timeperiod will be used as a baseline for change calculation
+years <- c(2021, 2030, 2050, 2070, 2100)
+
+# Define the baseline year
+baseline_year <- 2015
 
 # Define the file paths
 base_path <- "~/data/data/stitched_lulc_esa_scenarios"
@@ -48,11 +51,17 @@ continent_names <- c("Africa", "Asia", "South America")
 
 # Functions - later add them to CustomFunctions.R -------------------------------------------
 # Function to load rasters
-load_raster <- function(scenario, year) {
-  if (year == 2015) {
+load_baseline_raster <- function(year){
+  if (year == 2015){
     # Load the baseline raster
     raster <- rast("~/data/data/stitched_lulc_esa_scenarios/lulc_esa_2015.tif")
-  } else {
+    return(raster)
+  }else{
+    stop ("Baseline raster is only available for the year 2015")
+  }
+}
+  
+load_scenario_raster <- function(scenario, year) {
     # Get the index of the current scenario
     scenario_index <- which(scenarios == scenario)
     # Construct the file path
@@ -64,7 +73,6 @@ load_raster <- function(scenario, year) {
       warning(paste("File does not exist:", file_path))
       return(NULL)
     }
-  }
   return(raster)
 }
 
@@ -262,12 +270,44 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
 # Load the selected biome
 biome_sf <- load_select_biome(biome_name)
 
+# Process baseline year
+baseline_raster <- load_baseline_raster(baseline_year)
+
+# Check if the baseline raster is loaded successfully
+if (!is.null(baseline_raster)) {
+  # Get the original resolution from the raster
+  original_resolution <- res(baseline_raster)[1]
+  
+  # Calculate the aggregation factor
+  aggregation_factor <- target_resolution / original_resolution
+  
+  # Aggregate the raster
+  baseline_raster_agg <- aggregate_raster(baseline_raster, aggregation_factor)
+  
+  # Ensure CRS consistency
+  biome_sf <- st_transform(biome_sf, crs = crs(baseline_raster_agg))
+  
+  # Convert the sf to a spatial object
+  biome_sp <- vect(biome_sf)
+  
+  # Crop and mask the raster
+  baseline_raster_biome <- crop_mask_raster(baseline_raster_agg, biome_sp)
+  
+  # Save the aggregated raster
+  output_file <- file.path(output_path, paste0("LandUseChange_baseline_", baseline_year, "_agg.tif"))
+  writeRaster(baseline_raster_biome, output_file, overwrite = TRUE)
+  
+  # Assign the raster to a variable in the environment
+  assign(paste0("LandUseChange_baseline_", baseline_year, "_", biome_name_short), baseline_raster_biome, envir = .GlobalEnv)
+}
+
+
 # Loop through the scenarios, variables, and years for the biome
 # L apply
 for (scenario in scenarios) {
     for (year in years) {
       # Load the raster
-      raster <- load_raster(scenario, year)
+      raster <- load_scenario_raster(scenario, year)
       
       # Check if the raster is loaded successfully
       if (!is.null(raster)) {
@@ -312,7 +352,7 @@ scenario_colors <- setNames(
   c("#1f77b4", "#ff7f0e"), scenario_names)
 
 # Process and map scenarios for each year
-scenarios_percentages_df_list <- lapply(years[-1], process_and_map_scenarios)
+scenarios_percentages_df_list <- lapply(years, process_and_map_scenarios)
 
 # Combine the data frames into a single data frame
 scenarios_percentages_df <- do.call(rbind, scenarios_percentages_df_list)
