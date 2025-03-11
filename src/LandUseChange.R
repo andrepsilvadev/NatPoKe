@@ -38,7 +38,7 @@ output_path <- "~/data/data/stitched_lulc_esa_scenarios/outputData"
 output_folder <- "~/data/output"
 
 # Define the target resolution (based on the landUsePercentage rasters)
-target_resolution <- 0.277 # the resolution is different form the mapping before should only be 0.027
+target_resolution <- 0.0277 # the resolution is different form the mapping before should only be 0.027
 
 # Define the biome and continents
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
@@ -165,11 +165,8 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
 
 # Function to process and map scenarios
 process_and_map_scenarios <- function(year) {
-  # Load the raster stack for the year
-  raster_stack <- get(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
-  
-  # Map the values to land use types
-  mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_landUse)
+  # Load the raster stack for the years
+  mapped_raster_stack <- get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
   
   # Calculate land use percentages
   scenarios_percentages_list <- list()
@@ -308,9 +305,6 @@ for (scenario in scenarios) {
     for (year in years) {
       # Load the raster
       raster <- load_scenario_raster(scenario, year)
-      
-      # Check if the raster is loaded successfully
-      if (!is.null(raster)) {
         
       # Get the original resolution from the raster
       original_resolution <- res(raster)[1]
@@ -337,13 +331,21 @@ for (scenario in scenarios) {
       # Assign the raster to name
       assign(paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short), raster_biome)
     }
-  }
 }
+
 # create a list as output?
 
-# Loop through the years to create raster stacks
+# Loop through the years to create raster stacks and map land-use types
   for (year in years) {
     stack_rasters(year)
+    # Load the raster stack for the year
+    raster_stack <- get(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
+    
+    # Apply land-use type mapping
+    mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_landUse)
+    
+    # Save the mapped raster stack back to the environment
+    assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_scenarios, envir = .GlobalEnv)
   }
 
 # Calculate and create Climate Change graphics over time -------------------------------------------
