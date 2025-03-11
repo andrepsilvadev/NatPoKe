@@ -126,7 +126,7 @@ for (r in raster_files) {
 }
 
 # checking new layers
-plot(rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified.tif")))
+#plot(rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified.tif")))
 
 rm(raster_files, bbox_SW)
 invisible(gc())
@@ -224,8 +224,8 @@ for (landscape in landscape_SW) {
 }
 rm(landscape, landscape_SW)
 
-plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif")))
-plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified_reprojectedKm.tif")))
+#plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif")))
+#plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified_reprojectedKm.tif")))
 
 
 

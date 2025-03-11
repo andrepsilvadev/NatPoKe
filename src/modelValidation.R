@@ -131,7 +131,7 @@ validationList <- validateModel1.1(
   independentDensity = santini2022,
   estimatedDensity = estimatedDensity,
   spData = spData,
-  validationYear = 2
+  validationYear = 101
 ) 
 
 #########################
@@ -153,6 +153,7 @@ pvalidation1 <- ggplot(validationList$independentDensity, aes(species)) +
   geom_boxplot(
     aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95),
     stat = "identity") +
+  ylim(0, 8)+
   geom_point(data = validationList$estimatedDensity,
              aes(x = species, y = estimatedDensity),
              color = "red",
@@ -168,8 +169,33 @@ pvalidation1
 
 # saving the plot
 ggsave(filename = file.path(dirout, paste0("ModelValidation", runname, ".tiff")),
-        plot = pvalidation1,
+       plot = pvalidation1,
        bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
+
+pvalidation2 <- ggplot(validationList$independentDensity, aes(x = "", y = meanDensity)) +
+  geom_boxplot(
+    aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95),
+    stat = "identity"
+  ) +
+  geom_point(data = validationList$estimatedDensity,
+             aes(x = "", y = estimatedDensity),
+             color = "red",
+             position = position_jitter(width = 0.2),
+             size = 1) +
+  facet_wrap(~ species, scales = "free_y") + 
+  ylab("Independent density estimate") +
+  xlab("Species") +
+  ggtitle("Model validation - estimated densities in red") + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+# saving the plot
+ggsave(filename = file.path(dirout, paste0("ModelValidation2", runname, ".tiff")),
+       plot = pvalidation2,
+       bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
+
+
+
 
 
 end.time <- Sys.time() # end the clock

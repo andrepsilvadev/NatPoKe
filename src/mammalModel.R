@@ -33,24 +33,17 @@
 # import Species Trait Dataframe -----------------------------------------------
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
-# modify initialAbundance based on species
-# species_traits <- species_traits %>%
-#   mutate(initialAbundance = case_when(
-#     Species == "Alcesalces" ~ initialAbundance * 8,
-#     Species == "Cervuselaphus" ~ initialAbundance * 4,
-#     Species == "Lynxlynx" ~ initialAbundance * 15,
-#     Species == "Rangifertarandus" ~ initialAbundance * 4,
-#     TRUE ~ initialAbundance  # Keep original value if species doesn't match
-#   ),
-#         yearlySurvivalRate = case_when(
-#     Species == "Lynxlynx" ~ yearlySurvivalRate + 0.2,
-#     TRUE ~ yearlySurvivalRate 
-#         ))
+# original run
+## no alterations
 
-species_traits$reproductionRate <- species_traits$reproductionRate*10
-#species_traits$carryingCapacity <- species_traits$carryingCapacity*4
+# abundance * 10 
 species_traits$initialAbundance <- species_traits$initialAbundance*10
-#species_traits$dispersalDistance <- species_traits$dispersalDistance*1.5
+
+# abundance * 10 + repRate*1.05
+species_traits$reproductionRate <- species_traits$reproductionRate*1.05
+
+# abundance * 10 + dispDist*1.05
+#species_traits$dispersalDistance <- species_traits$dispersalDistance*1.05
 
 # write table to .csv file
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
@@ -286,28 +279,28 @@ sim$add_process(
 
 # OUTPUT FILE NAME STRUCTURE = SCENARIO_BIOME_REGION_TIME_SPECIES_VARIABLE.tif
 
-# sim$add_process(
-#   process_name = "save_results",
-#   process_fun = function() {
-# 
-#     for (species in species_names) {
-#       # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
-#       suffix <- "BAU_Boreal_regionalExtent_"
-#       save_species(
-#         # pass the species object
-#         self[[species]],
-#         # specify traits we want to save
-#         traits = c("abundance","dispersal_change"),
-#         # a prefix for each time step
-#         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
-#         # where should it be saved
-#         path = dirout,
-#         overwrite = TRUE
-#       )
-#     }
-#   },
-#   execution_priority = 7
-# )
+sim$add_process(
+  process_name = "save_results",
+  process_fun = function() {
+
+    for (species in species_names) {
+      # suffix with SCENARIO, BIOME, REGION <- THIS SHOULD BE CHNAGED EACH TIME WE RUN THE MODEL !!!!!!!!!!!
+      suffix <- "BAU_Boreal_regionalExtent_"
+      save_species(
+        # pass the species object
+        self[[species]],
+        # specify traits we want to save
+        traits = c("abundance","dispersal_change"),
+        # a prefix for each time step
+        prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
+        # where should it be saved
+        path = dirout,
+        overwrite = TRUE
+      )
+    }
+  },
+  execution_priority = 7
+)
 
 ##################
 # run simulation #
@@ -356,31 +349,68 @@ plot(
   sim$globals[["Alcesalces"]][["mean_abundance"]],
   type = "l",
   xlab = "Time",
-  ylab = "Abundance",
-  main = "Alcesalces"
+  ylab = "Mean Abundance Per Cell",
+  main = "Alcesalces",
+  ylim =c(50, 400)
 )
 plot(
   sim$globals[["Cervuselaphus"]][["mean_abundance"]],
   type = "l",
   xlab = "Time",
-  ylab = "Abundance",
-  main = "Cervuselaphus"
+  ylab = "Mean Abundance Per Cell",
+  main = "Cervuselaphus",
+  ylim = c(0, 3000)
 )
 plot(
   sim$globals[["Lynxlynx"]][["mean_abundance"]],
   type = "l",
   xlab = "Time",
-  ylab = "Abundance",
+  ylab = "Mean Abundance Per Cell",
   main = "Lynxlynx"
 )
 plot(
   sim$globals[["Rangifertarandus"]][["mean_abundance"]],
   type = "l",
   xlab = "Time",
-  ylab = "Abundance",
-  main = "Rangifertarandus"
+  ylab = "Mean Abundance Per Cell",
+  main = "Rangifertarandus",
+  ylim = c(0, 800000)
 )
 mtext(paste0("Mean Abundance Per Cell Over Time", runname), side = 3, line = - 2, outer = TRUE)
 dev.off()
 
+
+tiff(file.path(dirout, "totalAbundance_plots.tiff"),width = 300, height = 230, units = "mm", res = 1200, compression = "lzw")
+par(mfrow=c(2,2))
+
+plot(
+  sim$globals[["Alcesalces"]][["n_abundance"]],
+  type = "l",
+  xlab = "Time",
+  ylab = "Abundance",
+  main = "Alcesalces"
+)
+plot(
+  sim$globals[["Cervuselaphus"]][["n_abundance"]],
+  type = "l",
+  xlab = "Time",
+  ylab = "Abundance",
+  main = "Cervuselaphus"
+)
+plot(
+  sim$globals[["Lynxlynx"]][["n_abundance"]],
+  type = "l",
+  xlab = "Time",
+  ylab = "Abundance",
+  main = "Lynxlynx"
+)
+plot(
+  sim$globals[["Rangifertarandus"]][["n_abundance"]],
+  type = "l",
+  xlab = "Time",
+  ylab = "Abundance",
+  main = "Rangifertarandus"
+)
+mtext(paste0("Total Abundance Over Time", runname), side = 3, line = - 2, outer = TRUE)
+dev.off()
 
