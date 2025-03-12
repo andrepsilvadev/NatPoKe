@@ -51,29 +51,16 @@ continent_names <- c("Africa", "Asia", "South America")
 
 # Functions - later add them to CustomFunctions.R -------------------------------------------
 # Function to load rasters
-load_baseline_raster <- function(year){
-  if (year == 2015){
-    # Load the baseline raster
-    raster <- rast("~/data/data/stitched_lulc_esa_scenarios/lulc_esa_2015.tif")
-    return(raster)
-  }else{
-    stop ("Baseline raster is only available for the year 2015")
-  }
+load_baseline_raster <- function(baseline_year){
+  rast("~/data/data/stitched_lulc_esa_scenarios/lulc_esa_2015.tif")
 }
-  
+
 load_scenario_raster <- function(scenario, year) {
-    # Get the index of the current scenario
-    scenario_index <- which(scenarios == scenario)
-    # Construct the file path
-    file_path <- file.path(base_path, scenario, paste0("lulc_esa_gtap1_", scenario_file_names[scenario_index], "_", year, "_no_policy.tif"))
-    # Check if the file exists
-    if (file.exists(file_path)) {
-      raster <- rast(file_path)
-    } else {
-      warning(paste("File does not exist:", file_path))
-      return(NULL)
-    }
-  return(raster)
+  # Get the index of the current scenario
+  scenario_index <- which(scenarios == scenario)
+  # Construct the file path
+  file_path <- file.path(base_path, scenario, paste0("lulc_esa_gtap1_", scenario_file_names[scenario_index], "_", year, "_no_policy.tif"))
+  rast(file_path)
 }
 
 # Function to aggregate rasters
@@ -347,6 +334,8 @@ for (scenario in scenarios) {
     # Save the mapped raster stack back to the environment
     assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_scenarios, envir = .GlobalEnv)
   }
+
+plot(Mapped_LandUseChange_scenarioStack_2021_Tropical_Biome)
 
 # Calculate and create Climate Change graphics over time -------------------------------------------
 # Define consistent color palette for the scenarios
