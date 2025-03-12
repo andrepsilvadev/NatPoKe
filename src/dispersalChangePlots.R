@@ -15,7 +15,7 @@ library(terra)
 # import data #
 ###############
 
-outputs <- fread(file.path(dirout, "metaRangeOutputs11Mar2025_Abund10_repRate1.05.csv"))
+outputs <- fread(file.path(dirout, "metaRangeOutputs11Mar2025_Abund10.csv"))
 
 # change columns format to factor
 outputs <- outputs %>% 
@@ -34,7 +34,12 @@ gc()
 
 outputs_avg <- outputs %>%
   group_by(species, x, y) %>%
-  summarise(avg_disp_change = mean(dispersal_change, na.rm = TRUE), .groups = "drop")
+  summarise(avg_disp_change = mean(dispersal_change, na.rm = TRUE), .groups = "drop") %>%
+  mutate(species = recode(species,
+                           "Alcesalces" = " Alces alces (Moose)",
+                           "Cervuselaphus" = "Cervus elaphus (Red deer)",
+                           "Lynxlynx" = "Lynx lynx (Eurasian lynx)",
+                           "Rangifertarandus" = "Rangifer tarandus (Reindeer)"))
 
 ############################
 # plot results per species #
@@ -60,7 +65,8 @@ for (sp in species_list) {
                          limits = c(min_val, max_val)) + # Set custom color scale
     theme_minimal() +
     labs(x = "Latitude", y = "Longitude", fill = "Average Dispersal\nChange Over Time", title = sp) + 
-    theme(strip.text = element_text(size = 9))
+    theme(strip.text = element_text(size = 9),
+          plot.title = element_text(size = 9),)
   
   plot_list[[sp]] <- p
 }
@@ -72,7 +78,7 @@ dispChange_sps
 
 # save plot
 ggsave(plot = dispChange_sps,
-       file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/Outputs/dispersalChange11Mar2025.tif",
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/dispersalChange11Mar2025.tif",
        #file = file.path(dirout, paste0("dipersalChange", runname, ".tif")),
        bg = 'white', width = 300, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
@@ -80,46 +86,72 @@ ggsave(plot = dispChange_sps,
 ## just to check what happens in a few timesteps for lynx ##
 
 ## t = 21
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_021_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_021_Lynxlynx_dispersal_change.tif"))
 ## t = 30
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_030_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_030_Lynxlynx_dispersal_change.tif"))
 ## t = 40
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_040_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_040_Lynxlynx_dispersal_change.tif"))
 ## t = 50
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_050_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_050_Lynxlynx_dispersal_change.tif"))
 ## t = 125
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_125_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_125_Lynxlynx_dispersal_change.tif"))
 
-##########
-## LIXO ##
-##########
+########################################
+## dispersal change between time steps #
+########################################
 
-# Create a list of species names
-species_names <- unique(combined_df$raster_name)
+## for all species ##
 
-# Create a list to store ggplot objects for each species
-plot_list <- list()
+library(ggplot2)
+library(gridExtra)
 
-# Loop through each species and create a plot with its own color scale
-for (species in species_names) {
-  species_df <- subset(combined_df, raster_name == species)
+outputs_subset <- outputs %>% 
+  dplyr::filter(timestep %in% c(021,125))
+
+outputs_split <- split(outputs_subset, outputs_subset$species)
+
+plot_list2 <- list()
+
+for (sps_name in names(outputs_split)) { # Iterate over names of split list
+  sps <- outputs_split[[sps_name]]
   
-  p <- ggplot(species_df, aes(x = x, y = y, fill = abundance)) +
+  p <- ggplot(sps, aes(x = x, y = y, fill = dispersal_change)) +
     geom_raster() +
     scale_fill_gradient2(
       low = "red",
       mid = "white",
       high = "green",
-      midpoint = mean(species_df$abundance, na.rm = TRUE) # Individual midpoint
+      midpoint = mean(sps$dispersal_change, na.rm = TRUE)
     ) +
-    labs(title = species, x = "Longitude", y = "Latitude") +
+    labs(title = paste(sps_name, "dispersal change"), x = "Longitude", y = "Latitude") + #dynamic title
     theme_minimal() +
-    facet_wrap(~timestep) # Use facet_wrap for individual plots
-  plot_list[[species]] <- p
+    facet_wrap(~timestep)
+  
+  plot_list2[[sps_name]] <- p # Use the species name as the list index
 }
 
-# Combine the plots using grid.arrange from the gridExtra package
-library(gridExtra)
+grid.arrange(grobs = plot_list2, ncol = 2) # grid.arrange works well with ggplot objects.
 
-# Arrange the plots in a grid
-grid.arrange(grobs = plot_list, ncol = length(unique(combined_df$timestep)))
+
+## for one sps ##
+
+LynxlynxdispersalChange <- ggplot(outputs_subset[outputs_subset$species == "Lynxlynx",], aes(x = x, y = y, fill = dispersal_change)) +
+  geom_raster() +
+  facet_wrap(~timestep, labeller = labeller(timestep = c("21" = "Year 21", "125" = "Year 125"))) +
+  scale_fill_gradient2(
+    low = "red",
+    mid = "white",
+    high = "green",
+    midpoint = mean(outputs_subset[outputs_subset$species == "Lynxlynx",]$dispersal_change, na.rm = TRUE) # Individual midpoint
+  ) +
+  labs(title = "Eurasian lynx dispersal change", x = "Longitude", y = "Latitude", fill = "Dispersal\nchange\n(nº indiv.)") +
+  theme_minimal() +
+  theme(strip.text = element_text(size = 10), 
+        panel.background = element_blank())
+
+ggsave(plot = LynxlynxdispersalChange,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/Lynxlynx_dispersalChange11Mar2025.tif",
+       #file = file.path(dirout, paste0("dipersalChange", runname, ".tif")),
+       bg = 'white', width = 400, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+
+ 
