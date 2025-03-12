@@ -56,8 +56,7 @@ estimatedDensity <- fread(file.path(dirout, paste0("metaRangeOutputs", runname, 
 size <- res(terra::rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojectedKm.tif")))
 
 # (4) spData
-spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
-  mutate(ModellingRes = size[[1]]*size[[2]])
+spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) 
   #IF WE WANT TO GO BACK TO THE ORIGINAL IDEA OF USING SANTINI'S "MEASUREMENTS" OF PREDICTED DENSITIES
   # to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022
   #left_join(dplyr::select(santini2022, Species, PredMd), by = c("species" = "Species")) %>%

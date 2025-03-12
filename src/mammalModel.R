@@ -40,10 +40,10 @@ species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 species_traits$initialAbundance <- species_traits$initialAbundance*10
 
 # abundance * 10 + repRate*1.05
-species_traits$reproductionRate <- species_traits$reproductionRate*1.05
+#species_traits$reproductionRate <- species_traits$reproductionRate*1.05
 
 # abundance * 10 + dispDist*1.05
-#species_traits$dispersalDistance <- species_traits$dispersalDistance*1.05
+species_traits$dispersalDistance <- species_traits$dispersalDistance*1.05
 
 # write table to .csv file
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
@@ -351,7 +351,7 @@ plot(
   xlab = "Time",
   ylab = "Mean Abundance Per Cell",
   main = "Alcesalces",
-  ylim =c(50, 400)
+  ylim =c(0, 600)
 )
 plot(
   sim$globals[["Cervuselaphus"]][["mean_abundance"]],
@@ -359,7 +359,7 @@ plot(
   xlab = "Time",
   ylab = "Mean Abundance Per Cell",
   main = "Cervuselaphus",
-  ylim = c(0, 3000)
+  ylim = c(0, 2500)
 )
 plot(
   sim$globals[["Lynxlynx"]][["mean_abundance"]],
@@ -374,7 +374,7 @@ plot(
   xlab = "Time",
   ylab = "Mean Abundance Per Cell",
   main = "Rangifertarandus",
-  ylim = c(0, 800000)
+  ylim = c(0, 1000000)
 )
 mtext(paste0("Mean Abundance Per Cell Over Time", runname), side = 3, line = - 2, outer = TRUE)
 dev.off()
