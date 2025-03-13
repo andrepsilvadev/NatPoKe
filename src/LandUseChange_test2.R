@@ -104,11 +104,11 @@ map_values_to_land_use <- function(x) {
 }
 
 # Function to process and map scenarios for each year
-process_and_map_scenarios <- function(year) {
+#process_and_map_scenarios <- function(year) {
   raster_stack <- get(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
   mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_land_use)
   return(mapped_scenarios)
-}
+#}
 
 # Function to calculate the percentages for each land-use type
 calculate_land_use_percentages <- function(raster_stack, land_use_types, land_use_names, time) {
@@ -135,6 +135,30 @@ calculate_land_use_percentages <- function(raster_stack, land_use_types, land_us
   return(percentage_df)
 }
 
+# Function to process and map scenarios
+process_and_map_scenarios <- function(year) {
+  # Load the raster stack for the years
+  mapped_raster_stack <- get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
+  
+  # Calculate land use percentages
+  scenarios_percentages_list <- list()
+  for (i in 1:nlyr(mapped_scenarios)) {
+    scenario_name <- names(mapped_scenarios)[i]
+    raster_layer <- mapped_scenarios[[i]]
+    percentages_df <- calculate_land_use_percentages(
+      raster_stack = raster_layer,
+      land_use_types = LULC_Types,
+      land_use_names = LULC_Types_names,
+      time = year
+    )
+    percentages_df$Scenario <- scenario_name
+    scenarios_percentages_list[[scenario_name]] <- percentages_df
+  }
+  
+  # Combine the results into a single data frame
+  scenarios_percentages_df <- do.call(rbind, scenarios_percentages_list)
+  return(scenarios_percentages_df)
+}
 
 # Prepare the climate scenarios rasters for further calculations and graphical representation -------------------------------------------
 # Load the selected biome
@@ -163,10 +187,23 @@ for (scenario in scenarios) {
   }
 }
 
-# Create raster stacks for each year
+# Loop through the years to create raster stacks and map land-use types
 for (year in years) {
   stack_rasters(year)
+  # Load the raster stack for the year
+  raster_stack <- get(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
+  
+  # Apply land-use type mapping
+  mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_land_use)
+  
+  # Save the mapped raster stack back to the environment
+  assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_scenarios, envir = .GlobalEnv)
 }
+
+# Create raster stacks for each year
+#for (year in years) {
+#  stack_rasters(year)
+#}
 
 # Check raster stack layer
 LandUseChange_scenarioStack_2021_Tropical_Biome
@@ -176,12 +213,14 @@ LandUseChange_scenarioStack_2021_Tropical_Biome
 scenario_colors <- setNames(
   c("#1f77b4", "#ff7f0e"), scenario_names)
 
+# Process and map scenarios for each year
+scenarios_percentages_df_list <- lapply(years, process_and_map_scenarios)
 
 # Process and map scenarios for each year
-mapped_scenarios_list <- lapply(years, process_and_map_scenarios)
+#mapped_scenarios_list <- lapply(years, process_and_map_scenarios)
 
 # Calculate percentages for each year
-scenarios_percentages_df_list <- list()
+#scenarios_percentages_df_list <- list()
 for (i in 1:length(years)) {
   year <- years[i]
   mapped_scenarios <- mapped_scenarios_list[[i]]
