@@ -1,8 +1,8 @@
 ## Name: LandUseChange_test2.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate percentage changes over time and spatial explicit changes for a given Biome
-  ## for the ssp126 and ssp585 scenarios in various years ##
-## Date: March 12th 2025 ##
+## for the ssp126 and ssp585 scenarios in various years ##
+## Date: March 13th 2025 ##
 
 # Settings & libraries -------------------------------------------
 source("~/data/src/libraries.R") # libraries
@@ -12,7 +12,7 @@ source("~/data/src/customFunctions.R") # functions
 # Define input variables
 scenarios <- c("rcp26_ssp1", "rcp85_ssp5")
 scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
-years <- c(2021, 2030, 2050, 2070, 2100) 
+years <- c(2021, 2030, 2050, 2070, 2100)
 
 # Simplify and define ESA LULC types (39) to the 7 (SEALS) LULC types
 # Source of ESA LULC simplification scheme in Table S.2.4.1 of Supporting Information Appendix in Johnson et al. 2023 
@@ -42,28 +42,17 @@ base_path <- "~/data/data/stitched_lulc_esa_scenarios"
 output_path <- "~/data/data/stitched_lulc_esa_scenarios/outputData"
 output_folder <- "~/data/output"
 
-# Load the baseline raster
-baseline_raster <- rast("~/data/data/stitched_lulc_esa_scenarios/lulc_esa_seals7_2015.tif")
-
-# Define the aggregation factor
-aggregation_factor <- 10
 
 # Define the biome and continents
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
 biome_name_short <- "Tropical Biome"
 continent_names <- c("Africa", "Asia", "South America")
 
-
 # Functions - later add them to CustomFunctions.R -------------------------------------------
 # Function to load rasters
 load_raster <- function(scenario, year) {
   file_path <- file.path(base_path, scenario, paste0("lulc_esa_gtap1_", scenario, "_", year, "_no_policy.tif"))
   rast(file_path)
-}
-
-# Function to aggregate rasters
-aggregate_raster <- function(raster, factor) {
-  aggregate(raster, fact = factor, fun = mean)
 }
 
 # Function to load and select the biome shapefile
@@ -79,13 +68,13 @@ crop_mask_raster <- function(raster, biome_sp) {
 
 # Function to stack rasters
 stack_rasters <- function(year) {
-  scenarios_list <- list(
-    get(paste0("LandUseChange_", scenarios[1],"_", variable, "_", year, "_", biome_name)),
-    get(paste0("LandUseChange_", scenarios[2],"_", variable, "_", year, "_", biome_name))
-  )
-  
-  # Assign names to the list elements
-  names(scenarios_list) <- c(paste0(scenario_names[1], "_", year), paste0(scenario_names[2], "_", year))
+  scenarios_list <- list()
+  for (scenario in scenarios) {
+    raster_name <- paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short)
+    if (exists(raster_name)) {
+      scenarios_list[[paste0("scenario_", scenario, "_", year)]] <- get(raster_name)
+    }
+  }
   
   # Create a raster stack from the list of scenarios
   scenarios_stack <- rast(scenarios_list)
@@ -94,11 +83,11 @@ stack_rasters <- function(year) {
   names(scenarios_stack) <- names(scenarios_list)
   
   # Save the raster stack
-  stack_output_file <- file.path(output_path, paste0("LandUseChange_scenarioStack_", year, "_", biome_name, ".tif"))
+  stack_output_file <- file.path(output_path, paste0("LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
   writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
   # Assign the raster stack to a variable in the environment
-  assign(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name)), scenarios_stack, envir = .GlobalEnv)
+  assign(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
   
   return(scenarios_stack)
 }
@@ -112,6 +101,13 @@ map_values_to_land_use <- function(x) {
       return(NA)  # Handle values that do not map to any land-use type
     }
   })
+}
+
+# Function to process and map scenarios for each year
+process_and_map_scenarios <- function(year) {
+  raster_stack <- get(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
+  mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_land_use)
+  return(mapped_scenarios)
 }
 
 # Function to calculate the percentages for each land-use type
@@ -131,7 +127,7 @@ calculate_land_use_percentages <- function(raster_stack, land_use_types, land_us
   # Create a data frame with the results
   percentage_df <- data.frame(
     time = time,
-    landUse = land_use_names, # I took variable away, the same as landuse
+    landUse = land_use_names,
     variable = land_use_names,
     value = land_use_percentages
   )
@@ -139,20 +135,60 @@ calculate_land_use_percentages <- function(raster_stack, land_use_types, land_us
   return(percentage_df)
 }
 
-# Function to process and map scenarios for each year
-process_and_map_scenarios <- function(year) {
-  raster_stack <- get(paste0("LandUseChange_scenariosStack_", year, "_", biome_name_short))
-  mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_land_use)
-  return(mapped_scenarios)
+
+# Prepare the climate scenarios rasters for further calculations and graphical representation -------------------------------------------
+# Load the selected biome
+biome_sf <- load_select_biome(biome_name)
+
+# Loop through the scenarios, and years for the biome
+for (scenario in scenarios) {
+  for (year in years) {
+    # Load the raster
+    raster <- load_raster(scenario, year)
+    
+    # Aggregate the raster
+    raster_agg <-  aggregate(raster, fact = 10, fun = mean)
+    
+    # Ensure CRS consistency
+    biome_sf <- st_transform(biome_sf, crs = crs(raster_agg[[1]]))
+    
+    # Convert the sf to a spatial object
+    biome_sp <- vect(biome_sf)
+    
+    # Crop and mask the raster
+    raster_biome <- crop_mask_raster(raster_agg, biome_sp)
+    
+    # Assign the raster to a variable in the environment
+    assign(paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short), raster_biome)
+  }
 }
 
-# Function to calculate percentages for each year
-calculate_percentages_for_year <- function(year) {
-  mapped_scenarios <- process_and_map_scenarios(year)
+# Create raster stacks for each year
+for (year in years) {
+  stack_rasters(year)
+}
+
+# Check raster stack layer
+LandUseChange_scenarioStack_2021_Tropical_Biome
+
+# Calculate and create Climate Change graphics over time -------------------------------------------
+# Define consistent color palette for the scenarios
+scenario_colors <- setNames(
+  c("#1f77b4", "#ff7f0e"), scenario_names)
+
+
+# Process and map scenarios for each year
+mapped_scenarios_list <- lapply(years, process_and_map_scenarios)
+
+# Calculate percentages for each year
+scenarios_percentages_df_list <- list()
+for (i in 1:length(years)) {
+  year <- years[i]
+  mapped_scenarios <- mapped_scenarios_list[[i]]
   scenarios_percentages_list <- list()
-  for (i in 1:nlyr(mapped_scenarios)) {
-    scenario_name <- names(mapped_scenarios)[i]
-    raster_layer <- mapped_scenarios[[i]]
+  for (j in 1:nlyr(mapped_scenarios)) {
+    scenario_name <- names(mapped_scenarios)[j]
+    raster_layer <- mapped_scenarios[[j]]
     percentages_df <- calculate_land_use_percentages(
       raster_stack = raster_layer,
       land_use_types = LULC_Types,
@@ -163,65 +199,10 @@ calculate_percentages_for_year <- function(year) {
     scenarios_percentages_list[[scenario_name]] <- percentages_df
   }
   scenarios_percentages_df <- do.call(rbind, scenarios_percentages_list)
-  return(scenarios_percentages_df)
+  scenarios_percentages_df_list[[i]] <- scenarios_percentages_df
 }
 
-
-# Prepare the climate scenarios rasters for further calculations and graphical representation -------------------------------------------
-# Load the selected biome
-biome_sf <- load_select_biome(biome_name)
-
-# Loop through the scenarios, variables, and years for the biome
-# L apply
-for (scenario in scenarios) {
-    for (year in years) {
-      # Load the raster
-      raster <- load_raster(scenario, year)
-      
-      # Aggregate the raster
-      raster_agg <- aggregate_raster(raster, aggregation_factor)
-      
-      # Ensure CRS consistency
-      biome_sf <- st_transform(biome_sf, crs = crs(raster_agg))
-      
-      # Convert the sf to a spatial object
-      biome_sp <- vect(biome_sf)
-      
-      # Crop and mask the raster
-      raster_biome <- crop_mask_raster(raster_agg, biome_sp)
-      
-      # Assign the raster to ?
-      assign(paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short), raster_biome)
-    }
-  }
-
-# Create raster stacks for each year
-for (year in years) {
-  scenarios_list <- list()
-  for (scenario in scenarios) {
-    raster_name <- paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short)
-    if (exists(raster_name)) {
-      scenarios_list[[paste0("scenario_", scenario, "_", year)]] <- get(raster_name)
-    }
-  }
-  
-  # Create a raster stack from the list of scenarios
-  scenarios_stack <- rast(scenarios_list)
-  
-  # Assign names to the raster stack layers
-  names(scenarios_stack) <- names(scenarios_list)
-  
-  # Assign the raster stack to a variable in the environment
-  assign(paste0("LandUseChange_scenariosStack_", year, "_", biome_name_short), scenarios_stack, envir = .GlobalEnv)
-}
-
-
-# Calculate and create Climate Change graphics over time -------------------------------------------
-# Define consistent color palette for the scenarios
-scenario_colors <- setNames(
-  c("#1f77b4", "#ff7f0e"), scenario_names)
-
-scenarios_percentages_df_list <- lapply(years, calculate_percentages_for_year)
+# Combine the data frames into a single data frame
 scenarios_percentages_df <- do.call(rbind, scenarios_percentages_df_list)
 
 # Remove the year suffix from scenario names
@@ -234,7 +215,7 @@ LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = va
   geom_point() +
   scale_color_manual(values = scenario_colors) +
   facet_wrap(~ landUse, scales = "free_y", ncol = 3) +
-  labs(title = paste0("Land Use Percentages of the "  biome_name_short, " Over Time by Scenario"),
+  labs(title = paste0("Land Use Percentages of the ",  biome_name_short, " Over Time by Scenario"),
        x = "Year",
        y = "Total Land Area (%)") +
   theme_minimal()
@@ -243,3 +224,4 @@ print(LandUseChange_time_plot)
 ggsave(filename = file.path(output_folder, paste0("LandUseChange_time_", biome_name_short, ".png")),
        plot = LandUseChange_time_plot,
        dpi = 600)
+
