@@ -135,15 +135,15 @@ my_raster <- rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoK
 plot(my_raster, range = c(-4000, 1000))
 
 ## t = 21
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_002_Alcesalces_dispersal_change.tif"))
+plot(rast("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/14Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_030_Lynxlynx_dispersal_change.tif"))
 ## t = 30
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_030_Alcesalces_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/14Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_030_Alcesalces_dispersal_change.tif"))
 ## t = 40
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_040_Alcesalces_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/14Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_040_Alcesalces_dispersal_change.tif"))
 ## t = 50
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_050_Alcesalces_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/14Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_050_Alcesalces_dispersal_change.tif"))
 ## t = 125
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_125_Alcesalces_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/14Mar2025_Abund10/Outputs/BAU_Boreal_regionalExtent_125_Alcesalces_dispersal_change.tif"))
 
 
 ########################################
