@@ -21,9 +21,14 @@ species_names <- c("Alcesalces", "Cervuselaphus", "Lynxlynx", "Rangifertarandus"
 species_avg <- list()
 
 for (species in species_names) {
-  # list all raster for a species
-  species_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/",
+  # list all dispersal chnage rasters for a species
+  species_disp_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/",
                              pattern = paste0(species, "_dispersal_change.tif"), full.names = TRUE)
+  
+  # list all abundance rasters for a species
+  species_abund_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/",
+                                   pattern = paste0(species, "_abundance.tif"), full.names = TRUE)
+  
   # stack all rasters for a species
   species_stack <- c(rast(species_rast))
   
@@ -56,7 +61,8 @@ chekup <- outputs %>%
   dplyr::filter(abundance !=0) %>% 
   group_by(species, timestep) %>% 
   summarise(avg_dispChange = mean(dispersal_change, na.rm = TRUE),
-            avg_abund = mean(abundance, na.rm = TRUE))
+            avg_abund = mean(abundance, na.rm = TRUE)) 
+  
 
 # averaging everything
 outputs_avg <- outputs %>%
@@ -67,7 +73,7 @@ outputs_avg <- outputs %>%
                            "Alcesalces" = " Alces alces (Moose)",
                            "Cervuselaphus" = "Cervus elaphus (Red deer)",
                            "Lynxlynx" = "Lynx lynx (Eurasian lynx)",
-                           "Rangifertarandus" = "Rangifer tarandus (Reindeer)"))
+                           "Rangifertarandus" = "Rangifer tarandus (Reindeer)")) 
 
 ############################
 # plot results per species #
@@ -122,17 +128,22 @@ ggsave(plot = dispChange_sps,
 
 
 ## just to check what happens in a few timesteps for lynx ##
+# Load your raster
+my_raster <- rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_002_Alcesalces_dispersal_change.tif")
+
+# Plot the raster with the desired scale
+plot(my_raster, range = c(-4000, 1000))
 
 ## t = 21
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_021_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_002_Alcesalces_dispersal_change.tif"))
 ## t = 30
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_030_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_030_Alcesalces_dispersal_change.tif"))
 ## t = 40
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_040_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_040_Alcesalces_dispersal_change.tif"))
 ## t = 50
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_050_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_050_Alcesalces_dispersal_change.tif"))
 ## t = 125
-plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_125_Lynxlynx_dispersal_change.tif"))
+plot(rast("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/BAU_Boreal_regionalExtent_125_Alcesalces_dispersal_change.tif"))
 
 
 ########################################
@@ -198,4 +209,70 @@ ggsave(plot = LynxlynxdispersalChange,
        #file = file.path(dirout, paste0("dipersalChange", runname, ".tif")),
        bg = 'white', width = 400, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
- 
+
+#########################################################
+
+# ATTEMPT FROM MARCH 14TH
+## SAME BAD RESULTS
+
+library(terra)
+
+species_avg <- list()
+
+for (species in species_names) {
+  # List all dispersal change rasters for a species
+  disp_files <- list.files(
+    path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/",
+    pattern = paste0(species, "_dispersal_change.tif"),
+    full.names = TRUE
+  )
+  
+  # List all abundance rasters for a species
+  abund_files <- list.files(
+    path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/",
+    pattern = paste0(species, "_abundance.tif"),
+    full.names = TRUE
+  )
+  
+  if (length(disp_files) > 0 && length(abund_files) > 0) {
+    # Extract timesteps from filenames
+    disp_timesteps <- as.numeric(gsub(".*_(\\d+)_.*", "\\1", basename(disp_files)))
+    abund_timesteps <- as.numeric(gsub(".*_(\\d+)_.*", "\\1", basename(abund_files)))
+    
+    # Find common timesteps
+    common_timesteps <- intersect(disp_timesteps, abund_timesteps)
+    
+    # Initialize a list to store dispersal rasters that meet the condition
+    valid_disp_rasters <- list()
+    
+    for (timestep in common_timesteps) {
+      # Find corresponding dispersal and abundance files
+      disp_file <- disp_files[disp_timesteps == timestep]
+      abund_file <- abund_files[abund_timesteps == timestep]
+      
+      if (length(disp_file) == 1 && length(abund_file) == 1) {
+        # Load abundance raster and calculate mean
+        abund_raster <- rast(abund_file)
+        abund_mean <- global(abund_raster, fun = "mean", na.rm = TRUE)$mean
+        
+        # Check if mean abundance is greater than zero
+        if (abund_mean > 0) {
+          # Load dispersal raster and add to the list
+          valid_disp_rasters <- c(valid_disp_rasters, rast(disp_file))
+        }
+      }
+    }
+    
+    # Average the valid dispersal rasters
+    if (length(valid_disp_rasters) > 0) {
+      species_avg[[species]] <- mean(rast(valid_disp_rasters), na.rm = TRUE)
+    } else {
+      cat(paste("No dispersal rasters met the abundance condition for", species, ".\n"))
+      species_avg[[species]] <- NULL
+    }
+  } else {
+    cat(paste("Missing dispersal or abundance rasters for", species, ". Skipping.\n"))
+    species_avg[[species]] <- NULL
+  }
+}
+plot(species_avg$Cervuselaphus) 

@@ -43,7 +43,7 @@ species_traits$initialAbundance <- species_traits$initialAbundance*10
 #species_traits$reproductionRate <- species_traits$reproductionRate*1.05
 
 # abundance * 10 + dispDist*1.05
-species_traits$dispersalDistance <- species_traits$dispersalDistance*1.05
+#species_traits$dispersalDistance <- species_traits$dispersalDistance*1.05
 
 # write table to .csv file
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
@@ -109,7 +109,7 @@ for (i in seq_len(nrow(species_traits))) {
     "dispersalKernel" = calculate_dispersal_kernel(
       max_dispersal_dist = as.integer(species_traits[["dispersalMaxDistance"]][i]),
       kfun = negative_exponential_function,
-      mean_dispersal_dist = species_traits[["dispersalDistance"]][i] / 2,
+      mean_dispersal_dist = species_traits[["dispersalDistance"]][i],
     )
   )
 }

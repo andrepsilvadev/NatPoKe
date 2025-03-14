@@ -204,7 +204,7 @@ for (landscape in landscape_SW) {
   species_name <- gsub("_.*", "", species_name) # Remove everything after the first underscore
   
   # Get the corresponding modeling resolution
-  species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name]/(species_traits$CellResolution[species_traits$Species == species_name]/2))
+  species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name]/sqrt(species_traits$CellResolution[species_traits$Species == species_name]))
   
   # aggregate raster by Modelling resolution to match species
   agregated_raster <- raster::aggregate(x = r_raster, fact = species_fact, fun = mean)
@@ -224,10 +224,13 @@ for (landscape in landscape_SW) {
 }
 rm(landscape, landscape_SW)
 
-#plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif")))
-#plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified_reprojectedKm.tif")))
+plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif")))
+plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified_reprojectedKm.tif")))
 
-
+before <- rast(file.path(dirinput, "Cervuselaphus_suitability_cropped_modified.tif"))
+after <- rast(file.path(dirinput, "Cervuselaphus_suitability_cropped_modified_reprojectedKm.tif"))
+res(before)
+crs(after)
 
 # 
 # library(terra)
