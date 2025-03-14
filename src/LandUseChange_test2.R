@@ -301,7 +301,6 @@ for (scenario in scenarios) {
   }
 }
 
-
 # Loop through the years to create raster stacks and map land-use types
 for (year in years) {
   stack_rasters(year)
@@ -314,6 +313,7 @@ for (year in years) {
   # Save the mapped raster stack back to the environment
   assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_scenarios, envir = .GlobalEnv)
 }
+
 
 LandUseChange_scenarioStack_2021_Tropical_Biome
 
