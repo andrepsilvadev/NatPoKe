@@ -56,6 +56,17 @@ load_scenario_raster <- function(scenario, year) {
   rast(file_path)
 }
 
+# Function to load stored mapped raster stacks
+load_mapped_rasters <- function(year) {
+  mapped_file_path <- file.path(output_path, paste0("Mapped_LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
+  if (file.exists(mapped_file_path)) {
+    mapped_raster_stack <- rast(mapped_file_path)
+    assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_raster_stack, envir = .GlobalEnv)
+    return(mapped_raster_stack)
+  } else {
+    stop(paste("Mapped raster file for year", year, "does not exist."))
+  }
+}
 
 # Function to load and select the biome shapefile
 load_select_biome <- function(biome_name) {
@@ -74,7 +85,7 @@ stack_rasters <- function(year) {
   for (scenario in scenarios) {
     raster_name <- paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short)
     if (exists(raster_name)) {
-      scenarios_list[[paste0("scenario_", scenario, "_", year)]] <- get(raster_name)
+      scenarios_list[[paste0(scenario, "_", year)]] <- get(raster_name)
     }
   }
   
@@ -163,26 +174,29 @@ process_and_map_scenarios <- function(year) {
   return(scenarios_percentages_df)
 }
 
-# Function to calculate percentage changes for each land-use class for both scenarios
-calculate_percentage_changes <- function(base_year_rasters, target_year_rasters_list, years) {
+# Function to calculate percentage changes for each land-use type
+calculate_percentage_changes <- function(base_raster, target_rasters_list, years) {
   percentage_change_rasters_list <- list()
-  for (scenario in names(target_year_rasters_list)) {
-    target_year_rasters <- target_year_rasters_list[[scenario]]
-    percentage_change_rasters <- list()
-    for (year in years) {
-      percentage_change_rasters[[year]] <- list()
-      for (class in names(base_year_rasters)) {
-        base_raster <- base_year_rasters[[class]]
-        target_raster <- target_year_rasters[[year]][[class]]
-        # Calculate the percentage change
-        percentage_change <- (target_raster - base_raster) / base_raster * 100
-        percentage_change_rasters[[year]][[class]] <- percentage_change
+  for (year in years) {
+    # Calculate percentage change for each land-use type
+    percentage_change_raster <- terra::app(
+      target_rasters_list[[as.character(year)]],
+      base_raster,
+      fun = function(target, base) {
+        (target - base) / base * 100
       }
-    }
-    percentage_change_rasters_list[[scenario]] <- percentage_change_rasters
+    )
+    percentage_change_rasters_list[[as.character(year)]] <- percentage_change_raster
   }
   return(percentage_change_rasters_list)
 }
+
+# Calculate percentage changes
+percentage_change_rasters_list <- calculate_percentage_changes(
+  base_raster = baseline_raster,
+  target_rasters_list = target_year_rasters_list,
+  years = years
+)
 
 # Function to load and select continents
 load_select_continents <- function(continent_names) {
@@ -194,20 +208,28 @@ load_select_continents <- function(continent_names) {
 }
 
 # Function to crop and mask the rasters to the continents
-crop_and_mask_continent <- function(raster, continent_geom) {
+crop_mask_continent <- function(raster, continent_geom) {
   mask(crop(raster, continent_geom), continent_geom)
 }
 
 # Crop and mask the percentage change rasters to the desired continents
-crop_and_mask_rasters <- function(percentage_change_rasters, continent_geom) {
+#crop_and_mask_rasters <- function(percentage_change_rasters, continent_geom) {
   cropped_rasters <- list()
   for (year in names(percentage_change_rasters)) {
     cropped_rasters[[year]] <- list()
     for (class in names(percentage_change_rasters[[year]])) {
-      cropped_rasters[[year]][[class]] <- crop_and_mask_continent(percentage_change_rasters[[year]][[class]], continent_geom)
+      cropped_rasters[[year]][[class]] <- crop_mask_continent(percentage_change_rasters[[year]][[class]], continent_geom)
     }
   }
   return(cropped_rasters)
+}
+
+# Crop and mask the percentage change rasters to the desired continents
+cropped_rasters <- list()
+for (year in names(percentage_change_rasters_list)) {
+  cropped_rasters[[year]] <- lapply(continent_geoms, function(continent_geom) {
+    crop_mask_continent(percentage_change_rasters_list[[year]], continent_geom)
+  })
 }
 
 # Function to crop the biome boundaries to the continents
@@ -238,42 +260,30 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
 
 
 # Prepare the climate scenarios rasters for further calculations and graphical representation -------------------------------------------
-# Load the selected biome
-biome_sf <- load_select_biome(biome_name)
-
 # Process baseline year
 baseline_raster <- load_baseline_raster(baseline_year)
+  
+# Aggregate the baseline raster
+baseline_raster_agg <- aggregate(baseline_raster, fact = 10, fun = mean)
 
-# Check if the baseline raster is loaded successfully
-if (!is.null(baseline_raster)) {
-  # Get the original resolution from the raster
-  original_resolution <- res(baseline_raster)[1]
+# Load the selected biome, ensure CRS consistency, converst to spatial object
+biome_sf <- load_select_biome(biome_name)
+biome_sf <- st_transform(biome_sf, crs = crs(baseline_raster_agg))
+biome_sp <- vect(biome_sf)
   
-  # Calculate the aggregation factor
-  aggregation_factor <- target_resolution / original_resolution
-  
-  # Aggregate the raster
-  baseline_raster_agg <- aggregate_raster(baseline_raster, aggregation_factor)
-  
-  # Ensure CRS consistency
-  biome_sf <- st_transform(biome_sf, crs = crs(baseline_raster_agg))
-  
-  # Convert the sf to a spatial object
-  biome_sp <- vect(biome_sf)
-  
-  # Crop and mask the raster
-  baseline_raster_biome <- crop_mask_raster(baseline_raster_agg, biome_sp)
-  
-  # Save the aggregated raster
-  output_file <- file.path(output_path, paste0("LandUseChange_baseline_", baseline_year, "_agg.tif"))
-  writeRaster(baseline_raster_biome, output_file, overwrite = TRUE)
-  
-  # Assign the raster to a variable in the environment
-  assign(paste0("LandUseChange_baseline_", baseline_year, "_", biome_name_short), baseline_raster_biome, envir = .GlobalEnv)
-}
+# Crop and mask the baseline raster
+baseline_raster_biome <- crop_mask_raster(baseline_raster_agg, biome_sp)
+
+# Apply land-use type mapping
+mapped_baseline<- terra::app(x = baseline_raster_biome, fun = map_values_to_landUse)
+
+# Save the mapped baseline raster
+output_file <- file.path(output_path, paste0("Mapped_LandUseChange_baseline_", baseline_year, "_agg.tif"))
+writeRaster(mapped_baseline, output_file, overwrite = TRUE)
+assign(paste0("Mapped_LandUseChange_baseline_", baseline_year, "_", biome_name_short), mapped_baseline, envir = .GlobalEnv)
 
 
-# Loop through the scenarios, variables, and years for the biome
+# Loop through the scenarios and years for the biome
 # L apply
 for (scenario in scenarios) {
   for (year in years) {
@@ -282,12 +292,6 @@ for (scenario in scenarios) {
     
     # Aggregate the raster
     raster_agg <- aggregate(raster, fact = 10, fun = mean)
-    
-    # Ensure CRS consistency
-    biome_sf <- st_transform(biome_sf, crs = crs(raster_agg[[1]]))
-    
-    # Convert the sf to a spatial object
-    biome_sp <- vect(biome_sf)
     
     # Crop and mask the raster
     raster_biome <- crop_mask_raster(raster_agg, biome_sp)
@@ -310,15 +314,22 @@ for (year in years) {
   # Apply land-use type mapping
   mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_landUse)
   
+  # Save the mapped raster stack to disk
+  mapped_output_file <- file.path(output_path, paste0("Mapped_LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
+  writeRaster(mapped_scenarios, mapped_output_file, overwrite = TRUE)
+  
   # Save the mapped raster stack back to the environment
   assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_scenarios, envir = .GlobalEnv)
 }
 
-
 LandUseChange_scenarioStack_2021_Tropical_Biome
 
 # Calculate and create Climate Change graphics over time -------------------------------------------
-# Define consistent color palette for the scenarios
+
+# Load mapped scenarios if needed
+mapped_scenarios <- load_mapped_rasters(years)
+
+  # Define consistent color palette for the scenarios
 scenario_colors <- setNames(
   c("#1f77b4", "#ff7f0e"), scenario_names)
 
@@ -331,6 +342,12 @@ scenarios_percentages_df <- do.call(rbind, scenarios_percentages_df_list)
 # Remove the year suffix from scenario names
 scenarios_percentages_df <- scenarios_percentages_df %>%
   mutate(Scenario = gsub("_\\d{4}$", "", Scenario))
+
+# This is a test function
+scenarios_percentages_df <- scenarios_percentages_df %>%
+  mutate(Scenario = gsub("scenario_", "", Scenario)) %>%  # Remove "scenario_"
+  mutate(Scenario = gsub("_\\d{4}$", "", Scenario)) %>%  # Remove year suffix
+  mutate(Scenario = recode(Scenario, !!!setNames(scenario_names, scenarios)))  # Map to human-readable names
 
 # Plot the land use change of the different scenarios
 LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = value, color = Scenario, group = Scenario)) +
@@ -349,15 +366,13 @@ ggsave(filename = file.path(output_folder, paste0("LandUseChange_time_", biome_n
        dpi = 600)
 
 # Calculate and create spatially explicit Land Use Change Maps -------------------------------------------
-# Calculate the percentage change for each land-use class
-base_year_rasters <- get(paste0("LandUseChange_", scenarios, "_", years[1], "_", biome_name_short)) # is there a scenario? since its the baseline 
+# Load the mapped raster stack for the baseline year
+baseline_raster <- get(paste0("Mapped_LandUseChange_scenarioStack_", baseline_year, "_", gsub(" ", "_", biome_name_short)))
+
+# Load the mapped raster stacks for the target years
 target_year_rasters_list <- list()
-for (scenario in scenarios) {
-  target_year_rasters <- list()
-  for (year in years[-1]) {
-    target_year_rasters[[as.character(year)]] <- get(paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short))
-  }
-  target_year_rasters_list[[scenario]] <- target_year_rasters
+for (year in years) {
+  target_year_rasters_list[[as.character(year)]] <- get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
 }
 
 # Load and select the continents
@@ -379,11 +394,20 @@ biome_continents <- lapply(continent_geoms, function(continent_geom) {
   crop_biome_to_continent(biome_sf, continent_geom)
 })
 
-percentage_change_rasters_list <- calculate_percentage_changes(base_year_rasters, target_year_rasters_list, as.character(years[-1]))
+percentage_change_rasters_list <- calculate_percentage_changes(base_year_rasters, target_year_rasters_list, as.character(years))
+
+# Crop and mask the percentage change rasters to the desired continents
+cropped_rasters <- list()
+for (year in names(percentage_change_rasters_list)) {
+  cropped_rasters[[year]] <- lapply(continent_geoms, function(continent_geom) {
+    crop_mask_continent(percentage_change_rasters_list[[year]], continent_geom)
+  })
+}
+
 
 # Crop and mask the rasters for each continent and scenario
-for (scenario in scenarios) {
-  for (year in as.character(years[-1])) {
+#for (scenario in scenarios) {
+  for (year in as.character(years)) {
     for (class in names(base_year_rasters)) {
       # Get the percentage change raster
       percentage_change_raster <- percentage_change_rasters_list[[scenario]][[year]][[class]]
