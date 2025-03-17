@@ -273,7 +273,7 @@ continents <- st_transform(continents, crs(load_raster(scenarios[1], variables[1
 
 # Define continent geometries
 continent_geoms <- setNames(lapply(continent_names, function(continent) {
-  continents %>% filter(continent == continent)
+  continents %>% dplyr::filter(continent == !!continent)
 }), continent_names)
 
 # Validate the geometries, corrects geometries
