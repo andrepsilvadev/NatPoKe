@@ -538,11 +538,6 @@ for (year in names(percentage_change_rasters_list)) {
 }
 
 
-
-# Example of how to access the dynamically created variables
-# change_ssp126_Forest_2050_africa
-# change_ssp585_Cropland_2100_asia
-
 # Create a custom color ramp with specified breakpoints
 custom_color_ramp <- colorRamp2(c(-100, 0, 100), c("blue", "yellow", "red"))
 
@@ -550,10 +545,12 @@ custom_color_ramp <- colorRamp2(c(-100, 0, 100), c("blue", "yellow", "red"))
 # Create plots for each land-use class, scenario, and year
 for (class in names(baseline_year_raster_classified)) {
   for (year in as.character(years)) {
+    # Create a list to store plots for both scenarios
+    plots_spatial <- list()
+    
     for (scenario in scenarios) {
-      # Create plots for each continent and scenario
-      plots_spatial <- list()
       for (continent in names(continent_geoms)) {
+        
         # Access the raster from cropped_rasters
         raster <- cropped_rasters[[year]][[scenario]][[class]][[continent]]
         # creat the plots
@@ -566,6 +563,7 @@ for (class in names(baseline_year_raster_classified)) {
         )
         plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
       }
+    }
       
       # Combine the plots into a grid layout
       combined_plot_spatial <- grid.arrange(
@@ -578,17 +576,17 @@ for (class in names(baseline_year_raster_classified)) {
         ),
         arrangeGrob(
           textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[1]))]], 
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[2]))]], 
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[3]))]],
+          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[1]))]], 
+          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[2]))]], 
+          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[3]))]],
           ncol = 4,
           widths = unit(c(0.5, 5, 5, 5), "null")
         ),
         arrangeGrob(
           textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[1]))]], 
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[2]))]], 
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[3]))]],
+          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[1]))]], 
+          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[2]))]], 
+          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[3]))]],
           ncol = 4,
           widths = unit(c(0.5, 5, 5, 5), "null")
         ),
@@ -603,5 +601,96 @@ for (class in names(baseline_year_raster_classified)) {
              width = 15, height = 6, dpi = 300)
     }
   }
+
+
+
+
+for (scenario in scenarios) {
+  for (continent in names(continent_geoms)) {
+    # Access the raster from cropped_rasters
+    raster <- cropped_rasters[[year]][[scenario]][[class]][[continent]]
+    biome_geom <- biome_continents[[continent]]
+    
+    print(paste("Creating plot for Scenario:", scenario, "Class:", class, "Year:", year, "Continent:", continent))
+    print(raster)  # Check if the raster exists
+    
+    # Create the plot
+    plot <- plot_landUse_spatialChanges(
+      raster,
+      biome_geom,
+      custom_color_ramp,
+      "Change in %",
+      -100, 100
+    )
+    
+    # Add the plot to plots_spatial
+    plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
+  }
 }
 
+for (class in names(baseline_year_raster_classified)) {
+  for (year in as.character(years)) {
+    # Create a list to store plots for both scenarios
+    plots_spatial <- list()
+    
+    for (scenario in scenarios) {
+      for (continent in names(continent_geoms)) {
+        # Access the raster from cropped_rasters
+        raster <- cropped_rasters[[year]][[scenario]][[class]][[continent]]
+        biome_geom <- biome_continents[[continent]]
+        
+        # Check if the raster exists
+        if (is.null(raster)) {
+          stop(paste("Raster is NULL for", scenario, class, year, continent))
+        }
+        
+        # Create the plot
+        plot <- plot_landUse_spatialChanges(
+          raster,
+          biome_geom,
+          custom_color_ramp,
+          "Change in %",
+          -100, 100
+        )
+        plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
+      }
+    }
+    
+    # Combine the plots into a grid layout
+    combined_plot_spatial <- grid.arrange(
+      arrangeGrob(
+        textGrob(continent_names[1], gp = gpar(fontsize = 16)),
+        textGrob(continent_names[2], gp = gpar(fontsize = 16)),
+        textGrob(continent_names[3], gp = gpar(fontsize = 16)),
+        ncol = 3,
+        heights = unit(c(0.5), "null")
+      ),
+      arrangeGrob(
+        textGrob("SSP1 RCP2.6", rot = 90, gp = gpar(fontsize = 16)),
+        plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[1]))]], 
+        plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[2]))]], 
+        plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[3]))]],
+        ncol = 4,
+        widths = unit(c(0.5, 5, 5, 5), "null")
+      ),
+      arrangeGrob(
+        textGrob("SSP5 RCP8.5", rot = 90, gp = gpar(fontsize = 16)),
+        plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[1]))]], 
+        plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[2]))]], 
+        plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[3]))]],
+        ncol = 4,
+        widths = unit(c(0.5, 5, 5, 5), "null")
+      ),
+      ncol = 1,
+      heights = unit(c(0.5, 5, 5), "null"),
+      top = textGrob(paste0("Land Use Change for ", class, " in the ", biome_name_short, " (", baseline_year, " vs. ", year, ")"), gp = gpar(fontsize = 18))
+    )
+    
+    # Save the combined plot
+    ggsave(
+      filename = file.path(output_folder, paste0("LandUseChange_", class, "_spatialChanges_", year, "_", biome_name_short, ".png")), 
+      plot = combined_plot_spatial, 
+      width = 15, height = 6, dpi = 300
+    )
+  }
+}
