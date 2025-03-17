@@ -237,35 +237,31 @@ replace_numbers_with_names_nested <- function(nested_list, types, names) {
   return(nested_list)
 }
 
-# Function to calculate percentage changes for each land-use type
-calculate_percentage_changes <- function(base_year_rasters, target_year_rasters_list, years) {
+# Function to calculate percentage changes for each land-use class for both scenarios
+calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, years) {
   percentage_change_rasters_list <- list()
   
-  for (scenario in names(target_year_rasters_list)) {
-    target_year_rasters <- target_year_rasters_list[[scenario]]
-    percentage_change_rasters <- list()
+  for (year in years) {
+    percentage_change_rasters_list[[year]] <- list()
     
-    for (year in years) {
-      percentage_change_rasters[[year]] <- list()
+    for (scenario in names(target_year_rasters_list[[year]])) {
+      target_raster <- target_year_rasters_list[[year]][[scenario]]
       
-      for (class in names(base_year_rasters)) {
-        base_raster <- base_year_rasters[[class]]  # Extract the base raster for the class
-        target_raster <- target_year_rasters[[as.character(year)]][[class]]  # Extract the target raster for the class and year
+      # Create a list to store percentage changes for each land-use class
+      percentage_change_classes <- list()
+      
+      for (class in names(base_year_raster)) {
+        base_raster <- base_year_raster[[class]]
+        target_raster_class <- target_raster[[class]]
         
-        # Use terra::lapp to calculate percentage change for each raster cell
-        percentage_change <- terra::lapp(
-          c(target_raster, base_raster),
-          fun = function(target, base) {
-            ifelse(base == 0, NA, (target - base) / base * 100)  # Handle division by zero
-          }
-        )
-        
-        # Store the result in the list
-        percentage_change_rasters[[year]][[class]] <- percentage_change
+        # Calculate the percentage change
+        percentage_change <- (target_raster_class - base_raster) / base_raster * 100
+        percentage_change_classes[[class]] <- percentage_change
       }
+      
+      # Store the percentage changes for the scenario
+      percentage_change_rasters_list[[year]][[scenario]] <- percentage_change_classes
     }
-    
-    percentage_change_rasters_list[[scenario]] <- percentage_change_rasters
   }
   
   return(percentage_change_rasters_list)
@@ -286,26 +282,13 @@ crop_mask_continent <- function(raster, continent_geom) {
   mask(crop(raster, continent_geom), continent_geom)
 }
 
-# Crop and mask the percentage change rasters to the desired continents
-#crop_and_mask_rasters <- function(percentage_change_rasters, continent_geom) {
-  cropped_rasters <- list()
-  for (year in names(percentage_change_rasters)) {
-    cropped_rasters[[year]] <- list()
-    for (class in names(percentage_change_rasters[[year]])) {
-      cropped_rasters[[year]][[class]] <- crop_mask_continent(percentage_change_rasters[[year]][[class]], continent_geom)
-    }
-  }
-  return(cropped_rasters)
-}
-
-
 # Function to crop the biome boundaries to the continents
 crop_biome_to_continent <- function(biome, continent_geom) {
   st_intersection(biome, continent_geom)
 }
 
 # Function to to create individual plots for each scenario, class, and year
-plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_values) {
+plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value) {
   raster_df <- as.data.frame(raster, xy = TRUE)
   colnames(raster_df)[3] <- "value"  # Percentage change (%)
   
@@ -504,27 +487,28 @@ for (year in names(target_year_rasters_list)) {
 }
 
 # Replace land use numbers with names
-baseline_year_raster <- replace_numbers_with_names(baseline_year_raster, LULC_Types, LULC_Types_names)
+baseline_year_raster_classified <- replace_numbers_with_names(baseline_year_raster_classified, LULC_Types, LULC_Types_names)
 target_year_rasters_list <- replace_numbers_with_names_nested(target_year_rasters_list, LULC_Types, LULC_Types_names)
+
 
 # Load and select the continents
 continents <- load_select_continents(continent_names)
 
 # Transform continent CRS to match the raster CRS
-continents <- st_transform(continents, crs(baseline_year_raster))
+continents <- st_transform(continents, crs = st_crs(biome_sf))
 
 # Define continent geometries
 continent_geoms <- setNames(lapply(continent_names, function(continent) {
-  continents %>% filter(continent == continent)
+  continents %>% dplyr::filter(continent == !!continent)
 }), continent_names)
 
 # Validate the geometries, corrects geometries
 biome_sf <- st_make_valid(biome_sf)
 
 # Crop the biome boundaries to the continents
-biome_continents <- lapply(continent_geoms, function(continent_geom) {
+biome_continents <- setNames(lapply(continent_geoms, function(continent_geom) {
   crop_biome_to_continent(biome_sf, continent_geom)
-})
+}), names(continent_geoms))
 
 
 # Calculate percentage changes
@@ -534,35 +518,26 @@ percentage_change_rasters_list <- calculate_percentage_changes(
   years = as.character(years)
 )
 
-
 # Crop and mask the percentage change rasters to the desired continents
 cropped_rasters <- list()
 for (year in names(percentage_change_rasters_list)) {
-  cropped_rasters[[year]] <- lapply(continent_geoms, function(continent_geom) {
-    crop_mask_continent(percentage_change_rasters_list[[year]], continent_geom)
-  })
-}
-
-
-# Crop and mask the rasters for each continent and scenario
-#for (scenario in scenarios) {
-  for (year in as.character(years)) {
-    for (class in names(base_year_rasters)) {
-      # Get the percentage change raster
-      percentage_change_raster <- percentage_change_rasters_list[[scenario]][[year]][[class]]
+  cropped_rasters[[year]] <- list()
+  
+  for (scenario in names(percentage_change_rasters_list[[year]])) {
+    cropped_rasters[[year]][[scenario]] <- list()
+    
+    for (class in names(percentage_change_rasters_list[[year]][[scenario]])) {
+      percentage_change_raster <- percentage_change_rasters_list[[year]][[scenario]][[class]]
       
       # Crop and mask to continents
-      cropped_rasters <- lapply(continent_geoms, function(continent_geom) {
-        crop_and_mask_continent(percentage_change_raster, continent_geom)
+      cropped_rasters[[year]][[scenario]][[class]] <- lapply(continent_geoms, function(continent_geom) {
+        crop_mask_continent(percentage_change_raster, continent_geom)
       })
-      
-      # Assign the cropped/masked rasters to classes dynamically
-      for (continent in names(cropped_rasters)) {
-        assign(paste0("change_", scenario, "_", class, "_", year, "_", tolower(continent)), cropped_rasters[[continent]])
-      }
     }
   }
 }
+
+
 
 # Example of how to access the dynamically created variables
 # change_ssp126_Forest_2050_africa
@@ -573,14 +548,17 @@ custom_color_ramp <- colorRamp2(c(-100, 0, 100), c("blue", "yellow", "red"))
 
 
 # Create plots for each land-use class, scenario, and year
-for (class in names(base_year_rasters)) {
-  for (year in as.character(years[-1])) {
+for (class in names(baseline_year_raster_classified)) {
+  for (year in as.character(years)) {
     for (scenario in scenarios) {
       # Create plots for each continent and scenario
       plots_spatial <- list()
       for (continent in names(continent_geoms)) {
+        # Access the raster from cropped_rasters
+        raster <- cropped_rasters[[year]][[scenario]][[class]][[continent]]
+        # creat the plots
         plot <- plot_landUse_spatialChanges(
-          get(paste0("change_", scenario, "_", class, "_", year, "_", tolower(continent))),
+          raster,
           biome_continents[[continent]],
           custom_color_ramp,
           "Change in %", 
@@ -616,11 +594,11 @@ for (class in names(base_year_rasters)) {
         ),
         ncol = 1,
         heights = unit(c(0.5, 5, 5), "null"),
-        top = textGrob(paste0("Land Use Change for ", class, " in the ", biome_name_short, " (", years[1], " vs. ", year, ")"), gp = gpar(fontsize = 18))
+        top = textGrob(paste0("Land Use Change for ", class, " in the ", biome_name_short, " (", baseline_year, " vs. ", year, ")"), gp = gpar(fontsize = 18))
       )
       
       # Save the combined plot
-      ggsave(filename = file.path(output_folder, paste0("LandUseChange_", class, "_spatialChanges_", year, "_", biome_name, ".png")), 
+      ggsave(filename = file.path(output_folder, paste0("LandUseChange_", class, "_spatialChanges_", year, "_", biome_name_short, ".png")), 
              plot = combined_plot_spatial, 
              width = 15, height = 6, dpi = 300)
     }
