@@ -370,17 +370,17 @@ for (variable in variables) {
         ),
         arrangeGrob(
           textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[1]))]], 
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[2]))]], 
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[3]))]],
+          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[1]))]], 
+          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[2]))]], 
+          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[3]))]],
           ncol = 4,
           widths = unit(c(0.5, 5, 5, 5), "null")
         ),
         arrangeGrob(
           textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[1]))]], 
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[2]))]], 
-          plots_spatial[[paste0(scenario, "_", tolower(continent_names[3]))]],
+          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[1]))]], 
+          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[2]))]], 
+          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[3]))]],
           ncol = 4,
           widths = unit(c(0.5, 5, 5, 5), "null")
         ),
