@@ -56,6 +56,11 @@ load_scenario_raster <- function(scenario, year) {
   rast(file_path)
 }
 
+# load mapped baseline raster
+load_mapped_baseline <- function(baseline_year){
+  rast("~/data/data/stitched_lulc_esa_scenarios/outputData/Mapped_LandUseChange_baseline_2015_agg.tif")
+}
+
 # Function to load stored mapped raster stacks
 load_mapped_rasters <- function(year) {
   mapped_file_path <- file.path(output_path, paste0("Mapped_LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
@@ -367,12 +372,12 @@ ggsave(filename = file.path(output_folder, paste0("LandUseChange_time_", biome_n
 
 # Calculate and create spatially explicit Land Use Change Maps -------------------------------------------
 # Load the mapped raster stack for the baseline year
-baseline_raster <- get(paste0("Mapped_LandUseChange_scenarioStack_", baseline_year, "_", gsub(" ", "_", biome_name_short)))
+baseline_raster <- load_mapped
 
 # Load the mapped raster stacks for the target years
 target_year_rasters_list <- list()
 for (year in years) {
-  target_year_rasters_list[[as.character(year)]] <- get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
+  target_year_rasters_list[[as.character(year)]] <- load_mapped_rasters(years)
 }
 
 # Load and select the continents
