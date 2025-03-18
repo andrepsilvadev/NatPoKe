@@ -5,8 +5,8 @@
 ## Date: March 18th 2025 ##
 
 # Settings & libraries -------------------------------------------
-source("~/data/src/libraries.R") # libraries
-source("~/data/src/customFunctions.R") # functions
+source("./src/libraries.R") # libraries
+source("./src/customFunctions.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
