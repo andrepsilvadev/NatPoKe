@@ -142,7 +142,7 @@ plot_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_
   colnames(raster_df)[3] <- "value"  # Ensure the column name is "value"
   
   ggplot() +
-    geom_sf(data = biome_geom, fill = NA, color = "lightgrey", size = 0.2) +  # Biome and continent basemap
+    geom_sf(data = biome_geom, fill = "lightgrey", color = "lightgrey", size = 0.2) +  # Biome and continent basemap
     geom_tile(data = raster_df, aes(x = x, y = y, fill = value)) +
     scale_fill_gradientn(name = fill_label, colors = color_ramp(seq(min_value, max_value, length.out = 101)), limits = c(min_value, max_value), na.value = "grey") +
     labs(x = "Longitude", y = "Latitude") +
