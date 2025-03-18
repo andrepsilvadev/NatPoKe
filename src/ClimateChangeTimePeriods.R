@@ -354,39 +354,56 @@ for (variable in variables) {
       plots_spatial <- list()
       for (scenario in scenarios) {
         for (continent in names(continent_geoms)) {
-        plot <- plot_spatialChanges(get(paste0("change_", scenario, "_", variable, "_", year, "_", tolower(continent))), biome_continents[[continent]], color_ramp, fill_label, min_value, max_value)
+        plot <- plot_spatialChanges(
+          get(paste0("change_", scenario, "_", variable, "_", year, "_", tolower(continent))), 
+          biome_continents[[continent]], 
+          color_ramp, 
+          fill_label, 
+          min_value, 
+          max_value
+          )
         plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
         }
       }
       
+      # Dynamically determine the number of continents
+      num_continents <- length(continent_names)
+      
       # Combine the plots into a grid layout
       combined_plot_spatial <- grid.arrange(
         arrangeGrob(
-          textGrob(continent_names[1], gp = gpar(fontsize = 16)),
-          textGrob(continent_names[2], gp = gpar(fontsize = 16)),
-          textGrob(continent_names[3], gp = gpar(fontsize = 16)),
-          ncol = 3,
+          grobs = lapply(continent_names, function(continent) {
+            textGrob(continent, gp = gpar(fontsize = 16))
+          }),
+          ncol = num_continents,
           heights = unit(c(0.5), "null")
         ),
         arrangeGrob(
-          textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[1]))]], 
-          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[2]))]], 
-          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[3]))]],
-          ncol = 4,
-          widths = unit(c(0.5, 5, 5, 5), "null")
+          grobs = c(
+            list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16))),
+            lapply(continent_names, function(continent) {
+              plots_spatial[[paste0(scenarios[1], "_", tolower(continent))]]
+            })
+          ),
+          ncol = num_continents + 1,
+          widths = unit(c(0.5, rep(5, num_continents)), "null")
         ),
         arrangeGrob(
-          textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[1]))]], 
-          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[2]))]], 
-          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[3]))]],
-          ncol = 4,
-          widths = unit(c(0.5, 5, 5, 5), "null")
+          grobs = c(
+            list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16))),
+            lapply(continent_names, function(continent) {
+              plots_spatial[[paste0(scenarios[2], "_", tolower(continent))]]
+            })
+          ),
+          ncol = num_continents + 1,
+          widths = unit(c(0.5, rep(5, num_continents)), "null")
         ),
         ncol = 1,
         heights = unit(c(0.5, 5, 5), "null"),
-        top = textGrob(paste0(ifelse(variable == variables[1], variable_names[1], variable_names[2]), " ", fill_label, " for the ", biome_name, " (", years[1], " vs. ", year,")"), gp = gpar(fontsize = 18))
+        top = textGrob(
+          paste0(ifelse(variable == variables[1], variable_names[1], variable_names[2]), " ", fill_label, " for the ", biome_name, " (", years[1], " vs. ", year,")"), 
+          gp = gpar(fontsize = 18)
+        )
       )
       
       # Save the combined plot
