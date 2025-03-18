@@ -1,4 +1,4 @@
-## Name: LandUseChange_test2.R ##
+## Name: LandUseChange.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate percentage changes over time and spatial explicit changes for a given Biome
 ## for the ssp126 and ssp585 scenarios in various years ##
@@ -576,31 +576,37 @@ for (class in names(baseline_year_raster_classified)) {
         plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
       }
     }
-      
-      # Combine the plots into a grid layout
-      combined_plot_spatial <- grid.arrange(
+    # Dynamically determine the number of continents
+    num_continents <- length(continent_names)
+    
+    # Combine the plots into a grid layout
+    combined_plot_spatial <- grid.arrange(
         arrangeGrob(
-          textGrob(continent_names[1], gp = gpar(fontsize = 16)),
-          textGrob(continent_names[2], gp = gpar(fontsize = 16)),
-          textGrob(continent_names[3], gp = gpar(fontsize = 16)),
-          ncol = 3,
+          grobs = lapply(continent_names, function(continent) {
+            textGrob(continent, gp = gpar(fontsize = 16))
+          }),
+          ncol = num_continents,
           heights = unit(c(0.5), "null")
         ),
         arrangeGrob(
-          textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[1]))]], 
-          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[2]))]], 
-          plots_spatial[[paste0(scenarios[1], "_", tolower(continent_names[3]))]],
-          ncol = 4,
-          widths = unit(c(0.5, 5, 5, 5), "null")
+          grobs = c(
+            list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16))),
+            lapply(continent_names, function(continent) {
+              plots_spatial[[paste0(scenarios[1], "_", tolower(continent))]]
+            })
+          ),
+          ncol = num_continents + 1,
+          widths = unit(c(0.5, rep(5, num_continents)), "null")
         ),
         arrangeGrob(
-          textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16)),
-          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[1]))]], 
-          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[2]))]], 
-          plots_spatial[[paste0(scenarios[2], "_", tolower(continent_names[3]))]],
-          ncol = 4,
-          widths = unit(c(0.5, 5, 5, 5), "null")
+          grobs = c(
+            list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16))),
+            lapply(continent_names, function(continent) {
+              plots_spatial[[paste0(scenarios[2], "_", tolower(continent))]]
+            })
+          ),
+          ncol = num_continents + 1,
+          widths = unit(c(0.5, rep(5, num_continents)), "null")
         ),
         ncol = 1,
         heights = unit(c(0.5, 5, 5), "null"),
@@ -608,8 +614,8 @@ for (class in names(baseline_year_raster_classified)) {
       )
       
       # Save the combined plot
-      ggsave(filename = file.path(output_folder, paste0("LandUseChange_", class, "_spatialChanges_", year, "_", biome_name_short, ".png")), 
+    ggsave(filename = file.path(output_folder, paste0("LandUseChange_", class, "_spatialChanges_", year, "_", biome_name_short, ".png")), 
              plot = combined_plot_spatial, 
              width = 15, height = 6, dpi = 300)
-    }
   }
+}
