@@ -148,7 +148,6 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
   percentage_df <- data.frame(
     time = time,
     landUse = landUse_names, # I took variable away, the same as landuse
-    variable = landUse_names,
     value = landUse_percentages
   )
   
@@ -394,7 +393,8 @@ scenarios_percentages_df <- do.call(rbind, scenarios_percentages_df_list)
 
 # Remove the year suffix from scenario names
 scenarios_percentages_df <- scenarios_percentages_df %>%
-  mutate(Scenario = gsub("_\\d{4}$", "", Scenario))
+  mutate(Scenario = gsub("_\\d{4}$", "", Scenario)) %>% 
+  mutate(Scenario = recode(Scenario, !!!setNames(scenario_names, scenarios)))  # Map to human-readable names
 
 # This is a test function
 scenarios_percentages_df <- scenarios_percentages_df %>%
@@ -402,8 +402,6 @@ scenarios_percentages_df <- scenarios_percentages_df %>%
   mutate(Scenario = gsub("_\\d{4}$", "", Scenario)) %>%  # Remove year suffix
   mutate(Scenario = recode(Scenario, !!!setNames(scenario_names, scenarios)))  # Map to human-readable names
 
-
-# plot saving needs to be modified
 
 # Plot the land use change of the different scenarios
 LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = value, color = Scenario, group = Scenario)) +
@@ -419,8 +417,10 @@ LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = va
     plot.title = element_text(size = 14),  # Adjust title size
     axis.title = element_text(size = 12),  # Adjust axis title size
     axis.text = element_text(size = 10),   # Adjust axis text size
-    legend.title = element_text(size = 12),  # Adjust legend title size
-    legend.text = element_text(size = 10)   # Adjust legend text size
+    legend.title = element_text(size = 14),  # Adjust legend title size
+    legend.text = element_text(size = 12),   # Adjust legend text size
+    strip.text = element_text(size = 12),    # Adjust facet label size
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 10)  # Add margin around the entire plot
   )
 print(LandUseChange_time_plot)
 
@@ -428,8 +428,8 @@ print(LandUseChange_time_plot)
 ggsave(
   filename = file.path(output_folder, paste0("LandUseChange_time_", biome_name_short, ".png")),
   plot = LandUseChange_time_plot,
-  width = 7.8,  # Width in inches (approximately 780 pixels at 100 dpi)
-  height = 5.8, # Height in inches (approximately 580 pixels at 100 dpi)
+  width = 10,  # Width in inches (approximately 780 pixels at 100 dpi)
+  height = 6, # Height in inches (approximately 580 pixels at 100 dpi)
   dpi = 300     # High resolution
 )
 
