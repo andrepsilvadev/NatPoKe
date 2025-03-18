@@ -400,7 +400,8 @@ scenarios_percentages_df <- scenarios_percentages_df %>%
   mutate(Scenario = recode(Scenario, !!!setNames(scenario_names, scenarios)))  # Map to human-readable names
 
 
-# needs to be modified 
+# plot saving needs to be modified
+
 # Plot the land use change of the different scenarios
 LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = value, color = Scenario, group = Scenario)) +
   geom_line() +
@@ -410,12 +411,25 @@ LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = va
   labs(title = paste0("Land Use Percentages of the ",  biome_name_short, " Over Time by Scenario"),
        x = "Year",
        y = "Total Land Area (%)") +
-  theme_minimal()
-
+  theme_minimal()+
+  theme(
+    plot.title = element_text(size = 14),  # Adjust title size
+    axis.title = element_text(size = 12),  # Adjust axis title size
+    axis.text = element_text(size = 10),   # Adjust axis text size
+    legend.title = element_text(size = 12),  # Adjust legend title size
+    legend.text = element_text(size = 10)   # Adjust legend text size
+  )
 print(LandUseChange_time_plot)
-ggsave(filename = file.path(output_folder, paste0("LandUseChange_time_", biome_name_short, ".png")),
-       plot = LandUseChange_time_plot,
-       dpi = 600)
+
+# Save the plot with specified dimensions and resolution
+ggsave(
+  filename = file.path(output_folder, paste0("LandUseChange_time_", biome_name_short, ".png")),
+  plot = LandUseChange_time_plot,
+  width = 7.8,  # Width in inches (approximately 780 pixels at 100 dpi)
+  height = 5.8, # Height in inches (approximately 580 pixels at 100 dpi)
+  dpi = 300     # High resolution
+)
+
 
 # Calculate and create spatially explicit Land Use Change Maps -------------------------------------------
 # Load the mapped raster stack for the baseline year
