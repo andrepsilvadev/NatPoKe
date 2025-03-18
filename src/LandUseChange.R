@@ -61,8 +61,10 @@ load_scenario_raster <- function(scenario, year) {
 }
 # Mapped baseline raster
 load_mapped_baseline <- function(baseline_year){
-  rast("~/data/data/stitched_lulc_esa_scenarios/outputData/Mapped_LandUseChange_baseline_2015_agg.tif")
+  mapped_baseline_path <- file.path(output_path, paste0("Mapped_LandUseChange_baseline_", baseline_year, "_", biome_name_short, ".tif"))
+  rast(mapped_baseline_path)
 }
+
 # Mapped raster stacks
 load_mapped_rasters <- function(year) {
   mapped_file_path <- file.path(output_path, paste0("Mapped_LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
@@ -374,7 +376,7 @@ for (year in years) {
   assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_scenarios, envir = .GlobalEnv)
 }
 
-#LandUseChange_scenarioStack_2021_Tropical_Biome
+LandUseChange_scenarioStack_2021_Tropical_Biome
 
 # Calculate and create Climate Change graphics over time -------------------------------------------
 
@@ -396,15 +398,8 @@ scenarios_percentages_df <- do.call(rbind, scenarios_percentages_df_list)
 
 # Remove the year suffix from scenario names
 scenarios_percentages_df <- scenarios_percentages_df %>%
-  mutate(Scenario = gsub("_\\d{4}$", "", Scenario)) %>% 
+  mutate(Scenario = gsub("_\\d{4}$", "", Scenario)) %>% # Remove year suffix
   mutate(Scenario = recode(Scenario, !!!setNames(scenario_names, scenarios)))  # Map to human-readable names
-
-# This is a test function
-scenarios_percentages_df <- scenarios_percentages_df %>%
-  mutate(Scenario = gsub("scenario_", "", Scenario)) %>%  # Remove "scenario_"
-  mutate(Scenario = gsub("_\\d{4}$", "", Scenario)) %>%  # Remove year suffix
-  mutate(Scenario = recode(Scenario, !!!setNames(scenario_names, scenarios)))  # Map to human-readable names
-
 
 # Plot the land use change of the different scenarios
 LandUseChange_time_plot <- ggplot(scenarios_percentages_df, aes(x = time, y = value, color = Scenario, group = Scenario)) +
@@ -459,7 +454,7 @@ baseline_year_raster_classified <- calculateRasterClass(
 )
 
 # Save the processed baseline raster
-output_file <- file.path(output_path, paste0("LandUseChange_baseline_", baseline_year, "_classified.tif"))
+output_file <- file.path(output_path, paste0("LandUseChange_baseline_", baseline_year,"_", biome_name_short, "_classified.tif"))
 writeRaster(baseline_year_raster_classified, output_file, overwrite = TRUE)
 
 
@@ -495,7 +490,7 @@ for (year in names(target_year_rasters_list)) {
     )
     
     # Save the processed raster
-    output_file <- file.path(output_path, paste0("LandUseChange_", scenario, "_", year, "_classified.tif"))
+    output_file <- file.path(output_path, paste0("LandUseChange_", scenario, "_", year,"_", biome_name_short, "_classified.tif"))
     writeRaster(scenario_raster_classified, output_file, overwrite = TRUE)
     
     # Store the processed raster in the list
