@@ -4,6 +4,10 @@
 ## for the ssp126 and ssp585 scenarios in various years ##
 ## Date: March 18th 2025 ##
 
+# Settings & libraries -------------------------------------------
+source("~/data/src/libraries.R") # libraries
+source("~/data/src/customFunctions.R") # functions
+
 # Input variables -------------------------------------------
 # Define input variables
 scenarios <- c("rcp26_ssp1", "rcp85_ssp5")
@@ -32,36 +36,34 @@ base_path <- "~/data/data/stitched_lulc_esa_scenarios"
 output_path <- "~/data/data/stitched_lulc_esa_scenarios/outputData"
 output_folder <- "~/data/output"
 
-# Define the target resolution (based on the landUsePercentage rasters)
-#target_resolution <- 0.0277 # the resolution is different form the mapping before should only be 0.027
-
 # Define the biome and continents
+# Tropical Biome
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
 biome_name_short <- "Tropical Biome"
 continent_names <- c("Africa", "Asia", "South America")
 
-#biome_name <- "Boreal Forests/Taiga"
-#biome_name_short <- "Boreal Biome"
-#continent_names <- c("Europe", "North America")
+# Boreal Biome
+biome_name <- "Boreal Forests/Taiga"
+biome_name_short <- "Boreal Biome"
+continent_names <- c("Europe", "North America")
 
 # Functions - later add them to CustomFunctions.R -------------------------------------------
 # Function to load rasters
+# Baseline raster
 load_baseline_raster <- function(baseline_year){
   rast("~/data/data/stitched_lulc_esa_scenarios/lulc_esa_2015.tif")
 }
-
+# Scenario Rasters
 load_scenario_raster <- function(scenario, year) {
   # Construct the file path
   file_path <- file.path(base_path, scenario, paste0("lulc_esa_gtap1_", scenario, "_", year, "_no_policy.tif"))
   rast(file_path)
 }
-
-# load mapped baseline raster
+# Mapped baseline raster
 load_mapped_baseline <- function(baseline_year){
   rast("~/data/data/stitched_lulc_esa_scenarios/outputData/Mapped_LandUseChange_baseline_2015_agg.tif")
 }
-
-# Function to load stored mapped raster stacks
+# Mapped raster stacks
 load_mapped_rasters <- function(year) {
   mapped_file_path <- file.path(output_path, paste0("Mapped_LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
   if (file.exists(mapped_file_path)) {
@@ -110,7 +112,7 @@ stack_rasters <- function(year) {
   return(scenarios_stack)
 }
 
-# Define the mapping function
+# Define the mapping function of ESA LULC types (39) to the 7 (SEALS) LULC types
 map_values_to_landUse <- function(x) {
   value_to_landUse <- list(
     "190" = 1,  # Urban
@@ -125,7 +127,7 @@ map_values_to_landUse <- function(x) {
     if (val %in% names(value_to_landUse)) {
       return(value_to_landUse[[as.character(val)]])
     } else {
-      return(NA)  # Handle values that do not map to any land-use type
+      return(NA)  # Handles values that do not map to any land-use type
     }
   })
 }
@@ -154,6 +156,7 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
   return(percentage_df)
 }
 
+# Function to process the mapped scenarios and apply the function to calculate percentages
 process_and_map_scenarios <- function(year) {
   # Load the raster stack for the years
   mapped_raster_stack <- get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
@@ -179,7 +182,7 @@ process_and_map_scenarios <- function(year) {
 }
 
 
-# Function to create binary maps and classes of land use types
+# Function to create binary maps and classes of land-use types
 calculateRasterClass <- function(OriginalRaster, extent) {
   # Crop and mask the raster to the biome's boundary
   raster <- mask(crop(OriginalRaster, extent), extent)
@@ -218,14 +221,14 @@ calculateRasterClass <- function(OriginalRaster, extent) {
 }
 
 
-# Function to replace numbers of LULC Types with names
+# Function to replace numbers of LULC Types with names (for baseline raster)
 replace_numbers_with_names <- function(raster_list, types, names) {
   # Replace the names of the raster layers with the corresponding land-use names
   names(raster_list) <- names[match(names(raster_list), types)]
   return(raster_list)
 }
 
-# Function to replace numbers of LULC Types with names in a nested list
+# Function to replace numbers of LULC Types with names in a nested list (for scenario rasters)
 replace_numbers_with_names_nested <- function(nested_list, types, names) {
   for (scenario in names(nested_list)) {
     for (year in names(nested_list[[scenario]])) {
@@ -236,7 +239,7 @@ replace_numbers_with_names_nested <- function(nested_list, types, names) {
   return(nested_list)
 }
 
-# Function to calculate percentage changes for each land-use class for both scenarios
+# Function to calculate percentage changes for each land-use classes for scenarios
 calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, years) {
   percentage_change_rasters_list <- list()
   
@@ -327,7 +330,7 @@ baseline_raster_biome <- crop_mask_raster(baseline_raster_agg, biome_sp)
 mapped_baseline<- terra::app(x = baseline_raster_biome, fun = map_values_to_landUse)
 
 # Save the mapped baseline raster
-output_file <- file.path(output_path, paste0("Mapped_LandUseChange_baseline_", baseline_year, "_agg.tif"))
+output_file <- file.path(output_path, paste0("Mapped_LandUseChange_baseline_", baseline_year, "_", biome_name_short, ".tif"))
 writeRaster(mapped_baseline, output_file, overwrite = TRUE)
 assign(paste0("Mapped_LandUseChange_baseline_", baseline_year, "_", biome_name_short), mapped_baseline, envir = .GlobalEnv)
 
@@ -371,7 +374,7 @@ for (year in years) {
   assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_scenarios, envir = .GlobalEnv)
 }
 
-LandUseChange_scenarioStack_2021_Tropical_Biome
+#LandUseChange_scenarioStack_2021_Tropical_Biome
 
 # Calculate and create Climate Change graphics over time -------------------------------------------
 
@@ -428,8 +431,8 @@ print(LandUseChange_time_plot)
 ggsave(
   filename = file.path(output_folder, paste0("LandUseChange_time_", biome_name_short, ".png")),
   plot = LandUseChange_time_plot,
-  width = 10,  # Width in inches (approximately 780 pixels at 100 dpi)
-  height = 6, # Height in inches (approximately 580 pixels at 100 dpi)
+  width = 10,  # Width in inches
+  height = 6, # Height in inches 
   dpi = 300     # High resolution
 )
 
