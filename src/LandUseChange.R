@@ -377,9 +377,12 @@ LandUseChange_scenarioStack_2021_Tropical_Biome
 # Calculate and create Climate Change graphics over time -------------------------------------------
 
 # Load mapped scenarios if needed
-mapped_scenarios <- load_mapped_rasters(years)
+mapped_scenarios <- list()
+for (year in years) {
+  mapped_scenarios[[as.character(year)]] <- load_mapped_rasters(year)
+}
 
-  # Define consistent color palette for the scenarios
+# Define consistent color palette for the scenarios
 scenario_colors <- setNames(
   c("#1f77b4", "#ff7f0e"), scenario_names)
 
@@ -463,15 +466,15 @@ for (year in names(target_year_rasters_list)) {
   # Get the raster for the year
   target_raster <- target_year_rasters_list[[year]]
   
-  # Ensure the raster has two layers (one for each scenario)
-  if (nlyr(target_raster) != 2) {
-    stop(paste("The raster for year", year, "does not have exactly two layers."))
+  # Ensure the raster has the same number of layers as the scenarios
+  if (nlyr(target_raster) != length(scenarios)) {
+    stop(paste("The raster for year", year, "does not have the same number of layers as the scenarios."))
   }
   
-  # Extract the layers for each scenario
-  scenario_rasters <- list(
-    scenarios[1] = target_raster[[1]],  # Layer 1 corresponds to rcp26_ssp1
-    scenarios[2] = target_raster[[2]]   # Layer 2 corresponds to rcp85_ssp5
+  # Dynamically assign scenario names to the raster layers
+  scenario_rasters <- setNames(
+    lapply(seq_along(scenarios), function(i) target_raster[[i]]),
+    scenarios
   )
   
   # Create a list to store the processed rasters for this year
