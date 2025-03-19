@@ -2,11 +2,11 @@
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate spatial explicit temperature and precipitation change in a given Biome
   ## for the ssp126 and ssp585 scenarios in various time periods ##
-## Date: March 7th 2025 ##
+## Date: March 19th 2025 ##
 
 # Settings & libraries -------------------------------------------
-source("~/data/src/libraries.R") # libraries
-source("~/data/src/customFunctions.R") # functions
+source("./src/libraries.R") # libraries
+source("./src/customFunctions.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
@@ -27,8 +27,15 @@ output_folder <- "~/data/output"
 target_resolution <- 0.277
 
 # Define the biome and continents
+# Tropical Biome
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
+biome_name_short <- "Tropical Biome"
 continent_names <- c("Africa", "Asia", "South America")
+
+# Boreal Biome
+biome_name <- "Boreal Forests/Taiga"
+biome_name_short <- "Boreal Biome"
+continent_names <- c("Europe", "North America")
 
 
 # Functions - later add them to CustomFunctions.R -------------------------------------------
@@ -57,8 +64,8 @@ crop_mask_raster <- function(raster, biome_sp) {
 # Function to stack rasters
 stack_rasters <- function(variable, year) {
   scenarios_list <- list(
-    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name)),
-    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name))
+    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name_short)),
+    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name_short))
   )
   
   # Assign names to the list elements
@@ -71,11 +78,11 @@ stack_rasters <- function(variable, year) {
   names(scenarios_stack) <- names(scenarios_list)
   
   # Save the raster stack
-  stack_output_file <- file.path(output_path, paste0("scenarios_stack_", variable, "_", year, "_", biome_name, ".tif"))
+  stack_output_file <- file.path(output_path, paste0("scenarios_stack_", variable, "_", year, "_", biome_name_short, ".tif"))
   writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
   # Assign the raster stack to a variable in the environment
-  assign(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name)), scenarios_stack, envir = .GlobalEnv)
+  assign(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
   
   return(scenarios_stack)
 }
@@ -189,11 +196,11 @@ for (scenario in scenarios) {
       raster_biome <- crop_mask_raster(raster_agg, biome_sp)
       
       # Save the aggregated raster
-      output_file <- file.path(output_path, paste0("ClimateChange_", scenario, "_", variable, "_", year, "_agg.tif"))
+      output_file <- file.path(output_path, paste0("ClimateChange_", scenario, "_", variable, "_", year, "_", biome_name_short, ".tif"))
       writeRaster(raster_biome, output_file, overwrite = TRUE)
       
       # Assign the raster to a variable dynamically
-      assign(paste0("ClimateChange_", scenario, "_", variable, "_", year, "_", biome_name), raster_biome)
+      assign(paste0("ClimateChange_", scenario, "_", variable, "_", year, "_", biome_name_short), raster_biome)
     }
   }
 }
@@ -216,7 +223,7 @@ scenario_colors <- setNames(
 mean_values_list <- list()
 for (variable in variables) {
   for (year in years) {
-    raster_stack <- get(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name)))
+    raster_stack <- get(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name_short)))
     if (variable == variables[1]) {
       mean_values_list[[paste0(variable, "_", year)]] <- extract_mean_values(raster_stack, rep(year, each = nlyr(raster_stack)), variable_names[1])
     } else {
@@ -254,12 +261,12 @@ combined_plot_time <- grid.arrange(
   ),
   ncol = 1,
   heights = unit(c(0.5, 5), "null"),
-  top = textGrob(biome_name, gp = gpar(fontsize = 18))
+  top = textGrob(biome_name_short, gp = gpar(fontsize = 18))
 )
 
 # Save the combined plot
 ggsave(filename = file.path(output_folder, 
-                            paste0("ClimateChange_", variable, "_timeChanges_", year, "_", biome_name, ".png")),
+                            paste0("ClimateChange_", variable, "_timeChanges_", year, "_", biome_name_short, ".png")),
        plot = combined_plot_time,
        width = 14, height = 7, dpi = 600)
 
@@ -290,8 +297,8 @@ for (variable in variables) {
     for (year in years[-1]) {
       # Calculate changes
       change_raster <- calculate_change(
-        get(paste0("ClimateChange_", scenario, "_", variable, "_", year, "_", biome_name)),
-        get(paste0("ClimateChange_", scenario, "_", variable, "_", years[1], "_", biome_name))
+        get(paste0("ClimateChange_", scenario, "_", variable, "_", year, "_", biome_name_short)),
+        get(paste0("ClimateChange_", scenario, "_", variable, "_", years[1], "_", biome_name_short))
       )
       
       # Crop and mask to continents
@@ -401,14 +408,14 @@ for (variable in variables) {
         ncol = 1,
         heights = unit(c(0.5, 5, 5), "null"),
         top = textGrob(
-          paste0(ifelse(variable == variables[1], variable_names[1], variable_names[2]), " ", fill_label, " for the ", biome_name, " (", years[1], " vs. ", year,")"), 
+          paste0(ifelse(variable == variables[1], variable_names[1], variable_names[2]), " ", fill_label, " for the ", biome_name_short, " (", years[1], " vs. ", year,")"), 
           gp = gpar(fontsize = 18)
         )
       )
       
       # Save the combined plot
       ggsave(filename = file.path(output_folder, 
-                                  paste0("ClimateChange_", variable, "_spatialChanges_", year, "_", biome_name, ".png")), 
+                                  paste0("ClimateChange_", variable, "_spatialChanges_", year, "_", biome_name_short, ".png")), 
              plot = combined_plot_spatial, 
              width = 15, height = 6, dpi = 300)
     }
