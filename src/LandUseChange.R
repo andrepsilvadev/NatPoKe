@@ -275,10 +275,26 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
 # Function to load and select continents
 load_select_continents <- function(continent_names) {
   continents <- ne_countries(scale = "medium", returnclass = "sf") %>%
-    dplyr::filter(continent %in% continent_names) %>% 
+    dplyr::filter(continent %in% continent_names) %>%
     group_by(continent) %>%
-    summarise(geometry = st_union(geometry))
-  continents
+    summarise(geometry = st_combine(geometry)) %>%
+    ungroup()
+  return(continents)
+}
+
+# Function to intersect a biome with multiple continents
+intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
+  # Validate and fix geometries
+  biome_sf <- st_make_valid(biome_sf)
+  continent_geoms <- lapply(continent_geoms, st_make_valid)
+  
+  # Perform intersection for each continent
+  biome_continents <- setNames(lapply(continent_geoms, function(continent_geom) {
+    st_intersection(biome_sf, continent_geom)
+  }), names(continent_geoms))
+  
+  # Return the intersected biome geometries
+  return(biome_continents)
 }
 
 # Function to crop and mask the rasters to the continents
@@ -505,7 +521,6 @@ for (year in names(target_year_rasters_list)) {
 baseline_year_raster_classified <- replace_numbers_with_names(baseline_year_raster_classified, LULC_Types, LULC_Types_names)
 target_year_rasters_list <- replace_numbers_with_names_nested(target_year_rasters_list, LULC_Types, LULC_Types_names)
 
-
 # Load and select the continents
 continents <- load_select_continents(continent_names)
 
@@ -517,14 +532,8 @@ continent_geoms <- setNames(lapply(continent_names, function(continent) {
   continents %>% dplyr::filter(continent == !!continent)
 }), continent_names)
 
-# Validate the geometries, corrects geometries
-biome_sf <- st_make_valid(biome_sf)
-
-# Crop the biome boundaries to the continents
-biome_continents <- setNames(lapply(continent_geoms, function(continent_geom) {
-  crop_biome_to_continent(biome_sf, continent_geom)
-}), names(continent_geoms))
-
+# Intersect the biome with the continents
+biome_continents <- intersect_biome_with_continents(biome_sf, continent_geoms)
 
 # Calculate percentage changes
 percentage_change_rasters_list <- calculate_percentage_changes(
