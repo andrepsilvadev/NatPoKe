@@ -70,9 +70,11 @@ library(terra)
 ###########################
 
 print("Retrieving global suitability rasters")
+
 # list rasters
 raster_files <- list.files(here("data/global_suitability_landscapes"),
-                           pattern = "_suitability.tif$", full.names = TRUE)
+                           pattern = paste0(paste(species_traits$Species, collapse = "|"), "_suitability.tif$"),
+                           full.names = TRUE)
 # micro-extent bbox
 #bbox_SW <- ext(12.774353, 15.526428, 61.796497, 62.595869)
 
@@ -80,7 +82,10 @@ raster_files <- list.files(here("data/global_suitability_landscapes"),
 bbox_SW <- ext(6.299125, 17.2476, 59.28353, 62.78255)
 
 # sweden bbox
-#bbox_SW <- ext(6.306152, 17.248535, 59.288332, 62.769811)
+#bbox_SW <- ext(6.020508, 26.411133, 55.002826, 69.395783)
+
+
+SW <- ne_countries(scale = "large", country = "Sweden", returnclass = "sv")
 
 
 duplicate_layers <- function(raster, times) {
@@ -112,21 +117,30 @@ for (r in raster_files) {
   r_rescaled <- sp_raster/100
   
   # crop the raster to the bounding box
-  cropped_raster <- terra::crop(r_rescaled, bbox_SW)
+  cropped_raster <- terra::crop(r_rescaled, SW)
+  # mask the raster to the bounding box (to avoid weird finland land masses)
+  masked_raster <- terra::mask(cropped_raster, SW)
   
   # duplicate the layers 25 times
-  duplicated_raster <- duplicate_layers(cropped_raster, times = 25)
+  duplicated_raster <- duplicate_layers(masked_raster, times = 25)
   
   # save processed raster
   output_path <- file.path(dirinput, tools::file_path_sans_ext(basename(r)))
   writeRaster(duplicated_raster, paste0(output_path, "_cropped_modified.tif"), overwrite = TRUE)
   
   # remove unecessary objects
-  rm(sp_raster, r_rescaled, cropped_raster, duplicated_raster, output_path)
+  rm(sp_raster, r_rescaled, cropped_raster, masked_raster, duplicated_raster, output_path)
 }
 
+
 # checking new layers
-#plot(rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified.tif")))
+#plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif")))
+#alce <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif"))
+#res(alce)
+# # 0.04999306 0.04998611
+# plot(rast(file.path(dirinput, "Cervuselaphus_suitability_cropped_modified.tif")))
+# plot(rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified.tif")))
+# plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif")))
 
 rm(raster_files, bbox_SW)
 invisible(gc())
@@ -137,45 +151,31 @@ invisible(gc())
 ##################
 
 # https://gis.stackexchange.com/questions/226170/rescaling-coordinates-of-rasters-shapefiles-and-spatial-objects-from-meters-to
- 
-# library(terra)
-# library(raster)
-# 
-# # Load the SpatRaster (with multiple layers)
-# r <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif"))
-# 
-# # Convert SpatRaster to RasterStack
-# r_raster <- stack(r)  # This preserves all layers
-# 
-# # Get original CRS
-# orig_crs <- crs(r)
-# 
-# # Rescale extent (divide by 1000 to convert meters to kilometers)
-# extent(r_raster) <- extent(r_raster) / 1000
-# 
-# # Modify CRS to indicate the new unit is kilometers
-# new_crs <- gsub("UNIT\\[\"metre\",1\\]", "UNIT[\"kilometre\",1000]", orig_crs)
-# 
-# # Apply modified CRS
-# crs(r_raster) <- new_crs
-# 
-# # Convert back to SpatRaster while keeping all layers
-# r_km <- rast(r_raster)
-# 
-# values(r) == values(r_km)
-# 
-# plot(r)
-# plot(r_km)
-# # Save the transformed raster
-# writeRaster(r_km, file.path(dirinput, "Alcesalces_suitability_km.tif"), overwrite=TRUE)
-
 
 
 landscape_SW <- list.files(path = dirinput,
-                           pattern = "_suitability_cropped_modified.tif",
-                           full.names = TRUE)
+                            pattern = "_suitability_cropped_modified.tif",
+                            full.names = TRUE)
+# alcesalces <- rast(landscape_SW[[1]])
+# alcesalces_utm <- terra::project(alcesalces, "EPSG:3006")
+# alcesalces_stack <- stack(alcesalces_utm)
+# orig_crs <- crs(alcesalces_utm)
+# extent(alcesalces_stack) <- extent(alcesalces_stack)/1000
+# 
+# factor <- ceiling(species_traits$ModellingRes[species_traits$Species == "Alcesalces"]/sqrt(species_traits$CellResolution[species_traits$Species == "Alcesalces"]))
+# 
+# 
+# agregated_alces <- raster::aggregate(x = alcesalces_stack, fact = factor, fun = mean)
+# extent(agregated_alces) <- extent(alcesalces_stack)
+# agregated_alces_km <- rast(agregated_alces)
+# plot(agregated_alces_km)
 
 print("Reprojecting and converting meters to km")
+
+SW <- ne_countries(scale = "large", country = "Sweden", returnclass = "sv")
+plot(SW)
+#newbbox <- ext(73553.2070,6132048.9058,945927.7058,7740232.3194)
+
 for (landscape in landscape_SW) {
   
   # load raster
@@ -211,7 +211,9 @@ for (landscape in landscape_SW) {
   extent(agregated_raster) <- extent(r_raster)
   
   # Convert back to SpatRaster while keeping all layers
-  r_km <- rast(r_raster)
+  r_km <- rast(agregated_raster)
+  
+  #r_km[is.na(r_km)] <- 0
   
   # output filename
   output_filename <- gsub("\\.tif$", "_reprojectedKm.tif", landscape)
@@ -220,18 +222,36 @@ for (landscape in landscape_SW) {
   writeRaster(r_km, output_filename, overwrite = TRUE)
   
   # remove unecessary objects
-  rm(r, r_utm, r_raster, orig_crs, new_crs, r_km, output_filename)
+  #rm(r, r_utm, r_raster, orig_crs, new_crs, r_km, output_filename)
 }
 rm(landscape, landscape_SW)
 
-plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif")))
-plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified_reprojectedKm.tif")))
 
-before <- rast(file.path(dirinput, "Cervuselaphus_suitability_cropped_modified.tif"))
-after <- rast(file.path(dirinput, "Cervuselaphus_suitability_cropped_modified_reprojectedKm.tif"))
-res(before)
-crs(after)
 
+###################################################################
+# CHECKING THE RESOLUTION OF RASTER BEFORE AND AFTER AGGREGATIONS #
+###################################################################
+
+#rangifer_before <- rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif"))
+#rangifer_after <- rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified_reprojectedKm.tif"))
+
+#plot(rangifer_after)
+
+ 
+#cervus_before <- rast(file.path(dirinput, "cervuselaphus_suitability_cropped_modified.tif"))
+#cervus_after <- rast(file.path(dirinput, "cervuselaphus_suitability_cropped_modified_reprojectedKm.tif"))
+# 
+#lynx_before <- rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified.tif"))
+#lynx_after <- rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojectedKm.tif"))
+# 
+#alces_before <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif"))
+#alces_after <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojectedKm.tif"))
+
+#plot(alces_before, main = "Before reprojection")
+#plot(alces_after)
+
+#######################3 FROM HERE DOWN IS LIXO ################################
+############################# SIT DOWN AND READ BEFORE DELETING ################
 # 
 # library(terra)
 # library(raster)
@@ -276,155 +296,8 @@ crs(after)
 # 
 # 
 # 
-# 
-# # Convert extent from meters to kilometers
-# new_ext <- ext(r) / 1000  # Scale spatial extent
-# 
-# # Convert resolution from meters to kilometers
-# new_res <- res(r) / 1000  # Scale resolution
-# 
-# # Create a new raster with transformed extent and resolution
-# r_km <- rast(ncol=ncol(r), nrow=nrow(r), ext=new_ext, crs=crs(r), resolution=new_res)
-# 
-# # Resample original raster to match the new resolution
-# r_km <- resample(r, r_km, method="bilinear")
-# 
-# # Save the transformed raster
-# writeRaster(r_km, file.path(dirinput, "Alcesalces_suitability_km.tif"), overwrite=TRUE)
-# 
-# plot(r)
-# plot(r_km)
-# 
-# # Save the transformed raster
-# writeRaster(r_km, file.path(dirinput, "your_raster_km.tif"), overwrite=TRUE)
 
 
 
 
 
-
-# ## cropping
-# 
-# # load Sweden boundary shapefile
-# #st_read("C:/Users/User/OneDrive - Universidade de Lisboa/Ambiente de Trabalho/gadm41_SWE_shp/gadm41_SWE_0.shp")
-# sweden <- st_read("https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/gadm41_SWE.gpkg")
-# 
-# # list rasters
-# raster_files <- list.files(file.path(dirinput, "global_suitability_landscapes"),
-#                            pattern = "_suitability.tif$", full.names = TRUE)
-# # define the bounding box
-# bbox_SW <- ext(6.306152, 17.248535, 59.288332, 62.769811)
-# 
-# duplicate_layers <- function(raster, times) {
-#   replicated <- rast(rep(list(raster), times))
-#   return(replicated)
-# }
-# 
-# # Loop through each raster file
-# for (r in raster_files) {
-#   # read the raster
-#   sp_raster <- rast(r)
-#   
-#   # crop the raster to the bounding box
-#   cropped_raster <- terra::crop(sp_raster, bbox_SW)
-#   #cropped_raster <- terra::crop(sp_raster, extent(sweden))
-#   
-#   # duplicate the layers 25 times
-#   duplicated_raster <- duplicate_layers(cropped_raster, times = 25)
-#   
-#   # save processed raster
-
-#   output_path <- file.path(dirinput, "temp_mammals_landscapes"), tools::file_path_sans_ext(basename(r)))
-#   writeRaster(duplicated_raster, paste0(output_path, "_cropped_modified.tif"), overwrite = TRUE)
-# }
-# 
-# ## reprojecting
-# 
-# landscape_SW <- list.files(path = file.path(dirinput, "temp_mammals_landscapes")),
-#                            pattern = "_suitability_cropped_modified.tif",
-#                            full.names = TRUE)
-# 
-# for (landscape in landscape_SW) {
-#   
-#   # load raster
-#   r <- rast(landscape)
-#   
-#   # reproject to SWEREF99 TM (EPSG:3006)
-#   r_utm <- project(r, "EPSG:3006", res = 1000)
-#   
-#   # output filename
-#   output_filename <- gsub("\\.tif$", "_reprojected.tif", landscape)
-#   
-#   # save reprojected raster
-#   writeRaster(r_utm, output_filename, overwrite = TRUE)
-# }
-
-
-
-##Step 1 - Extract tropical moist forest and boreal forest shp
-#Import ecoregions shapefile
-
-# 
-# 
-# ecoregions_2017 <- sf::st_read("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/Ecoregions2017/Ecoregions2017.shp")
-# 
-# library(dplyr)
-# unique(ecoregions_2017$BIOME_NAME)
-# sf_use_s2(FALSE) #info about this on RMarkdown links
-# #subset only ropical Moist and Boreal Forests
-# forests_2017 <- ecoregions_2017 %>%
-#   subset(BIOME_NAME %in% "Boreal Forests/Taiga") %>%
-#   group_by(BIOME_NAME) %>%
-#   summarize(geometry = st_union(geometry))
-# plot(forests_2017)
-# 
-# # list rasters
-# raster_files <- list.files(file.path(here("data/global_suitability_landscapes")),
-#                             pattern = "_suitability.tif$", full.names = TRUE)
-# 
-# duplicate_layers <- function(raster, times) {
-#   replicated <- rast(rep(list(raster), times))
-#  return(replicated)
-# }
-# 
-# # Loop through each raster file
-# for (r in raster_files) {
-#  # read the raster
-#  sp_raster <- rast(r)
-# 
-#  # crop the raster to the bounding box
-#  cropped_raster <- terra::crop(sp_raster, ext(forests_2017))
-#  cropped_raster <- mask(cropped_raster, forests_2017)
-#  #cropped_raster <- terra::crop(sp_raster, extent(sweden))
-#    # duplicate the layers 25 times
-#  duplicated_raster <- duplicate_layers(cropped_raster, times = 25)
-# 
-#  # save processed raster
-# 
-#  output_path <- file.path(here("data/boreal_forests"), tools::file_path_sans_ext(basename(r)))
-#  writeRaster(duplicated_raster, paste0(output_path, "_cropped_modified.tif"), overwrite = TRUE)
-# }
-# plot(rast(here("data/boreal_forests", "Alcesalces_suitability_cropped_modified_reprojected.tif")))
-# 
-# ## reprojecting
-# 
-# landscape_SW <- list.files(path = file.path(here("data/boreal_forests")),
-#                             pattern = "_suitability_cropped_modified.tif",
-#                             full.names = TRUE)
-# 
-# for (landscape in landscape_SW) {
-# 
-#  # load raster
-#  r <- rast(landscape)
-#  # reproject to SWEREF99 TM (EPSG:3006)
-#  r_utm <- project(r, "EPSG:3006", res = 1000)
-# 
-#  # output filename
-#  output_filename <- gsub("\\.tif$", "_reprojected.tif", landscape)
-#  # save reprojected raster
-#  writeRaster(r_utm, output_filename, overwrite = TRUE)
-# }
-# 
-# 
-# 
-# 

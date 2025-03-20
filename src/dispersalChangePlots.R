@@ -11,6 +11,87 @@ library(gridExtra) # to arraange plots
 library(dplyr)
 library(terra)
 
+
+# SATURDAY'S ATTEMPT CLEAN CODE NEXT WEEK AFTER MEETING WITH ANDRE #
+
+library(gridExtra) # for grid.arrange
+
+species_names <- c("Alcesalces", "Cervuselaphus", "Lynxlynx", "Rangifertarandus")
+
+species_avg <- list()
+
+for (species in species_names) {
+  species_disp_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/14Mar2025_AfterStefan_2fac/Outputs/",
+                                  pattern = paste0(species, "_dispersal_change.tif"), full.names = TRUE)
+  
+  species_abund_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/14Mar2025_AfterStefan_2fac/Outputs/",
+                                   pattern = paste0(species, "_abundance.tif"), full.names = TRUE)
+  
+  species_stack <- c(rast(species_disp_rast))
+  
+  species_avg[[species]] <- mean(species_stack, na.rm = TRUE)
+}
+
+stacked <- c(species_avg$Alcesalces, species_avg$Cervuselaphus, species_avg$Lynxlynx, species_avg$Rangifertarandus)
+names(stacked) <- species_names
+
+dispersal_df <- as.data.frame(stacked, xy = TRUE) %>% 
+  pivot_longer(cols = c("Alcesalces", "Cervuselaphus", "Lynxlynx", "Rangifertarandus"),
+               names_to = 'species',
+               values_to = 'dispersal_change') %>% 
+  mutate(species = recode(species,
+                          "Alcesalces" = 'Alces alces',
+                          "Cervuselaphus" = 'Cervus elaphus',
+                          "Lynxlynx" =  'Lynx lynx',
+                          "Rangifertarandus" = "Rangifer tarandus"))
+
+species_ranges <- dispersal_df %>%
+  group_by(species) %>%
+  summarize(min_val = min(dispersal_change, na.rm = TRUE),
+            max_val = max(dispersal_change, na_rm = TRUE))
+
+
+plot_list <- list() 
+
+for (sp in unique(dispersal_df$species)) {
+  sp_range <- species_ranges %>% filter(species == sp)
+  
+  p <- dispersal_df %>%
+    filter(species == sp) %>%
+    ggplot(aes(x = x, y = y, fill = dispersal_change)) +
+    geom_raster() +
+    labs(x = "Latitude", y = "Longitude", fill = "Average\nDispersal Change\n(nº indiv)", title = sp) +
+    scale_fill_gradient2(low = "green", mid = "white", high = "red", midpoint = 0) +
+    theme_minimal() + 
+    theme(plot.title = element_text(face = "italic", size = 10),
+          legend.title = element_text(size = 10))
+  
+  plot_list[[sp]] <- p
+}
+
+
+dispersal_plots <- grid.arrange(grobs = plot_list, ncol = 2, top = "Average Dispersal Change Maps") 
+
+
+# save plot
+ggsave(plot = dispersal_plots,
+       #file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/dispersalChange11Mar2025.tif",
+       file = file.path(dirout, paste0("dipersalChange_greenSourcePop", runname, ".tif")),
+       bg = 'white', width = 300, height = 400, units = "mm", dpi = 1200, compression = "lzw")
+
+ggsave(plot = dispersal_plots,
+       #file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10/dispersalChange11Mar2025.tif",
+       file = file.path(dirout, paste0("dipersalChange_greenSourcePop", runname, ".png")),
+       bg = 'white', width = 300, height = 400, units = "mm", dpi = 1200)
+
+
+
+
+
+
+
+
+
 ###############
 # import data #
 ###############
@@ -22,15 +103,15 @@ species_avg <- list()
 
 for (species in species_names) {
   # list all dispersal chnage rasters for a species
-  species_disp_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/",
+  species_disp_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/14Mar2025_AfterStefan/Outputs/",
                              pattern = paste0(species, "_dispersal_change.tif"), full.names = TRUE)
   
   # list all abundance rasters for a species
-  species_abund_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/11Mar2025_Abund10_dispDist1.05/Outputs/",
+  species_abund_rast <- list.files(path = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/14Mar2025_AfterStefan/Outputs/",
                                    pattern = paste0(species, "_abundance.tif"), full.names = TRUE)
   
   # stack all rasters for a species
-  species_stack <- c(rast(species_rast))
+  species_stack <- c(rast(species_disp_rast))
   
   # average all rasters
   species_avg[[species]] <- mean(species_stack, na.rm = TRUE)
@@ -82,10 +163,24 @@ outputs_avg <- outputs %>%
 ## using the rasters ##
 
 par(mfrow = c(2,2))
-plot(species_avg$Alcesalces)
-plot(species_avg$Cervuselaphus)
-plot(species_avg$Lynxlynx)
-plot(species_avg$Rangifertarandus)
+plot(species_avg$Alcesalces,
+     xlab = "Longitude",
+     ylab = "Latitude",
+     main = "Moose (Alces alces)" )
+plot(species_avg$Cervuselaphus,
+     xlab = "Longitude",
+     ylab = "Latitude",
+     main = "Red deer (Cervus elaphus)")
+plot(species_avg$Lynxlynx,
+     xlab = "Longitude",
+     ylab = "Latitude",
+     main = "Eurasian lynx (Lynx lynx)")
+plot(species_avg$Rangifertarandus, 
+     xlab = "Longitude",
+     ylab = "Latitude",
+     main = "Reindeer (Rangifer tarandus)")
+
+
 
 ## using the dataframe ##
 
