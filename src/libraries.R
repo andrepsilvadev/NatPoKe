@@ -37,6 +37,7 @@ easypackages::packages(
     "circlize",
     "grid",
     "gridExtra",
+    "patchwork"
   
   prompt = FALSE)
 
