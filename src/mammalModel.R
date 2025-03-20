@@ -54,15 +54,23 @@ write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.c
 # setting up the simulation #
 #############################
 
-# setup-------------------------------------------------------------------------
-set_verbosity(2L) # 0L for no output, 1L for progress updates, 2L for debug
-options(scipen = 999)
-set.seed(1)
+selected_species <- c("Alcesalces", "Lynxlynx")
 
-sim_name <- "example_01"# simulation parameters
+# setup-------------------------------------------------------------------------
+
+
+for (species in selected_species) {
+  set_verbosity(2L) # 0L for no output, 1L for progress updates, 2L for debug
+  options(scipen = 999)
+  set.seed(1)
+  
+  species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
+    dplyr::filter(Species == species)
+  
+sim_name <- "example_01"
 
 # Landscape --------------------------------------------------------------------
-alces <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojectedKm.tif"))
+alces <- rast(file.path(dirinput, paste0(species,"_suitability_cropped_modified_reprojectedKm.tif")))
 sim_env <- sds(alces)
 invisible(gc())
 
@@ -136,7 +144,7 @@ for (i in species_names) {
   )
 }
 do.call(sim$add_globals, species_sum_abundance)
-plot(sim$Alcesalces, "abundance")
+#plot(sim$Alcesalces, "abundance")
 
 #################
 # add processes #
@@ -340,7 +348,7 @@ sink()
 
 # remove unecessary objects
 rm(i, output_file, species, species_names, species_sum_abundance, this_species)
-
+}
 #################
 # check results #
 #################
