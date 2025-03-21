@@ -38,7 +38,7 @@
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
 # select target biome (only one)
-target_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
+target_biome <- "Boreal Forests Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
 
 # select target region (only one)
 #target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
@@ -252,9 +252,7 @@ do.call(sim$add_globals, species_sum_abundance)
           # pass the species object
           self[[species]],
           # specify traits we want to save
-          traits = c("abundance"
-                     #, "reproductionRate", "dispersal_change"
-                     ),
+          traits = c("abundance", "reproductionRate", "dispersal_change"),
           # a prefix for each time step
           prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
           # where should it be saved

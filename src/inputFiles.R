@@ -96,7 +96,7 @@ print("Retrieving global suitability rasters")
 
 # list rasters
 raster_files <- list.files(here("data/global_suitability_landscapes"),
-                           pattern = paste0(target_species, "_suitability.tif$"),
+                           pattern = paste0(target_species, "_suitability\\.tif$", collapse = "|"),
                            full.names = TRUE)
 
 # function to duplicate raster layers as we see fit
@@ -154,7 +154,7 @@ invisible(gc())
 # Reprojecting & Converting to km ----------------------------------------------
 
 landscape_SW <- list.files(path = dirinput,
-                            pattern = "_suitability_cropped_modified.tif",
+                            pattern = paste0(target_species, "_suitability_cropped_modified\\.tif$", collapse = "|"),
                             full.names = TRUE)
 
 print("Reprojecting and converting meters to km")

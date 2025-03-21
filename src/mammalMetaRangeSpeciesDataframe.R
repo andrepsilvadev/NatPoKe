@@ -16,7 +16,7 @@ target_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf 
 target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
 
 # select target species (multiple sps are allowed)
-target_species <- c("Alces alces", "Lynx lynx")
+target_species <- c("Alces alces", "Lynx lynx", "Cervus elaphus")
 
 ##########
 # Step 2 # Import Trait Dataframe 
