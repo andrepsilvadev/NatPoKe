@@ -14,6 +14,7 @@ easypackages::packages(
   "googledrive",
   "data.table",
   "readr",
+  "readxl",
   
   # spatial data processing  
   "terra",

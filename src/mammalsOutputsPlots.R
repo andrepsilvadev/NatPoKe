@@ -7,13 +7,13 @@
 
 # Define target species to plot
 species_names <- c("Alcesalces", "Lynxlynx", "Cervuselaphus") 
-
 species_names_mapping <- c("Alcesalces" = "Alces alces",
                            "Lynxlynx" = "Lynx lynx",
                            "Cervuselaphus" = "Cervus elaphus")
   
 # loop through each species and create a combined figure
 for (species in species_names) {
+  
   
   # file patterns for each raster type
   suitability_pattern <- paste0(species, "_suitability_cropped_modified_reprojectedKm\\.tif$")
