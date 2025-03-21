@@ -1,27 +1,30 @@
-#####################################
-# FORMATING SPECIES INPUT DATAFRAME #
-#####################################
+##################################
+# FORMATING MAMMAL SPS DATAFRAME #
+##################################
 # Ines Silva
 # 04 Feb 2025
 
 
 ##########
-# STEP 1 # Define area and species to model
+# Step 1 # Define area and species to model
 ##########
 
-selected_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
+# select Target biome (only one)
+target_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
 
-selected_continent <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
+# select target region (only one)
+target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
 
-selected_species <- c("Alces alces", "Lynx lynx")
+# select target species (multiple sps are allowed)
+target_species <- c("Alces alces", "Lynx lynx")
 
 ##########
-# STEP 2 # Import Trait Dataframe 
+# Step 2 # Import Trait Dataframe 
 ##########
 
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   # filter for prefered area & species
-  filter(BIOME_NAME == selected_biome & CONTINENT %in% selected_continent & sci_name %in% selected_species) %>% 
+  filter(BIOME_NAME == target_biome & CONTINENT %in% target_region & sci_name %in% target_species) %>% 
   mutate(Trophic = case_when(
     # based on Schloss 2012
     Diet.Meat >= 90 ~ "Carnivore",
