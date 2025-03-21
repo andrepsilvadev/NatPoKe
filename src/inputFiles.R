@@ -1,18 +1,43 @@
 #########################################
-# INPUT SUITABILITY FILES FOR metaRange #
+# INPUT SUITABILITY FILES FOR METARANGE #
 #########################################
 # Inês Silva
 # 12 Feb 2025
 
-# GOAL: Dowoad & modify suitability rasters for all the species we want to model
-# with metaRange
-
+#### INES DO FUTURO ###
+### ESTE SCRIPT DEVERÁ IR BUSCAR OS SHAPEFILES DOS CONTINENTES PARA CORTAR AS GLOBAL SUITBAILITIES
+### ASK ANDRE IF WE WANT TO THIS ONE AT A TIME OR ALL AT THE SAME TIME
+### HE PROBABLY WANTS AS AUTOMATED AS POSSIBLE BUT I THINK ONE AT A TIME IS BETTER HERE
 
 ##########
-# STEP 1 # Import Species Trait Dataframe 
+# Step 1 # Define area and species
 ##########
 
+
+# select Target biome (only one)
+target_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
+
+# select target region (only one)
+#target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
+
+######################### TO CHANGE IN THE FUTURE ###########################
+### for testing purposes we are using sweden instead of a whole continent ###
+#############################################################################
+
+SW <- ne_countries(scale = "large", country = "Sweden", returnclass = "sv")
+
+################################# DELETE LATER #################################
+#target_region <- ext(6.299125, 17.2476, 59.28353, 62.78255) # regional-extent bbox
+#bbox_SW <- ext(6.020508, 26.411133, 55.002826, 69.395783) # sweden bbox
+#bbox_SW <- ext(12.774353, 15.526428, 61.796497, 62.595869) # micro-extent bbox
+################################################################################
+
+# import species traits dataframe
 species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
+
+
+# select target species (multiple sps are allowed)
+target_species <- species_traits$Species
 
 ##########
 # Step 2 # Retrieve Global Suitability Landscapes from Google drive 
@@ -53,41 +78,28 @@ species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 #   }
 # }
 # 
+# print("Retrieving global suitability rasters")
 # download_matching_files(drive_path = "SRIT-database/user/global_suitability_landscapes",
-#                         species_list = species_traits$Species,
+#                         species_list = target_species,
 #                         local_folder = file.path(dirinput, "global_suitability_landscapes"))
 # 
 
 ##########
-# STEP 3 # (just for testing the model) - Cropping & reprojecting for Sweden
+# Step 3 # Crop, Reproject & Convert to km all landscapes
 ##########
-
-library(here)
-library(terra)
-
-###########################
-## cropping & new layers ##
-###########################
 
 print("Retrieving global suitability rasters")
 
+############################ TO CHANGE IN THE FUTURE #############################
+### for testing purposes we are using rasters saved in github repo data folder ###
+##################################################################################
+
 # list rasters
 raster_files <- list.files(here("data/global_suitability_landscapes"),
-                           pattern = paste0(paste(species_traits$Species, collapse = "|"), "_suitability.tif$"),
+                           pattern = paste0(target_species, "_suitability.tif$"),
                            full.names = TRUE)
-# micro-extent bbox
-#bbox_SW <- ext(12.774353, 15.526428, 61.796497, 62.595869)
 
-# regional-extent bbox
-bbox_SW <- ext(6.299125, 17.2476, 59.28353, 62.78255)
-
-# sweden bbox
-#bbox_SW <- ext(6.020508, 26.411133, 55.002826, 69.395783)
-
-
-SW <- ne_countries(scale = "large", country = "Sweden", returnclass = "sv")
-
-
+# function to duplicate raster layers as we see fit
 duplicate_layers <- function(raster, times) {
   replicated <- list()
   
@@ -103,12 +115,14 @@ duplicate_layers <- function(raster, times) {
     new_layer <- new_layer * 0.99  # Reduce by 1% each time
     replicated[[i]] <- new_layer
   }
-  
   return(rast(replicated))
 }
 
+# Cropping ---------------------------------------------------------------------
+
 print("Creating a dynamic landscape")
-# Loop through each raster file
+
+# loop through each raster file
 for (r in raster_files) {
   # read the raster
   sp_raster <- rast(r)
@@ -116,15 +130,16 @@ for (r in raster_files) {
   # transform values from 0-100 to 0-1
   r_rescaled <- sp_raster/100
   
-  # crop the raster to the bounding box
+  # CROP the raster to the bounding box
   cropped_raster <- terra::crop(r_rescaled, SW)
-  # mask the raster to the bounding box (to avoid weird finland land masses)
+  
+  # MASK the raster to the bounding box (to avoid weird finland land masses)
   masked_raster <- terra::mask(cropped_raster, SW)
   
-  # duplicate the layers 25 times
+  # DUPLICATE the layers 25 times
   duplicated_raster <- duplicate_layers(masked_raster, times = 25)
   
-  # save processed raster
+  # SAVE processed raster
   output_path <- file.path(dirinput, tools::file_path_sans_ext(basename(r)))
   writeRaster(duplicated_raster, paste0(output_path, "_cropped_modified.tif"), overwrite = TRUE)
   
@@ -132,49 +147,17 @@ for (r in raster_files) {
   rm(sp_raster, r_rescaled, cropped_raster, masked_raster, duplicated_raster, output_path)
 }
 
-
-# checking new layers
-#plot(rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif")))
-#alce <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif"))
-#res(alce)
-# # 0.04999306 0.04998611
-# plot(rast(file.path(dirinput, "Cervuselaphus_suitability_cropped_modified.tif")))
-# plot(rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified.tif")))
-# plot(rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif")))
-
-rm(raster_files, bbox_SW)
+# remove unecessary objects
+rm(raster_files)
 invisible(gc())
 
-
-##################
-## reprojecting ##
-##################
-
-# https://gis.stackexchange.com/questions/226170/rescaling-coordinates-of-rasters-shapefiles-and-spatial-objects-from-meters-to
-
+# Reprojecting & Converting to km ----------------------------------------------
 
 landscape_SW <- list.files(path = dirinput,
                             pattern = "_suitability_cropped_modified.tif",
                             full.names = TRUE)
-# alcesalces <- rast(landscape_SW[[1]])
-# alcesalces_utm <- terra::project(alcesalces, "EPSG:3006")
-# alcesalces_stack <- stack(alcesalces_utm)
-# orig_crs <- crs(alcesalces_utm)
-# extent(alcesalces_stack) <- extent(alcesalces_stack)/1000
-# 
-# factor <- ceiling(species_traits$ModellingRes[species_traits$Species == "Alcesalces"]/sqrt(species_traits$CellResolution[species_traits$Species == "Alcesalces"]))
-# 
-# 
-# agregated_alces <- raster::aggregate(x = alcesalces_stack, fact = factor, fun = mean)
-# extent(agregated_alces) <- extent(alcesalces_stack)
-# agregated_alces_km <- rast(agregated_alces)
-# plot(agregated_alces_km)
 
 print("Reprojecting and converting meters to km")
-
-SW <- ne_countries(scale = "large", country = "Sweden", returnclass = "sv")
-plot(SW)
-#newbbox <- ext(73553.2070,6132048.9058,945927.7058,7740232.3194)
 
 for (landscape in landscape_SW) {
   
@@ -227,77 +210,17 @@ for (landscape in landscape_SW) {
 rm(landscape, landscape_SW)
 
 
+##########
+# Step 4 # Quick Landscape checkup 
+##########
 
-###################################################################
-# CHECKING THE RESOLUTION OF RASTER BEFORE AND AFTER AGGREGATIONS #
-###################################################################
+## checking dynamic landscape and cropping
+species1 <- rast(file.path(dirinput, paste0(target_species[1], "_suitability_cropped_modified.tif")))
+plot(species1)
+res(species1) # checking initial resolution
+## at this stage all species shoudl still have the same landscape resolution
 
-#rangifer_before <- rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified.tif"))
-#rangifer_after <- rast(file.path(dirinput, "Rangifertarandus_suitability_cropped_modified_reprojectedKm.tif"))
-
-#plot(rangifer_after)
-
- 
-#cervus_before <- rast(file.path(dirinput, "cervuselaphus_suitability_cropped_modified.tif"))
-#cervus_after <- rast(file.path(dirinput, "cervuselaphus_suitability_cropped_modified_reprojectedKm.tif"))
-# 
-#lynx_before <- rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified.tif"))
-#lynx_after <- rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojectedKm.tif"))
-# 
-#alces_before <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified.tif"))
-#alces_after <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojectedKm.tif"))
-
-#plot(alces_before, main = "Before reprojection")
-#plot(alces_after)
-
-#######################3 FROM HERE DOWN IS LIXO ################################
-############################# SIT DOWN AND READ BEFORE DELETING ################
-# 
-# library(terra)
-# library(raster)
-# 
-# # Load the SpatRaster
-# r <- rast(file.path(dirinput, "Alcesalces_suitability_cropped_modified_reprojected.tif"))
-# 
-# # Convert SpatRaster to RasterStack (CRS is preserved)
-# r_raster <- stack(r)
-# 
-# # Get original CRS (EPSG:3006)
-# orig_crs <- crs(r)  # This is still in meters
-# 
-# # Convert extent from meters to kilometers (scale coordinates properly)
-# r_km <- terra::project(r, orig_crs, scale = 0.001)  # Proper unit conversion
-# 
-# # Save the transformed raster
-# writeRaster(r_km, file.path(dirinput, "Alcesalces_suitability_km.tif"), overwrite=TRUE)
-# 
-# # Compare extents
-# ext(r)   # Before (meters)
-# ext(r_km) # After (kilometers)
-# 
-# # Compare resolutions
-# res(r)   # Before (meters)
-# res(r_km) # After (kilometers)
-# 
-# # Compare coordinate values
-# xy_meters <- crds(r)  # Before
-# xy_km <- crds(r_km)  # After
-# head(xy_meters)
-# head(xy_km)
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-
-
-
-
-
+## checking reprojection & conversion to km
+species1_reprojected <- rast(file.path(dirinput, paste0(target_species[1], "_suitability_cropped_modified_reprojectedKm.tif")))
+plot(species1_reprojected) 
+res(species1_reprojected) # checking new resolution
