@@ -97,7 +97,7 @@ for (i in seq_len(nrow(species_traits))) {
     population_level = TRUE,
   
       "abundance" = species_traits[["initialAbundance"]][i],
-      "dispersal_change" = 0,
+      "abundance_before" = 0,
       "reproductionRate" = species_traits[["reproductionRate"]][i],
       "carryingCapacity" = species_traits[["carryingCapacity"]][i],
       "yearlySurvivalRate" = species_traits[["yearlySurvivalRate"]][i])
@@ -179,14 +179,14 @@ sim$add_process(
   species = species_names,
   process_name = "dispersal_process",
   process_fun = function() {
-    self$traits[["dispersal_change"]] <- trunc(self$traits[["abundance"]])
+    self$traits[["abundance_before"]] <- trunc(self$traits[["abundance"]])
     # weighted dispersal
     # i.e. individuals disperse more likely into more suitable cells
     self$traits[["abundance"]] <- dispersal(
       abundance = self$traits[["abundance"]],
       weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojectedKm")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
-    self$traits[["dispersal_change"]] <- self$traits[["abundance"]] - self$traits[["dispersal_change"]]
+    self$traits[["dispersal_change"]] <- self$traits[["abundance"]] - self$traits[["abundance_before"]]
   },
   execution_priority = 3
 )
