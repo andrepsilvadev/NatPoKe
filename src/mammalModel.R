@@ -274,9 +274,7 @@ sim$add_process(
 ##########
 
 set_verbosity(1L)
-print(paste0("starting simulation for ", species))
 sim$begin()
-print(paste0("simulation finished for ", species))
 
 ##########
 # Step 9 # Save a mean abundance per cell plot (for easy diagnostics)
