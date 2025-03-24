@@ -51,17 +51,16 @@ santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/A
 # (3) estimatedDensity
 estimatedDensity <- fread(file.path(dirout, paste0("metaRangeOutputs", runname, ".csv"))) 
 
-
 # import a raster to get cell size
 size <- res(terra::rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojectedKm.tif")))
 
 # (4) spData
 spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) 
-  #IF WE WANT TO GO BACK TO THE ORIGINAL IDEA OF USING SANTINI'S "MEASUREMENTS" OF PREDICTED DENSITIES
-  # to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022
-  #left_join(dplyr::select(santini2022, Species, PredMd), by = c("species" = "Species")) %>%
-  # create ModellingRes variable
-  #mutate(ModellingRes = ceiling(sqrt(2/as.numeric(PredMd)))) # change to a specific value 
+#IF WE WANT TO GO BACK TO THE ORIGINAL IDEA OF USING SANTINI'S "MEASUREMENTS" OF PREDICTED DENSITIES
+# to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022
+#left_join(dplyr::select(santini2022, Species, PredMd), by = c("species" = "Species")) %>%
+# create ModellingRes variable
+#mutate(ModellingRes = ceiling(sqrt(2/as.numeric(PredMd)))) # change to a specific value 
 # ADD NOTE TO USE VALUES FROM SPEPS TRAITS DATASET
 
 # (5) validationYear
