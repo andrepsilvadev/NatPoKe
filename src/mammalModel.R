@@ -46,7 +46,7 @@ target_region <- "Sweden"
 
 # select target species (multiple sps are allowed)
 target_species <- species_traits$Species
-
+species
 # setup 
 set_verbosity(2L) # 0L for no output, 1L for progress updates, 2L for debug
 options(scipen = 999)
@@ -135,9 +135,9 @@ for (species in target_species) {
     "n_occupied" = vector("numeric", sim$number_time_steps)
     )
   }
-do.call(sim$add_globals, species_sum_abundance)
-
-
+  
+  do.call(sim$add_globals, species_sum_abundance)
+  
   # Step 7 - Add process 
 
   # Suitability influence on the environment  

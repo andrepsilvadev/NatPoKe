@@ -16,7 +16,7 @@ target_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf 
 target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
 
 # select target species (multiple sps are allowed)
-target_species <- c("Alces alces", "Lynx lynx", "Cervus elaphus")
+target_species <- c("Alces alces", "Lynx lynx", "Cervus elaphus", "Canis lupus", "Dama dama", "Rangifer tarandus", "Sus scrofa" )
 
 ##########
 # Step 2 # Import Trait Dataframe 
@@ -24,7 +24,9 @@ target_species <- c("Alces alces", "Lynx lynx", "Cervus elaphus")
 
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   # filter for prefered area & species
-  filter(BIOME_NAME == target_biome & CONTINENT %in% target_region & sci_name %in% target_species) %>% 
+  dplyr::filter(BIOME_NAME %in% target_biome) %>% 
+  dplyr::filter(CONTINENT %in% target_region) %>% 
+  dplyr::filter(sci_name %in% target_species) %>% 
   mutate(Trophic = case_when(
     # based on Schloss 2012
     Diet.Meat >= 90 ~ "Carnivore",
@@ -77,15 +79,16 @@ species_traits <- tibble(
   # Mean dispersal distance according to Schloss et al. 2012 (based on trophic level)
   dispersalDistance = ifelse(
     combined_traits_data$trophic_level == "Carnivore", pmax((3.45 * BodyMass^0.89)/ModellingRes, ModellingRes), 
-    ifelse(combined_traits_data$trophic_level == "Herbivore", pmax((1.45 * BodyMass^0.54)/ModellingRes, ModellingRes), NA)), # If the computed value is smaller than the modelling resolution, it is adjusted to be at least (ModellingRes + 1).
+    ifelse(combined_traits_data$trophic_level == "Herbivore", pmax((1.45 * BodyMass^0.54)/ModellingRes, ModellingRes),
+           ifelse(combined_traits_data$trophic_level == "Omnivore", pmax((1.45 * BodyMass^0.54)/ModellingRes, ModellingRes), NA))), # If the computed value is smaller than the modelling resolution, it is adjusted to be at least (ModellingRes + 1).
   # Maximum long-distance dispersal according to Schloss et al. 2012 (based on trophic level)
   dispersalMaxDistance = ceiling(ifelse(
     combined_traits_data$trophic_level == "Carnivore", pmax((40.7 * BodyMass^0.81)/ModellingRes,ModellingRes),
-    ifelse(combined_traits_data$trophic_level == "Herbivore", pmax((3.31 * BodyMass^0.65)/ModellingRes, ModellingRes), NA))),
+    ifelse(combined_traits_data$trophic_level == "Herbivore", pmax((3.31 * BodyMass^0.65)/ModellingRes, ModellingRes),
+           ifelse(combined_traits_data$trophic_level == "Omnivore", pmax((3.31 * BodyMass^0.65)/ModellingRes, ModellingRes), NA)))),
   # yearly survival rate (from mortality rate based on McCarthy 2008 and Savage 2004)
   yearlySurvivalRate = 1 - (BodyMass^-0.25)
-  ) %>%
-  drop_na()  
+  ) %>% drop_na()
 
 # check NA's
 sapply(species_traits, function(x) sum(is.na(x))) # number NA per column
