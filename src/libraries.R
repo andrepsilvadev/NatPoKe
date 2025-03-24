@@ -32,6 +32,7 @@ easypackages::packages(
     "ggplot2",
     "stringr",
     "tibble",
+    "tidyterra",
     "tidyr",
     "rphylopic",
     "viridis",

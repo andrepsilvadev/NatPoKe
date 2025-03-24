@@ -24,9 +24,9 @@ target_species <- c("Alces alces", "Lynx lynx", "Cervus elaphus", "Canis lupus",
 
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   # filter for prefered area & species
-  dplyr::filter(BIOME_NAME %in% target_biome) %>% 
-  dplyr::filter(CONTINENT %in% target_region) %>% 
-  dplyr::filter(sci_name %in% target_species) %>% 
+  #dplyr::filter(BIOME_NAME %in% target_biome) %>% 
+  #dplyr::filter(CONTINENT %in% target_region) %>% 
+  #dplyr::filter(sci_name %in% target_species) %>% 
   mutate(Trophic = case_when(
     # based on Schloss 2012
     Diet.Meat >= 90 ~ "Carnivore",
@@ -51,6 +51,8 @@ combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>
 species_traits <- tibble(
   # species index
   Index = 1:nrow(combined_traits_data), 
+  # BIOME
+  #Biome = combined_traits_data$BIOME_NAME,
   # scientific name WITHOUT spaces
   Species = stringr::str_replace_all(combined_traits_data$sci_name, " ", ""), 
   # family
@@ -88,11 +90,12 @@ species_traits <- tibble(
            ifelse(combined_traits_data$trophic_level == "Omnivore", pmax((3.31 * BodyMass^0.65)/ModellingRes, ModellingRes), NA)))),
   # yearly survival rate (from mortality rate based on McCarthy 2008 and Savage 2004)
   yearlySurvivalRate = 1 - (BodyMass^-0.25)
-  ) %>% drop_na()
+  ) %>% drop_na() 
 
 # check NA's
 sapply(species_traits, function(x) sum(is.na(x))) # number NA per column
 sapply(species_traits, function(x) sum(is.na(x)/length(x))) # proportion NA per column
+
 
 # write table to .csv file
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
@@ -100,4 +103,5 @@ write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.c
 # remove unecessary objects
 #rm(rast_obj, res_x, res_y, filename, file)
 rm(combined_traits_data)
+
 

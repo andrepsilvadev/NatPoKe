@@ -182,19 +182,20 @@ for (landscape in landscape_SW) {
   # Apply modified CRS
   crs(r_raster) <- new_crs
   
-  # Extract species name from file name (assuming it's before the first underscore or period)
-  species_name <- tools::file_path_sans_ext(basename(landscape)) # Remove extension
-  species_name <- gsub("_.*", "", species_name) # Remove everything after the first underscore
-  
-  # Get the corresponding modeling resolution
-  species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name]/sqrt(species_traits$CellResolution[species_traits$Species == species_name]))
-  
-  # aggregate raster by Modelling resolution to match species
-  agregated_raster <- raster::aggregate(x = r_raster, fact = species_fact, fun = mean)
-  extent(agregated_raster) <- extent(r_raster)
+  # # Extract species name from file name (assuming it's before the first underscore or period)
+  # species_name <- tools::file_path_sans_ext(basename(landscape)) # Remove extension
+  # species_name <- gsub("_.*", "", species_name) # Remove everything after the first underscore
+  # 
+  # # Get the corresponding modeling resolution
+  # species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name]/sqrt(species_traits$CellResolution[species_traits$Species == species_name]))
+  # 
+  # # aggregate raster by Modelling resolution to match species
+  # agregated_raster <- raster::aggregate(x = r_raster, fact = species_fact, fun = mean)
+  # extent(agregated_raster) <- extent(r_raster)
   
   # Convert back to SpatRaster while keeping all layers
-  r_km <- rast(agregated_raster)
+  #r_km <- rast(agregated_raster)
+  r_km <- rast(r_raster)
   
   #r_km[is.na(r_km)] <- 0
   
