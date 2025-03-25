@@ -33,3 +33,25 @@ forests_2017_map <- ggplot() +
   labs(fill = "Biomes")  +
   theme(legend.position = "bottom")
 forests_2017_map
+
+# Continents accroding to ne_countries
+countries <- ne_countries(scale = "medium", returnclass = "sf")
+# Plot the continents
+ggplot(data = countries) +
+  geom_sf(aes(fill = continent), color = "black", size = 0.2) +  # Map continent to fill
+  scale_fill_brewer(palette = "Set3", name = "Continent") +  # Use a color palette
+  labs(
+    title = "Continents in the ne_countries Dataset",
+    subtitle = "Visualized with Different Colors",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
