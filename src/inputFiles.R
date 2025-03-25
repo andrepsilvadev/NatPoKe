@@ -4,40 +4,20 @@
 # Inês Silva
 # 12 Feb 2025
 
-#### INES DO FUTURO ###
-### ESTE SCRIPT DEVERÁ IR BUSCAR OS SHAPEFILES DOS CONTINENTES PARA CORTAR AS GLOBAL SUITBAILITIES
-### ASK ANDRE IF WE WANT TO THIS ONE AT A TIME OR ALL AT THE SAME TIME
-### HE PROBABLY WANTS AS AUTOMATED AS POSSIBLE BUT I THINK ONE AT A TIME IS BETTER HERE
 
 ##########
 # Step 1 # Define area and species
 ##########
 
-
 # select Target biome (only one)
 target_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
 
 # select target region (only one)
-#target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
+target_continent <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
 
-######################### TO CHANGE IN THE FUTURE ###########################
-### for testing purposes we are using sweden instead of a whole continent ###
-#############################################################################
-
-SW <- ne_countries(scale = "large", country = "Sweden", returnclass = "sv")
-
-################################# DELETE LATER #################################
-#target_region <- ext(6.299125, 17.2476, 59.28353, 62.78255) # regional-extent bbox
-#bbox_SW <- ext(6.020508, 26.411133, 55.002826, 69.395783) # sweden bbox
-#bbox_SW <- ext(12.774353, 15.526428, 61.796497, 62.595869) # micro-extent bbox
-################################################################################
-
-# import species traits dataframe
-species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
-
-
-# select target species (multiple sps are allowed)
-target_species <- species_traits$Species
+# select target species
+target_species <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv")) %>% 
+  dplyr::pull(Species)
 
 ##########
 # Step 2 # Retrieve Global Suitability Landscapes from Google drive 
@@ -90,10 +70,6 @@ target_species <- species_traits$Species
 
 print("Retrieving global suitability rasters")
 
-############################ TO CHANGE IN THE FUTURE #############################
-### for testing purposes we are using rasters saved in github repo data folder ###
-##################################################################################
-
 # list rasters
 raster_files <- list.files(here("data/global_suitability_landscapes"),
                            pattern = paste0(target_species, "_suitability\\.tif$", collapse = "|"),
@@ -118,6 +94,37 @@ duplicate_layers <- function(raster, times) {
   return(rast(replicated))
 }
 
+
+# Getting region to model shapefile --------------------------------------------
+
+
+# function to load and select the biome shapefile
+load_select_biome <- function(biome_name) {
+  biome_sf <- st_read(here("data/Ecoregions2017", "Ecoregions2017.shp"))
+  biome_sf[biome_sf$BIOME_NAME == biome_name, ] %>% 
+    group_by(BIOME_NAME) %>% 
+    summarise(geometry = st_union(geometry))
+}
+
+# function to load and select continents
+load_select_continents <- function(continent_names) {
+  continents <- ne_countries(scale = "medium", returnclass = "sf") %>%
+    dplyr::filter(continent %in% continent_names) %>% 
+    group_by(continent) %>%
+    summarise(geometry = st_union(geometry))
+}
+
+# function to crop the biome boundaries to the continents
+crop_biome_to_continent <- function(biome, continent_geom) {
+  st_intersection(biome, continent_geom)
+}
+
+
+# Step 3 - crop the target region to model
+biome_to_model <- crop_biome_to_continent(biome = load_select_biome(biome_name = target_biome),
+                                          continent_geom = load_select_continents(continent_names = target_continent))
+
+
 # Cropping ---------------------------------------------------------------------
 
 print("Creating a dynamic landscape")
@@ -131,10 +138,10 @@ for (r in raster_files) {
   r_rescaled <- sp_raster/100
   
   # CROP the raster to the bounding box
-  cropped_raster <- terra::crop(r_rescaled, SW)
+  cropped_raster <- terra::crop(r_rescaled, biome_to_model)
   
   # MASK the raster to the bounding box (to avoid weird finland land masses)
-  masked_raster <- terra::mask(cropped_raster, SW)
+  masked_raster <- terra::mask(cropped_raster, biome_to_model)
   
   # DUPLICATE the layers 25 times
   duplicated_raster <- duplicate_layers(masked_raster, times = 25)
@@ -147,19 +154,20 @@ for (r in raster_files) {
   rm(sp_raster, r_rescaled, cropped_raster, masked_raster, duplicated_raster, output_path)
 }
 
+
 # remove unecessary objects
 rm(raster_files)
 invisible(gc())
 
 # Reprojecting & Converting to km ----------------------------------------------
 
-landscape_SW <- list.files(path = dirinput,
+landscapes <- list.files(path = dirinput,
                             pattern = paste0(target_species, "_suitability_cropped_modified\\.tif$", collapse = "|"),
                             full.names = TRUE)
 
 print("Reprojecting and converting meters to km")
 
-for (landscape in landscape_SW) {
+for (landscape in landscapes) {
   
   # load raster
   r <- rast(landscape)
@@ -182,13 +190,8 @@ for (landscape in landscape_SW) {
   # Apply modified CRS
   crs(r_raster) <- new_crs
   
-  # # Extract species name from file name (assuming it's before the first underscore or period)
-  # species_name <- tools::file_path_sans_ext(basename(landscape)) # Remove extension
-  # species_name <- gsub("_.*", "", species_name) # Remove everything after the first underscore
-  # 
-  # # Get the corresponding modeling resolution
-  # species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name]/sqrt(species_traits$CellResolution[species_traits$Species == species_name]))
-  target_resolution <- 10
+  # set target resolution
+  target_resolution <- 10 # km
   # # aggregate raster by Modelling resolution to match species
   agregated_raster <- raster::aggregate(x = r_raster, fact = ceiling(target_resolution/res(r_raster)[1]), fun = mean)
   extent(agregated_raster) <- extent(r_raster)
@@ -225,3 +228,13 @@ res(species1) # checking initial resolution
 species1_reprojected <- rast(file.path(dirinput, paste0(target_species[5], "_suitability_cropped_modified_reprojectedKm.tif")))
 plot(species1_reprojected) 
 res(species1_reprojected) # checking new resolution
+
+
+## OLD STUFF ##
+
+
+################################# DELETE LATER #################################
+#target_region <- ext(6.299125, 17.2476, 59.28353, 62.78255) # regional-extent bbox
+#bbox_SW <- ext(6.020508, 26.411133, 55.002826, 69.395783) # sweden bbox
+#bbox_SW <- ext(12.774353, 15.526428, 61.796497, 62.595869) # micro-extent bbox
+################################################################################
