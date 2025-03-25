@@ -437,6 +437,8 @@ for (target_sps in species_names) {
   averaged_species_rasters[[target_sps]] <- averaged_raster
 }
 
+
+
 # Step 3 - Resample each raster according to a template raster
 ## since each species was modelled with a different resolution we need to RESAMPLE
 ## rasters back to a common resolution so we average everyone into one raster for
@@ -453,11 +455,18 @@ for (target_sps in species_names) {
   
 # resample each raster
 resampled_rasters[[target_sps]] <- resample(# raster to change resolution
-         x = current_raster,
-         y = template_raster,
-         # method to use for resampling (nearest neighbor is not the best option for continuous data)
-         method = "bilinear")
+                                           x = current_raster,
+                                           y = template_raster,
+                                           # method to use for resampling (nearest neighbor is not the best option for continuous data)
+                                           method = "bilinear")
 }
+par(mfrow=c(2,2))
+plot(averaged_species_rasters$Rangifertarandus)
+plot(resampled_rasters$Rangifertarandus)
+
+
+SW <- ne_countries(scale = "medium", country = "Sweden", returnclass = "sv")
+plot(SW)
 
 # Step 4 - Average all resampled rasters into one for mammals
 all_mammals_stack <- terra::rast(unlist(resampled_rasters))

@@ -24,9 +24,9 @@ target_species <- c("Alces alces", "Lynx lynx", "Cervus elaphus", "Canis lupus",
 
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   # filter for prefered area & species
-  #dplyr::filter(BIOME_NAME %in% target_biome) %>% 
-  #dplyr::filter(CONTINENT %in% target_region) %>% 
-  #dplyr::filter(sci_name %in% target_species) %>% 
+  dplyr::filter(BIOME_NAME %in% target_biome) %>% 
+  dplyr::filter(CONTINENT %in% target_region) %>% 
+  dplyr::filter(sci_name %in% target_species) %>% 
   mutate(Trophic = case_when(
     # based on Schloss 2012
     Diet.Meat >= 90 ~ "Carnivore",
@@ -67,10 +67,10 @@ species_traits <- tibble(
   BodyMass = combined_traits_data$Mass.g / 1000, 
   # cell area (km2)
   CellResolution = 3.076948*3.076948,
-  # modelling resolution based on the sps mean HomeRange
+  # modelling resolution based on the sps mean HomeRange (km)
   ##ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))), # ANDRE'S MODELLING RES
-  ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
-  #ModellingRes = ceiling(13.15263),
+  #ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
+  ModellingRes = 10,
   #ProjRes = ModellingRes*1000,
   # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
   initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd)*(ModellingRes^2)), 

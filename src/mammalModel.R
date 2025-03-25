@@ -89,7 +89,7 @@ for (i in seq_len(nrow(species_traits))) {
   this_species <- species_traits[["Species"]][i]
   
   # "register" the species with the simulation
-  sim$add_species(species)
+  sim$add_species(this_species)
   
   # add traits that need to be stored at the population level
   sim$add_traits(
@@ -120,6 +120,7 @@ for (i in seq_len(nrow(species_traits))) {
   }
 
 species_names <- sim$species_names()
+
 ## keep track of the species that are still alive 
 sim$add_globals("alive_species" = species_names)
 
@@ -274,12 +275,14 @@ sim$add_process(
 ##########
 
 set_verbosity(1L)
+print("Simulation begin")
 sim$begin()
+print("Simulation finished")
 
 ##########
 # Step 9 # Save a mean abundance per cell plot (for easy diagnostics)
 ##########
-
+for (species in target_species) {
 tiff(file.path(dirout, paste0("MeanAbundancePerCell", species, ".tiff")),
      width = 300, height = 230, units = "mm", res = 1200, compression = "lzw")
 # plotting mean abundance per cell
@@ -287,20 +290,24 @@ plot(sim$globals[[species]][["mean_abundance"]],
      type = "l",
      xlab = "Time", ylab = "Mean Abundance Per Cell", main = species)
 dev.off()
+}
 
 ###########
 # Step 10 # Save a settings file
 ###########
 
-sink(file.path(dirout, paste0("simulationSettings", species, ".txt")))
+sink(file.path(dirout, "simulationSettings.txt"))
 # write overall summary of simulation
 cat("### Overall Simulation Summary ###\n")
 print(summary(sim))
 cat("\n========================================\n\n")
 # write a specific summary for the species
-cat("\nSummary for:", species, "\n")  
-print(summary(sim[[species]]))  
-cat("\n--------------------------------\n")  
+for (species in target_species) {
+  cat("\nSummary for:", species, "\n")  
+  print(summary(sim[[species]]))  
+  cat("\n--------------------------------\n")
+}
+  
 sink()
 
 # remove unecessary objects

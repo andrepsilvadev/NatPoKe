@@ -15,7 +15,7 @@
 results_list <- list()
 
 # Define raster types
-raster_types <- c("abundance", "reproductionRate", "dispersal_change")
+raster_types <- c("abundance", "reproductionRate", "dispersal_change", "mortality")
 
 # Read species data
 species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))

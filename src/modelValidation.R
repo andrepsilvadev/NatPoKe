@@ -39,7 +39,7 @@ library(data.table)
   # (5) validationYear: The specific year (or time step) used for validation
 
 # (1) targetspecies
-targetspecies <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
+species_names <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
   dplyr::pull(Species)
 
 # (2) independentDensity
@@ -51,6 +51,33 @@ santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/A
 # (3) estimatedDensity
 estimatedDensity <- fread(file.path(dirout, paste0("metaRangeOutputs", runname, ".csv"))) 
 
+abundance_files <- list()
+resampled_rasters <- list()
+
+for (target_sps in species_names) {
+  
+  # list all abundance rasters for the target species
+  abundance_files[target_sps] <- list.files(path = dirout,
+             pattern = paste0("101_", target_sps, "_abundance\\.tif$"), full.names = TRUE)
+  
+  # read all abundance rasters for the species
+  abundance_rasters <- lapply(abundance_files, rast)
+  
+  # extract current raster from the list
+  current_raster <- abundance_rasters[[target_sps]]
+  
+  # extract template raster
+  template_raster <- abundance_rasters$Cervuselaphus
+  
+  # resample each raster
+  resampled_rasters[[target_sps]] <- resample(# raster to change resolution
+                                              x = current_raster,
+                                              y = template_raster,
+                                              # method to use for resampling (nearest neighbor is not the best option for continuous data)
+                                              method = "bilinear")
+}
+
+abundance_stack <- terra::rast(resampled_rasters[[target_sps]])
 # import a raster to get cell size
 size <- res(terra::rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojectedKm.tif")))
 

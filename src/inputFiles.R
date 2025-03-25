@@ -188,14 +188,14 @@ for (landscape in landscape_SW) {
   # 
   # # Get the corresponding modeling resolution
   # species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name]/sqrt(species_traits$CellResolution[species_traits$Species == species_name]))
-  # 
+  target_resolution <- 10
   # # aggregate raster by Modelling resolution to match species
-  # agregated_raster <- raster::aggregate(x = r_raster, fact = species_fact, fun = mean)
-  # extent(agregated_raster) <- extent(r_raster)
+  agregated_raster <- raster::aggregate(x = r_raster, fact = ceiling(target_resolution/res(r_raster)[1]), fun = mean)
+  extent(agregated_raster) <- extent(r_raster)
   
   # Convert back to SpatRaster while keeping all layers
   #r_km <- rast(agregated_raster)
-  r_km <- rast(r_raster)
+  r_km <- rast(agregated_raster)
   
   #r_km[is.na(r_km)] <- 0
   
@@ -222,6 +222,6 @@ res(species1) # checking initial resolution
 ## at this stage all species shoudl still have the same landscape resolution
 
 ## checking reprojection & conversion to km
-species1_reprojected <- rast(file.path(dirinput, paste0(target_species[1], "_suitability_cropped_modified_reprojectedKm.tif")))
+species1_reprojected <- rast(file.path(dirinput, paste0(target_species[5], "_suitability_cropped_modified_reprojectedKm.tif")))
 plot(species1_reprojected) 
 res(species1_reprojected) # checking new resolution
