@@ -41,7 +41,7 @@ output_folder <- "~/data/output"
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
 biome_name_short <- "Tropical Biome"
 continent_names <- c("Central & South America", "Africa", "Asia")
-continent_title <- c("Central & South America", "Africa", "Asia & Oceania")
+continent_title <- c("Central & South America", "Africa", "Asia")
 
 # Boreal Biome
 biome_name <- "Boreal Forests/Taiga"
@@ -273,13 +273,9 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
   return(percentage_change_rasters_list)
 }
 
-
 # Function to load and select continents
 load_select_continents <- function(continent_names) {
   continents <- ne_countries(scale = "medium", returnclass = "sf")
-  
-  # Initialize an empty list to store merged continents
-  merged_continents <- list()
   
   # handle merged "Central & South America"
   if ("Central & South America" %in% continent_names){
@@ -288,50 +284,33 @@ load_select_continents <- function(continent_names) {
       summarise(geometry = st_union(geometry)) %>%
       mutate(continent = "Central & South America")
     
-    # Ensure column consistency
+    # Ensure column consistency by adding missing columns to `central_south_america`
     missing_columns <- setdiff(names(continents), names(central_south_america))
     for (col in missing_columns) {
       central_south_america[[col]] <- NA  # Add missing columns with NA values
     }
     central_south_america <- central_south_america[names(continents)]  # Reorder columns to match `continents`
     
-    # Add to merged continents
-    merged_continents[["Central & South America"]] <- central_south_america
-    
-    # Remove "Central & South America" from the continent names
+    # Remove Central and South America from the original list
     continent_names <- setdiff(continent_names, "Central & South America")
+    
+    # Add the merged continent
+    continents <- rbind(
+      continents %>% dplyr::filter(continent %in% continent_names),
+      central_south_america
+    )
+  } else {
+    # Filter by the remaining continent names
+    continents <- continents %>%
+      dplyr::filter(continent %in% continent_names)
   }
-    
-  # Handle merged "Asia" with Australia and Papua New Guinea
-  if ("Asia" %in% continent_names) {
-    asia <- continents %>%
-      dplyr::filter(continent %in% c("Asia", "Oceania")) %>%
-      summarise(geometry = st_union(geometry)) %>%
-      mutate(continent = "Asia")
-    
-    # Ensure column consistency
-    missing_columns <- setdiff(names(continents), names(asia))
-    for (col in missing_columns) {
-      asia[[col]] <- NA  # Add missing columns with NA values
-    }
-    asia <- asia[names(continents)]  # Reorder columns to match `continents`
-    
-    # Add to merged continents
-    merged_continents[["Asia"]] <- asia
-    
-    # Remove "Asia" from the continent names
-    continent_names <- setdiff(continent_names, "Asia")
-  }
+  # Group and combine geometries by continent
+  continents <- continents %>%
+    group_by(continent) %>%
+    summarise(geometry = st_combine(geometry)) %>%
+    ungroup()
   
-  # Filter the remaining continents
-  remaining_continents <- continents %>%
-    dplyr::filter(continent %in% continent_names)
-  
-  # Combine merged and remaining continents
-  all_continents <- do.call(rbind, c(merged_continents, list(remaining_continents)))
- 
-   # Return the final dataset
-  return(all_continents)
+  return(continents)
 }
 
 intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
@@ -349,22 +328,6 @@ intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
   }), names(continent_geoms))
   
   return(biome_continents)
-}
-
-# Function to intersect a biome with multiple continents
-#intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
-  # Validate and fix geometries
-  biome_sf <- st_make_valid(biome_sf)
-  continent_geoms <- lapply(continent_geoms, st_make_valid)
-  
-  # Perform intersection for each continent
-  biome_continents <- setNames(lapply(continent_geoms, function(continent_geom) {
-    result <- st_intersection(biome_sf, continent_geom)
-    if (nrow(result) == 0) {
-      return(NULL)  # Return NULL if no intersection
-    }
-    return(result)
-  }), names(continent_geoms))
 }
 
 # Function to crop and mask the rasters to the continents
@@ -660,34 +623,6 @@ continent_geoms <- setNames(lapply(continent_names, function(continent) {
 # Intersect the biome with the continents
 biome_continents <- intersect_biome_with_continents(biome_sf, continent_geoms)
 
-# test
-countries <- ne_countries(scale = "medium", returnclass = "sf")
-# Plot the continents
-ggplot(data = countries) +
-  geom_sf(aes(fill = continent), color = "black", size = 0.2) +  # Map continent to fill
-  scale_fill_brewer(palette = "Set3", name = "Continent") +  # Use a color palette
-  labs(
-    title = "Continents in the ne_countries Dataset",
-    subtitle = "Visualized with Different Colors",
-    x = "Longitude",
-    y = "Latitude"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(size = 16, face = "bold"),
-    plot.subtitle = element_text(size = 12),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 10),
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10)
-  )
-
-# test
-ggplot() +
-  geom_sf(data = biome_sf, fill = "lightblue", color = "black") +
-  geom_sf(data = do.call(rbind, continent_geoms), fill = NA, color = "red") +
-  theme_minimal()
-
 # Calculate percentage changes
 percentage_change_rasters_list <- calculate_percentage_changes(
   base_year_raster = baseline_year_raster_classified,
@@ -713,7 +648,6 @@ for (year in names(percentage_change_rasters_list)) {
     }
   }
 }
-
 
 # Create a custom color ramp with specified breakpoints
 custom_color_ramp <- colorRamp2(c(-100, 0, 100), c("blue", "yellow", "red"))
@@ -808,26 +742,4 @@ for (class in names(baseline_year_raster_classified)) {
            plot = final_plot, 
            width = 20, height = 10, dpi = 300)
   }
-}
-
-
-##### test
-# Transform CRS of each geometry in the biome_continents list
-biome_continents <- lapply(biome_continents, function(geom) {
-  st_transform(geom, crs = st_crs(countries))
-})
-
-# Ensure CRS consistency for countries
-countries <- st_transform(countries, crs = st_crs(biome_continents[[1]]))
-
-# Loop through each continent in biome_continents
-for (continent in names(biome_continents)) {
-  # Identify countries overlapping with the biome
-  overlapping_indices <- st_intersects(countries, biome_continents[[continent]], sparse = TRUE)
-  
-  # Filter countries that have overlaps
-  overlapping_countries <- countries[lengths(overlapping_indices) > 0, ]
-  
-  # Debug: Print the names of overlapping countries
-  print(overlapping_countries$admin)
 }
