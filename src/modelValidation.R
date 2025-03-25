@@ -25,7 +25,6 @@ library(ggplot2)
 library(terra)
 library(data.table)
 
-
 ###################
 # DATASETS NEEDED #
 ###################
@@ -49,11 +48,10 @@ santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/A
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # (3) estimatedDensity
-estimatedDensity <- fread(file.path(dirout, paste0("metaRangeOutputs", runname, ".csv"))) 
+#estimatedDensity <- fread(file.path(dirout, paste0("metaRangeOutputs", runname, ".csv"))) 
 
 abundance_files <- list()
 resampled_rasters <- list()
-
 for (target_sps in species_names) {
   
   # list all abundance rasters for the target species
@@ -63,23 +61,31 @@ for (target_sps in species_names) {
   # read all abundance rasters for the species
   abundance_rasters <- lapply(abundance_files, rast)
   
-  # extract current raster from the list
-  current_raster <- abundance_rasters[[target_sps]]
-  
-  # extract template raster
-  template_raster <- abundance_rasters$Cervuselaphus
-  
-  # resample each raster
-  resampled_rasters[[target_sps]] <- resample(# raster to change resolution
-                                              x = current_raster,
-                                              y = template_raster,
-                                              # method to use for resampling (nearest neighbor is not the best option for continuous data)
-                                              method = "bilinear")
+  # stack all rasters into one
+  abundance_stack <- terra::rast(unlist(abundance_rasters))
 }
 
-abundance_stack <- terra::rast(resampled_rasters[[target_sps]])
+# convert the raster stack to a list of data frames
+raster_list <- lapply(1:nlayers(abundance_stack), function(i) {
+  as.data.frame(abundance_stack[[i]], xy = TRUE) %>%
+    mutate(layer = names(abundance_stack)[i])
+})
+
+# convert raster stack to df
+species_df <- lapply(1:nlyr(abundance_stack), function(i){
+  as.data.frame(abundance_stack[[i]], xy = TRUE) %>% 
+    # create column with species names
+    mutate(species = names(abundance_stack[[i]])) %>% 
+    # be carefull here if for some reason column change order
+    rename_at(3, ~"abundance")
+})
+
+# combine list of dataframes into one
+estimatedDensity <- bind_rows(species_df)
+
+
 # import a raster to get cell size
-size <- res(terra::rast(file.path(dirinput, "Lynxlynx_suitability_cropped_modified_reprojectedKm.tif")))
+size <- res(terra::rast(file.path(dirinput, "Cervuselaphus_suitability_cropped_modified_reprojectedKm.tif")))
 
 # (4) spData
 spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) 
@@ -126,8 +132,8 @@ validateModel1.1 <- function(
   
   ## species density estimated by metaRange
   predicted <- estimatedDensity %>%
-    dplyr::filter(species %in% targetspecies) %>%
-    dplyr::filter(timestep %in% validationYear) %>% # validate model at the equilibrium (burn-in years)
+    dplyr::filter(species %in% species_names) %>%
+    #dplyr::filter(timestep %in% validationYear) %>% # validate model at the equilibrium (burn-in years)
     dplyr::group_by(species, x,y) %>%
     dplyr::summarise(
       meanNInd = mean(abundance),
@@ -137,6 +143,7 @@ validateModel1.1 <- function(
   spData2 <- spData %>%
     dplyr::select(Species, ModellingRes) %>%
     rename(species = Species) %>%
+    mutate(ModellingRes = ifelse(ModellingRes == size[1], ModellingRes, size[1])) %>% 
     as.data.frame()
   
   estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
@@ -152,7 +159,7 @@ validateModel1.1 <- function(
 
 # applying the function
 validationList <- validateModel1.1(
-  targetspecies = targetspecies,
+  targetspecies = species_names,
   independentDensity = santini2022,
   estimatedDensity = estimatedDensity,
   spData = spData,
@@ -167,12 +174,17 @@ validationList <- validateModel1.1(
 names_replace <- c("Alcesalces" = "Alces alces",
                    "Lynxlynx" = "Lynx lynx", 
                    "Cervuselaphus" = "Cervus elaphus",
-                   "Rangifertarandus" = "Rangifer tarandus")
+                   "Rangifertarandus" = "Rangifer tarandus", 
+                   "Susscrofa" = "Sus scrofa",
+                   "Canislupus" = "Canis lupus",
+                   "Damadama" = "Dama dama")
 
 validationList <- lapply(validationList, function(df) {
   df$species <- names_replace[df$species]
   return(df)
 })
+
+## ONE PLOT WITH ALL SPECIES ##
 
 pvalidation1 <- ggplot(validationList$independentDensity, aes(species)) +
   geom_boxplot(
@@ -197,16 +209,12 @@ ggsave(filename = file.path(dirout, paste0("ModelValidation", runname, ".tiff"))
        plot = pvalidation1,
        bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
 
+
+## ONE FACET PER SPECIES - BETTER OPTION ##
+
 pvalidation2 <- ggplot(validationList$independentDensity, aes(x = "", y = meanDensity)) +
-  geom_boxplot(
-    aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95),
-    stat = "identity"
-  ) +
-  geom_point(data = validationList$estimatedDensity,
-             aes(x = "", y = estimatedDensity),
-             color = "red",
-             position = position_jitter(width = 0.2),
-             size = 1) +
+  geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+  geom_point(data = validationList$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
   facet_wrap(~ species, scales = "free_y") + 
   ylab("Independent density estimate") +
   xlab("Species") +
@@ -214,14 +222,11 @@ pvalidation2 <- ggplot(validationList$independentDensity, aes(x = "", y = meanDe
   theme_minimal() +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
+
 # saving the plot
 ggsave(filename = file.path(dirout, paste0("ModelValidation2", runname, ".tiff")),
        plot = pvalidation2,
        bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
-
-
-
-
 
 end.time <- Sys.time() # end the clock
 time.taken <- round(end.time - start.time) # calculate time taken to run the complete script

@@ -24,17 +24,17 @@ library(data.table)
 # several runs together before this
 ### DO NOT FORGET ###
 
-totalDataset <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/twoBadRuns.csv")
+totalDataset <- fread(file.path(dirout, "metaRangeOutputs24Mar2025_afternoon10km.csv")) %>% 
+  mutate(scenario = "BAU")
 invisible(gc())
-head(run20250224)
 
 
 ###############################
 # TOTAL NUMBER OF INDIVIDUALS #
 ###############################
 
-t_burnin <- 1
-t_policy <- 5
+t_burnin <- 100
+t_policy <- 110
 
 # !!! BE CAREFULL !!! #
 ## Total number of individuals is different from mean number of individuals
@@ -44,14 +44,15 @@ t_policy <- 5
 ## three cells it would be (2+3)/2 = 2.5 moose
 
 # Total number of individuals (TNIND) per year and cellid
+######### AT THE MOMENT WE STILL DON'T HAVE DIFFERENT REPLICATES ###############
 TNIND <- totalDataset %>%
-  group_by(species, Taxa, biome, scenario, timestep) %>% # ADD HERE WHEN THEY EXIST SIM AND REP VARIABLES (SIM FOR SIMULATION NAME AND REP FOR REPLICATES)
+  group_by(species, Taxa, biome, scenario, timestep, x, y) %>% # ADD HERE WHEN IT EXISTS THE REP VARIABLE (REP FOR REPLICATES)
   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
   dplyr::select(!n) %>% 
-  group_by(species, Taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
+  group_by(species, Taxa, biome, scenario, timestep, x, y) %>% # KEEP SIM BUT REMOVE REP HERE
   dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
-
+head(TNIND)
 
 # Total number of individuals per year
 TNIND_yr <- TNIND %>% # n cells used for the calculus
@@ -81,7 +82,7 @@ ggsave(plot = TNIND_per_year,
 # calculate post policy mean value for the recovery time metric 
 # to be possible in one go with the other metrics)
 post_disturbance_values <- TNIND_yr %>%
-  filter(timestep > t_burnin) %>% # remove burn-in period
+  #filter(timestep > t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep > t_burnin &
                            timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
   group_by(biome, species, scenario, period, Taxa) %>%

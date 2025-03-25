@@ -2,6 +2,9 @@
 
 sps_traits <- read_csv("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/all_mammals_available_for_metaRange_model.csv")
 
+fileToSave <- sps_traits %>% 
+  distinct()
+write.csv(fileToSave, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/all_mammals_available_for_metaRange_model.csv")
 
 sps_modelling_res <- species_traits %>%
   dplyr::filter(Biome %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
