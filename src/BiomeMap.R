@@ -6,6 +6,9 @@
 # Settings & libraries -------------------------------------------
 source("./src/libraries.R") # libraries
 
+# Define output path
+output_folder <- "~/data/output"
+
 ## Extract tropical moist forest and boreal forest shp
 ecoregions_2017 <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
 
@@ -34,24 +37,7 @@ forests_2017_map <- ggplot() +
   theme(legend.position = "bottom")
 forests_2017_map
 
-# Continents accroding to ne_countries
-countries <- ne_countries(scale = "medium", returnclass = "sf")
-# Plot the continents
-ggplot(data = countries) +
-  geom_sf(aes(fill = continent), color = "black", size = 0.2) +  # Map continent to fill
-  scale_fill_brewer(palette = "Set3", name = "Continent") +  # Use a color palette
-  labs(
-    title = "Continents in the ne_countries Dataset",
-    subtitle = "Visualized with Different Colors",
-    x = "Longitude",
-    y = "Latitude"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(size = 16, face = "bold"),
-    plot.subtitle = element_text(size = 12),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 10),
-    legend.title = element_text(size = 12),
-    legend.text = element_text(size = 10)
-  )
+# Save the combined plot
+ggsave(filename = file.path(output_folder, paste0("BiomeMap.png")), 
+       plot = forests_2017_map, 
+       dpi = 300)
