@@ -6,6 +6,9 @@
 # Settings & libraries -------------------------------------------
 source("./src/libraries.R") # libraries
 
+# Define output path
+output_folder <- "~/data/output"
+
 ## Extract tropical moist forest and boreal forest shp
 ecoregions_2017 <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
 
@@ -33,3 +36,8 @@ forests_2017_map <- ggplot() +
   labs(fill = "Biomes")  +
   theme(legend.position = "bottom")
 forests_2017_map
+
+# Save the combined plot
+ggsave(filename = file.path(output_folder, paste0("BiomeMap.png")), 
+       plot = forests_2017_map, 
+       dpi = 300)
