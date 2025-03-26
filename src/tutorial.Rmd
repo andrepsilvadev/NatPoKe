@@ -1,0 +1,710 @@
+---
+title: "Running the MetaRange Model for Mammals"
+subtitle: "Step-by-step guide"
+author: "Inês Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    code_folding: show
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+pkgdown:
+  as_is: true    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+source(here("src", "libraries.R"))
+```
+
+# Introduction
+
+This tutorial explains how to run the metaRange model framework for multiple mammal species. It walks through formatting and loading input data, setting up the simulation, running the simulation and what outputs can be expected.
+
+> To run our approach, input directories (dirinput) and output directories (dirout) were previously created to save the input files and respective model output raster files and plots.
+
+```{r dirinput, echo=FALSE}
+dirinput <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/21Mar2025_TEST/Inputs"
+dirout <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/21Mar2025_TEST/Outputs"
+```
+
+# Model Inputs
+
+A complete introduction to the metaRange framework can be found [here](https://metarange.github.io/metaRange/articles/A01_intro.html).
+
+To run the model simulation two external inputs are required:
+
+-   **Landscapes** - raster files containing either the environment in which species will be modelled (e.g. species habitat suitability map)
+
+-   **Species Traits Dataframe** - a dataframe containing species specific trait information wich will act as starting values for the model (e.g. species abundance or reproduction rates)
+
+## Landscapes
+
+To create the landscapes used here to run the metaRange model several steps were followed:
+
+**1. Get global suitability landscapes** - First, we need to obtain global suitability landscapes from the SRIT Database**,** available [here](https://drive.google.com/drive/u/0/folders/1lDlEWq9uGEi2z9xe_R2klHkQ4cRDHj3r). These landscapes provide habitat suitability index for species across the globe.
+
+**2. Build a dynamic landscape** - For this example, we assume that habitat suitability declines by 1% per year over a 25-year simulation period. To represent this change, we will create 25 layers, each representing a year with suitability values decreasing over time.
+
+```{r duplicate layers, eval=FALSE}
+# function to duplicate raster layers as we see fit
+duplicate_layers <- function(raster, times) {
+  replicated <- list()
+  
+  # layer 1: Original raster
+  replicated[[1]] <- raster
+  
+  # layer 2: Exact copy of original raster
+  replicated[[2]] <- raster
+  
+  # layers 3 to end - suitability decreases progressivly by 1%
+  new_layer <- raster
+  for (i in 3:times) {
+    new_layer <- new_layer * 0.99  # Reduce by 1% each time
+    replicated[[i]] <- new_layer
+  }
+  return(rast(replicated))
+}
+```
+
+**3. Crop the global landscape to the target region** - Since we are modelling species within a specific biome and continent, we need to crop the global landscape to the relevant area,
+
+```         
+(Later we will be using the ecoregion from [Dinerstein et al. 2017](https://academic.oup.com/bioscience/article/67/6/534/3102935) and continental boundaries available in \`rnaturalearth\` package.) - code is already avaliable [here]()
+```
+
+```{r crop rasters, eval=FALSE}
+SW <- ne_countries(scale = "large", country = "Sweden", returnclass = "sv")
+
+# loop through each raster file
+for (r in raster_files) {
+  # read the raster
+  sp_raster <- rast(r)
+  
+  # transform values from 0-100 to 0-1
+  r_rescaled <- sp_raster/100
+  
+  # CROP the raster to the bounding box
+  cropped_raster <- terra::crop(r_rescaled, SW)
+  
+  # MASK the raster to the bounding box (to avoid weird finland land masses)
+  masked_raster <- terra::mask(cropped_raster, SW)
+  
+  # DUPLICATE the layers 25 times
+  duplicated_raster <- duplicate_layers(masked_raster, times = 25)
+  
+  # SAVE processed raster
+  output_path <- file.path(dirinput, tools::file_path_sans_ext(basename(r)))
+  writeRaster(duplicated_raster, paste0(output_path, "_cropped_modified.tif"), overwrite = TRUE)
+  
+  # remove unecessary objects
+  rm(sp_raster, r_rescaled, cropped_raster, masked_raster, duplicated_raster, output_path)
+}
+```
+
+**4. Project landscapes to appropriate coordinate system** - To ensure accurate distance measurements and avoid distortion, we project the rasters to a suitable projection, which depends on the study region. (in our case we also needed to to convert from meters to km)
+
+```{r reprojecting, eval=FALSE}
+landscape_SW <- list.files(path = dirinput,
+                            pattern = paste0(target_species, "_suitability_cropped_modified\\.tif$", collapse = "|"),
+                            full.names = TRUE)
+
+print("Reprojecting and converting meters to km")
+
+for (landscape in landscape_SW) {
+  
+  # load raster
+  r <- rast(landscape)
+  
+  # reproject to SWEREF99 TM (EPSG:3006) 
+  r_utm <- project(r, "EPSG:3006")
+  
+  # convert to rasterStack
+  r_raster <- stack(r_utm)
+  
+  # get original CRS
+  orig_crs <- crs(r_utm)
+  
+  # Rescale extent (divide by 1000 to convert meters to kilometers)
+  extent(r_raster) <- extent(r_raster) / 1000
+  
+  # Modify CRS to indicate the new unit is kilometers
+  new_crs <- gsub("UNIT\\[\"metre\",1\\]", "UNIT[\"kilometre\",1000]", orig_crs)
+  
+  # Apply modified CRS
+  crs(r_raster) <- new_crs
+  
+  # Convert back to SpatRaster while keeping all layers
+  r_km <- rast(r_raster)
+  
+  #r_km[is.na(r_km)] <- 0
+  
+  # output filename
+  output_filename <- gsub("\\.tif$", "_reprojectedKm.tif", landscape)
+  
+  # save reprojected raster
+  writeRaster(r_km, output_filename, overwrite = TRUE)
+  
+  # remove unecessary objects
+  #rm(r, r_utm, r_raster, orig_crs, new_crs, r_km, output_filename)
+}
+```
+
+**5. Save processed rasters** - Finally we save the processed rasters to an inputs folder so thay can be used in the metaRange model next.
+
+The complete code to create these landscapes can be found [here](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/inputFiles.R).
+
+## Species Traits Dataframe
+
+Species trait data are scattered across several sources from online databases to research articles, making it very hard to find.
+
+To compile data for our target species, multiple databases were compiled to maximize species traits coverage (see Table 1) and for missing traits equations were used to estimate their values. The code used for data collection can be accessed [here](https://github.com/andrepsilvadev/SRIT-database/blob/dev/src/mammalTraits.R). And the construction of a correctly formatted dataframe for the metaRange model [here](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/mammalMetaRangeSpeciesDataframe.R).
+
+| Trait | Description | Units | Database of origin |
+|------------------|------------------|------------------|------------------|
+| abundance | number of individuals per cell in the landscape | individuals/cell | Santini et al. 2022 |
+| reproductionRate | number of individuals per cell in the landscape (net reproduction rate) | inidividuals | estimated by multiplying the litter size by the years of reproductive success |
+| carryingCapacity | maximum Number of individuals in a grid cell | individuals/cell | Santini et al. 2022 |
+| dispersalDistance | mean dispersal distance | cells | based on species trophic level & estimated from reported equations in Schloss et al. 2012 and BodyMass values from Pantheria and Phylacine |
+| maxDispersalDistance | maximum long dispersal distances | cells | based on species trophic level & estimated from reported equations in Schloss et al. 2012 and BodyMass values from Pantheria and Phylacine |
+| yearlySurvivalRate | annual probability of survival | no units | Estimated according to: 1 - metabolic mortality rate (from McCarthy et al. 2008) |
+
+For our target species this resulted in:
+
+```{r sps traits, echo=FALSE}
+library(DT)
+# import trait dataframe
+species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+datatable(species_traits %>% 
+  dplyr::filter(Species == "Alcesalces"))
+```
+
+> [Warnings!]{style="color:red"}
+>
+> There should always exist a landscape file for all species contained in the Species traits Dataframe.
+>
+> The Species Trait dataframe should only have species without spaces between the genus and species names.
+
+
+# Model simulation 
+
+```{r moose, echo=FALSE, fig.align = 'center'}
+sps_uid <- rphylopic::get_uuid("Alces alces", n = 3)
+# plot icon and title
+ggplot() +
+    coord_cartesian(xlim = c(0, 1), ylim = c(0, 0.6)) +
+    rphylopic::add_phylopic(uuid = ifelse(is.na(sps_uid[3]), sps_uid[1], sps_uid[3]), x = 0.7, y = 0.4, height = 0.4) +
+    geom_text(aes(x = 0.6, y = 0.15, label = "For example purposes let's follow the moose simulation."), fontface = "italic", size = 5)+
+    theme_void()
+```
+
+## Pre set-up
+
+To run the model we need to decide our **target biome**, our **target region** and our **target species**. We can set multipel target species but only one target biome or region as these will be used in the names used to save output files.
+
+```{r targets}
+target_biome <- "Boreal Forests Taiga"  
+target_region <- "Sweden"  
+
+# import trait dataframe
+species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+
+target_species <- "Alcesalces" 
+```
+
+## Step 1 - Setting up the simulation
+
+After setting up our modelling targets, the simulation needs to be initialized and reporting can (and should) be enabled. Setting the verbosity to zero, means the simulation will run silent with no warning or updates, 1 will give us progress updates and 2 will go into debugging mode.
+
+```{r initializing the simulation}
+set_verbosity(2L)  
+options(scipen = 999)  
+set.seed(1)  
+sim_name <- paste0("mammals_", Sys.Date())
+```
+
+## Step 2 - Load Landscape data
+
+The landscape to use in the simulation are loaded using the `terra::sds()` function and as such should be in the `SpatRaster` format. All layers should have the same resolution and extent for the same species. Each layer in the loaded landscape will represent a timestep in the simulation, so there should be as many layers in our landscape as timesteps.
+
+```{r landscape loading}
+sim_env <- sds(list.files(dirinput,
+                          pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
+```
+
+```{r suitability plots, warning=FALSE, message=FALSE, echo=FALSE, fig.dim=c(10,8)}
+# find reprojected raster for target sps (inside INPUTS directory)
+sps_suitability <- rast(list.files(dirinput,
+                                   pattern = paste0(target_species, "_suitability_cropped_modified_reprojectedKm.tif"),
+                                   full.names = TRUE))
+# replace layers names with timesteps labels
+names(sps_suitability) <- paste0("Timestep ", 101:125)
+
+library(RColorBrewer)
+ggplot() +
+  # use tidyterra's geom_spatrater function to plot spatraster layers 
+  tidyterra::geom_spatraster(data = sps_suitability) +
+  facet_wrap(.~lyr, ncol = 10) +
+  # colorscale
+  scale_fill_gradientn(colors = brewer.pal(11, "RdYlGn"), na.value = "transparent",
+                       breaks = c(min(terra::global(sps_suitability, min, na.rm = TRUE)[,1]),
+                                 max(terra::global(sps_suitability, max, na.rm = TRUE)[,1])),
+                       labels = c("Low\n 0.0", "High\n 1.0"),
+                       name = "Suitability\nIndex") +
+  labs(x = "Latitude", y = "Longitude", title = paste0(target_species, " Suitability Maps")) +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 9, face = "bold", vjust = 0.9),
+        panel.background = element_blank(),
+        panel.spacing.y = unit(0.5, "lines"),
+        legend.position = c(.55, .15),
+        legend.direction = "vertical",
+        plot.margin = margin(t = 0, r = 0, b = 0, l = 0))
+```
+
+**ADD HERE SUITABILITY PLOTS MAKE SOURCE FOR THAT SCRIPT**
+
+## Step 3 - Create a simulation object
+
+After our landscapes for our target species are loaded, the simulation object needs to be created, where those exact ladnscapes are the argument the function needs.
+
+```{r sim object}
+sim <- create_simulation(sim_env)
+```
+
+## Step 4 - Add the timesteps
+
+To incorporate a burn-in period into our simulation we need to set up with an initial phase of 100 steps (which are all the same) followed by sequential time steps. In total this simulation had 125 timesteps.
+
+```{r time layer}
+sim$set_time_layer_mapping(c(rep(1, 100), seq_len(min(nlyr(sim_env)))))
+```
+
+## Step 5 - Add the Species & Traits
+
+After the simulation is created, we can add species that we previously set as our `target_species`. From this point forward the code syntax will switch to R6 package, which is used by the metaRange function.
+
+Traits are also added at this point, with some being set as `population level = TRUE` meaning that the trait is stored as a matrix or set as `population_level = FALSE` meaning as a single value for that species.
+
+```{r adding sps & traits, results="hide", message=FALSE, warning=FALSE}
+for (i in seq_len(nrow(species_traits))) {
+  this_species <- species_traits[["Species"]][i]
+  
+  # "register" the species with the simulation
+  sim$add_species(this_species)
+  
+  # add traits that need to be stored at the population level
+  sim$add_traits(
+    species = this_species,
+    population_level = TRUE,
+  
+      "abundance" = species_traits[["initialAbundance"]][i],
+      "abundance_before" = 0,
+      "reproductionRate" = species_traits[["reproductionRate"]][i],
+      "carryingCapacity" = species_traits[["carryingCapacity"]][i],
+      "yearlySurvivalRate" = species_traits[["yearlySurvivalRate"]][i])
+  
+  # add traits that are the same for all populations of a species
+  sim$add_traits(
+    species = this_species,
+    population_level = FALSE,
+      "dispersalDistance" =  species_traits[["dispersalDistance"]][i],
+      "maxReproductionRate" = species_traits[["reproductionRate"]][i],
+      "maxCarryingCapacity" = species_traits[["carryingCapacity"]][i],
+  
+  # simple kernel, but you can use any function / dispersal kernel
+      "dispersalKernel" = calculate_dispersal_kernel(
+        max_dispersal_dist = as.integer(species_traits[["dispersalMaxDistance"]][i]),
+        kfun = negative_exponential_function,
+        mean_dispersal_dist = species_traits[["dispersalDistance"]][i],
+      )
+    )
+}
+```
+
+We can check the traits for the moose by plotting them:
+
+```{r plotting traits, fig.dim=c(8,8), warning=FALSE, message=FALSE}
+par(mfrow = c(1,2))
+plot(sim$Alcesalces, "abundance",
+     main = "Moose abundance\ninitial value\n(matrix)",
+     col = "chartreuse3")
+plot(sim$Alcesalces, "dispersalDistance",
+     main ="Moose dispersal distance\n initial value\n(single value)",
+     xlab = "", ylab = "")
+```
+
+## Step 6 - Add Global Variables
+
+A list of global variables can be craeted to track species populations throughout the simulation and allow easy model diagnostics in the end. Here we added global variables for the total number of individuals (n_abundance), men number of individuals per cell (mean_abundance), reproduction rate (mean_rrate), carrying capacity (mean_ccap) and number of occupied cells (n_occupied).
+
+```{r global variables}
+species_names <- sim$species_names()
+species_sum_abundance <- vector("list", length(species_names))
+names(species_sum_abundance) <- species_names
+for (i in species_names) {
+  species_sum_abundance[[i]] <- list(
+  "n_abundance" = vector("numeric", sim$number_time_steps),
+  "mean_abundance" = vector("numeric", sim$number_time_steps),
+  "mean_rrate" = vector("numeric", sim$number_time_steps),
+  "mean_ccap" = vector("numeric", sim$number_time_steps),
+  "n_occupied" = vector("numeric", sim$number_time_steps)
+  )
+  }
+
+do.call(sim$add_globals, species_sum_abundance)
+```
+
+## Step 7 - Adding the processes
+
+### Suitability influence on population dynamics
+
+Suitability influences species traits. To account for this, we incorporated a process that simultaneously adjusts both the reproductive rates and carrying capacities of each species, ensuring they respond dynamically to habitat suitability for each cell.
+
+```{r suitability process}
+# Suitability influence on the environment  
+sim$add_process(
+  species = species_names,
+  process_name = "suitability_influence_population_parameter",
+  process_fun = function() {
+    species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojectedKm")
+    
+    self$traits[["carryingCapacity"]] <-
+      self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
+    
+    self$traits[["reproductionRate"]] <-
+      self$traits[["maxReproductionRate"]] * self$sim$environment$current[[species_suitability_name]]
+  },
+  execution_priority = 1
+)
+```
+
+### Demography
+
+To include local population’s dynamics was included in this model through the **Beverton & Holt model**, a density-dependent population dynamics model where population size stabilizes as resource limitations increase competition among individuals. Considering the large macroecological approach used here, this model was used as an alternative to more stage dynamics focused models, which are already included in the metaRange package.
+
+```{r beverton and holt}
+# Demographic processes (Beverton & Holt)
+sim$add_process(
+  species = species_names,
+  process_name = "demography_BevertonHolt",
+  process_fun = function(){
+    self$traits[["abundance"]] <- beverton_holt(abundance = self$traits[["abundance"]],
+                                                reproduction_rate = self$traits[["reproductionRate"]],
+                                                carrying_capacity = self$traits[["carryingCapacity"]],
+                                                survival_rate = self$traits[["yearlySurvivalRate"]])
+  },
+  execution_priority = 2
+)
+```
+
+### Dispersal
+
+To model population’s dispersal movements, the metaRange function `dispersal()` was used, where the dispersal is modeled as a dispersal kernel applied to each cell of the abundance matrix. The function distributes the individuals from a source cell to the surrounding cells, influenced by weights (calculated as the habitat suitability multiplied with the climate suitability), which are used to redistribute the individuals within the dispersal kernel, resulting in heterogeneous dispersal.
+
+Additionally, we introduce **dispersal change** within the dispersal process to track population movements in the landscape. Dispersal change is defined as the difference between the number of individuals in a cell after dispersal and the number of individuals before dispersal, allowing us to quantify how many individuals left and entered each cell in each timestep.
+
+```{r dispersal}
+# Dispersal
+sim$add_process(
+  species = species_names,
+  process_name = "dispersal_process",
+  process_fun = function() {
+    # save the number of individuals before dispersing
+    self$traits[["abundance_before"]] <- trunc(self$traits[["abundance"]])
+    # weighted dispersal
+    # i.e. individuals disperse more likely into more suitable cells
+    self$traits[["abundance"]] <- dispersal(
+      abundance = self$traits[["abundance"]],
+      weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojectedKm")]],
+      dispersal_kernel = self$traits[["dispersalKernel"]])
+    # calculate the dispersal change
+    self$traits[["dispersal_change"]] <- self$traits[["abundance"]] - self$traits[["abundance_before"]]
+  },
+  execution_priority = 3
+)
+```
+
+### Other processes
+
+**Truncate**
+
+To ensure that only whole individuals occur in our landscape we use the `truncate` function to eliminate the possibility of 0.5 individuals.
+
+```{r truncate}
+# Ensure whole individuals
+sim$add_process(
+  process_name = "truncate",
+  process_fun = function() {
+    # just because there is nothing in reality like 0.5 individuals
+    for (i in self$globals[["alive_species"]]) {
+      self[[i]]$traits[["abundance"]] <- trunc(self[[i]]$traits[["abundance"]])
+    }
+  },
+  execution_priority = 5
+)
+```
+
+**Tracking statistics**
+
+We also introduce tracking statistics, based on the global variables defined in a previous step and remove species from the process queue in case they go extinct.
+
+```{r stats}
+# Tracking statistics
+sim$add_process(
+  process_name = "track_stats",
+  process_fun = function() {
+    for (i in self$globals[["alive_species"]]) {
+      current_abu <- sum(self[[i]]$traits[["abundance"]], na.rm = TRUE) # sum up all abundances across cells
+      # remove species from future process queue if extinct
+      # i.e. we don't need to calculate suitability for extinct species
+      if (current_abu <= 1) {
+        current_abu <- 0
+        for (p in self[[i]]$processes) {
+          self$queue$dequeue(p$get_PID())
+        }
+        
+        self$globals[["alive_species"]] <-
+          self$globals[["alive_species"]][
+            self$globals[["alive_species"]] != i
+          ]
+        if (length(self$globals[["alive_species"]]) == 0) {
+          print("all species extinct")
+          self$exit()
+        }
+      }
+      self$globals[[i]][["n_abundance"]][[self$get_current_time_step()]] <-
+        current_abu # for sps still alive save total abundance for each time step
+      
+      self$globals[[i]][["mean_abundance"]][[self$get_current_time_step()]] <-
+        mean(self[[i]]$traits[["abundance"]], na.rm = TRUE) # mean abundance of species in the landscape
+      
+      self$globals[[i]][["mean_rrate"]][[self$get_current_time_step()]] <-
+        mean(self[[i]]$traits[["reproductionRate"]], na.rm = TRUE) # mean reproduction rate
+      
+      self$globals[[i]][["mean_ccap"]][[self$get_current_time_step()]] <-
+        mean(self[[i]]$traits[["carryingCapacity"]], na.rm = TRUE) # mean carrying capacity
+      
+      self$globals[[i]][["n_occupied"]][[self$get_current_time_step()]] <-
+        sum(self[[i]]$traits[["abundance"]] > 1, na.rm = TRUE) # sum up all cells occupied by each alive sps
+      
+    }
+  },
+  execution_priority = 6
+)
+```
+
+**Save results**
+
+Saving the results is also included as a process in the model where we can define the output file names as we which. In this case model output files follow this organisation:
+
+-   BIOMENAME_REGION_TIMESTEP_SPSNAME_RASTERTYPE.tif.
+
+```{r save results}
+# Saving results
+sim$add_process(
+  process_name = "save_results",
+  process_fun = function() {
+
+    for (species in species_names) {
+      suffix <- paste0(str_replace_all(target_biome, " ", ""), "_", target_region, "_")
+      save_species(
+        # pass the species object
+        self[[species]],
+        # specify traits we want to save
+        traits = c("abundance", "reproductionRate", "dispersal_change"),
+        # a prefix for each time step
+        prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
+        # where should it be saved
+        path = dirout,
+        overwrite = TRUE
+      )
+    }
+  },
+  execution_priority = 7
+)
+```
+
+## Step 8 - Start the simulation
+
+Finally, all that is left is to initiate the simulation. We set the verbosity back to 1 to show only progress updates.
+
+```{r, eval=FALSE}
+set_verbosity(1L)
+print("Simulation begin")
+sim$begin()
+print("Simulation finished")
+```
+
+The following steps are additional.
+
+## Step 9 - Save mean abundance per cell plots
+
+To allow a simple and quick way to asses the model simulation for each species we plot the mean abundance per cell for each species separately. This way we can we the behavior of the species abundance over time imedeatly after the simulation finishes
+
+```{r, eval=FALSE}
+for (species in target_species) {
+tiff(file.path(dirout, paste0("MeanAbundancePerCell", species, ".tiff")),
+     width = 300, height = 230, units = "mm", res = 1200, compression = "lzw")
+# plotting mean abundance per cell
+plot(sim$globals[[species]][["mean_abundance"]],
+     type = "l",
+     xlab = "Time", ylab = "Mean Abundance Per Cell", main = species)
+dev.off()
+}
+```
+
+
+## Step 10 - Settings file
+
+We can save a simulation summary with an overall description of the simulation and a species specific report to allow us to revisit simualtion parameters and set up in the future.
+
+```{r, eval=FALSE}
+sink(file.path(dirout, "simulationSettings.txt"))
+# write overall summary of simulation
+cat("### Overall Simulation Summary ###\n")
+print(summary(sim))
+cat("\n========================================\n\n")
+# write a specific summary for the species
+for (species in target_species) {
+  cat("\nSummary for:", species, "\n")  
+  print(summary(sim[[species]]))  
+  cat("\n--------------------------------\n")
+}
+  
+sink()
+```
+
+# Model results
+
+In this example, we saved the simulation results in raster format, for the abundance, reproduction rate and dispersal change. Visualising those results, we can see that:
+
+**Final abundance maps**
+
+```{r abundance, warning=FALSE, message=FALSE, fig.dim=c(8,9)}
+# find raster for sps final abundance
+  abund125 <- rast(list.files(dirout,
+                              pattern = paste0("125_", target_species, "_abundance\\.tif"), full.names = TRUE))
+  # convert to dataframe
+  abundance125_df <- as.data.frame(abund125, xy = TRUE)
+  
+  # plot final abundance values for sps
+  abundance125_plot <- ggplot() +
+    geom_raster(data = abundance125_df, aes(x = x, y = y, fill = lyr1)) +
+    scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), na.value = "transparent", name = "Abundance\n(nº indiv.)") +
+    #scale_fill_viridis_c(name = "Nº of\nindividuals", na.value = NA) +
+    # remove space between axis and plot area
+    scale_x_continuous(expand = c(0,0)) +
+    scale_y_continuous(expand = c(0,0)) +
+    labs(x = "Latitude", y = "Longitude") +
+    theme_minimal() +
+    theme(legend.title = element_text(size = 10, face = "bold", vjust = 0.9),
+          legend.position = c(0.9, 0.15),
+          legend.box.background = element_rect(fill = "white", color = NA),
+          axis.ticks = element_line(color = "black", linewidth = 0.5))
+abundance125_plot
+```
+
+**Model validation**
+
+```{r modelvalidation function & data, echo=FALSE, warning=FALSE, message=FALSE}
+validateModel_1sps <- function(
+    targetspecies, independentDensity, estimatedDensity, spData) {
+  # compares mean density estimated by model per cell with
+  # predicted density from independent model extract predicted abundance 
+  # and join with observed abundance
+  # based on validateModel1 from MechSpatCons but uses estimated
+  # number of individuals from rangeshifter output dataframe
+  # instead from raster
+  
+  ## species density estimates by an independent source (akin to observed density)
+  independentDensity <- independentDensity %>% 
+    dplyr::filter(Species %in% target_species) %>%
+    dplyr::select(Species, lw95, lw75, PredMd, up75, up95) %>%
+    mutate(
+      lw95 = as.numeric(lw95),
+      lw75 = as.numeric(lw75),
+      PredMd = as.numeric(PredMd), # Predicted population density (individuals/km2)
+      up75 = as.numeric(up75),
+      up95 = as.numeric(up95)) %>%
+    rename(
+      species = Species,
+      meanDensity = PredMd
+    )
+  
+  ## species density estimated by metaRange
+  predicted <- estimatedDensity %>%
+    mutate(species = target_species) %>% 
+    dplyr::group_by(species, x, y) %>%
+    dplyr::summarise(
+      meanNInd = mean(lyr1),
+      .groups = 'drop') %>%
+    as.data.frame()
+  
+  spData2 <- spData %>%
+    dplyr::select(Species, ModellingRes) %>%
+    dplyr::filter(Species == target_species) %>% 
+    rename(species = Species) %>%
+    as.data.frame()
+  
+  estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
+    mutate(estimatedDensity = meanNInd/ModellingRes)
+  
+  ## compare observed with predicted density
+  list <- list(independentDensity, estimatedDensityJoin)
+  names(list) <- c("independentDensity", "estimatedDensity")
+  return(list)
+}
+
+# nicer names for plotting
+names_replace <- c("Alcesalces" = "Alces alces",
+                   "Lynxlynx" = "Lynx lynx",
+                   "Cervuselaphus" = "Cervus elaphus",
+                   "Rangifertarandus" = "Rangifer tarandus",
+                   "Susscrofa" = "Sus scrofa",
+                   "Damadama" = "Dama dama",
+                   "Canislupus" = "Canis lupus")
+
+# import external data for model validation
+santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
+  mutate(Species = str_replace_all(Species, " ", ""))
+
+# import species traits df for model validation
+spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+```
+
+
+```{r validation, warning=FALSE, message=FALSE, fig.dim=c(8,9)}
+# find raster for timestep to validate
+abund101 <- rast(list.files(dirout,
+                            pattern = paste0("101_", target_species, "_abundance\\.tif"), full.names = TRUE))
+# convert to dataframe
+abundance101_df <- as.data.frame(abund101, xy = TRUE)
+# aplly model validate function
+validationList <- validateModel_1sps(# target species to validate
+                                     targetspecies = target_species,
+                                     # target sps abundance estimates from external source
+                                     independentDensity = santini2022,
+                                     # target sps abundance estimated with our model
+                                     estimatedDensity = abundance101_df,
+                                     # target sps trait data
+                                     spData = spData)
+# replace sps names to better looking
+validationList <- lapply(validationList, function(df) {df$species <- names_replace[df$species]; return(df) })
+# plot model validation
+validation_plot <- ggplot(validationList$independentDensity, aes(species)) +
+  geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+  geom_point(data = validationList$estimatedDensity,
+             aes(x = species, y = estimatedDensity), color = "firebrick3", position = "jitter", size = 1) +
+  labs(y = "Independent density estimate", x = element_blank(),
+       #title = "Model validation",
+       subtitle =  "Estimated densities in red", 
+       #caption = "performed for timestep 100"
+       ) +
+  theme_minimal() +
+  theme(plot.caption = element_text(size = 8),
+        axis.text.x = element_text(size = 10))
+validation_plot
+```
+
