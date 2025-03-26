@@ -46,11 +46,11 @@ t_policy <- 110
 # Total number of individuals (TNIND) per year and cellid
 ######### AT THE MOMENT WE STILL DON'T HAVE DIFFERENT REPLICATES ###############
 TNIND <- totalDataset %>%
-  group_by(species, Taxa, biome, scenario, timestep, x, y) %>% # ADD HERE WHEN IT EXISTS THE REP VARIABLE (REP FOR REPLICATES)
+  group_by(species, Taxa, biome, scenario, timestep) %>% # ADD HERE WHEN IT EXISTS THE REP VARIABLE (REP FOR REPLICATES)
   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
                    n = n()) %>% 
   dplyr::select(!n) %>% 
-  group_by(species, Taxa, biome, scenario, timestep, x, y) %>% # KEEP SIM BUT REMOVE REP HERE
+  group_by(species, Taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
   dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
 head(TNIND)
 
