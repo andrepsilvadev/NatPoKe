@@ -273,6 +273,44 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
   return(percentage_change_rasters_list)
 }
 
+load_select_continents <- function(continent_names) {
+  continents <- ne_countries(scale = "medium", returnclass = "sf")
+  
+  # Initialize an empty list to store merged continents
+  merged_continents <- list()
+  
+  # Handle merged "Central & South America"
+  if ("Central & South America" %in% continent_names) {
+    central_south_america <- continents %>%
+      dplyr::filter(subregion %in% c("Central America", "South America", "Caribbean")) %>%
+      summarise(geometry = st_union(geometry)) %>%
+      mutate(continent = "Central & South America")
+    
+    # Ensure column consistency
+    missing_columns <- setdiff(names(continents), names(central_south_america))
+    for (col in missing_columns) {
+      central_south_america[[col]] <- NA  # Add missing columns with NA values
+    }
+    central_south_america <- central_south_america[names(continents)]  # Reorder columns to match `continents`
+    
+    # Add to merged continents
+    merged_continents[["Central & South America"]] <- central_south_america
+    
+    # Remove "Central & South America" from the continent names
+    continent_names <- setdiff(continent_names, "Central & South America")
+  }
+  
+  # Filter the remaining continents
+  remaining_continents <- continents %>%
+    dplyr::filter(continent %in% continent_names)
+  
+  # Combine merged and remaining continents
+  all_continents <- do.call(rbind, c(merged_continents, list(remaining_continents)))
+  
+  # Return the final dataset
+  return(all_continents)
+}
+
 # Function to load and select continents
 load_select_continents <- function(continent_names) {
   continents <- ne_countries(scale = "medium", returnclass = "sf")
@@ -398,12 +436,13 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
     labs(x = "Longitude", y = "Latitude") +
     theme_minimal() +
     theme(
-      axis.title = element_text(size = 10),
-      axis.text = element_text(size = 8),
+      axis.title = element_text(size = 18),
+      axis.text = element_text(size = 18),
       plot.title = element_blank(),
-      legend.title = element_text(size = 16),
-      legend.text = element_text(size = 12),
-      legend.key.size = unit(0.5, "cm")
+      legend.title = element_text(size = 22, margin = margin(b = 10)),
+      legend.text = element_text(size = 18),
+      legend.key.height = unit(1, "cm"),  # Increase the height of the color ramp
+      legend.spacing = unit(1, "cm")
     ) +
     coord_sf()  # Use coord_sf() for spatial data
   
@@ -697,14 +736,14 @@ for (class in names(baseline_year_raster_classified)) {
     combined_plot_spatial <- grid.arrange(
       arrangeGrob(
         grobs = lapply(continent_title, function(continent) {
-          textGrob(continent, gp = gpar(fontsize = 16))
+          textGrob(continent, gp = gpar(fontsize = 22))
         }),
         ncol = num_continents,
         heights = unit(c(0.5), "null")
       ),
       arrangeGrob(
         grobs = c(
-          list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16))),
+          list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 22))),
           lapply(continent_names, function(continent) {
             plots_spatial[[paste0(scenarios[1], "_", tolower(continent))]]
           })
@@ -714,7 +753,7 @@ for (class in names(baseline_year_raster_classified)) {
       ),
       arrangeGrob(
         grobs = c(
-          list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16))),
+          list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 22))),
           lapply(continent_names, function(continent) {
             plots_spatial[[paste0(scenarios[2], "_", tolower(continent))]]
           })
@@ -733,13 +772,13 @@ for (class in names(baseline_year_raster_classified)) {
         ncol = 1
       ),
       ncol = 2,  # Two columns: one for the plot and one for the legend
-      widths = unit(c(15, 2.5), "null"),
-      top = textGrob(paste0("Land Use Change for ", class, " in the ", biome_name_short, " (", baseline_year, " vs. ", year, ")"), gp = gpar(fontsize = 18))
+      widths = unit(c(15, 3), "null"),
+      top = textGrob(paste0("Land Use Change for ", class, " in the ", biome_name_short, " (", baseline_year, " vs. ", year, ")"), gp = gpar(fontsize = 24))
     )
     
     # Save the combined plot
     ggsave(filename = file.path(output_folder, paste0("LandUseChange_", class, "_spatialChanges_", year, "_", gsub(" ", "_", biome_name_short), ".png")), 
            plot = final_plot, 
-           width = 20, height = 10, dpi = 300)
+           width = 24, height = 10, dpi = 300)
   }
 }
