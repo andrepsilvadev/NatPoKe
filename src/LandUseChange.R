@@ -273,6 +273,7 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
   return(percentage_change_rasters_list)
 }
 
+# Function to load and select continents
 load_select_continents <- function(continent_names) {
   continents <- ne_countries(scale = "medium", returnclass = "sf")
   
@@ -311,45 +312,6 @@ load_select_continents <- function(continent_names) {
   return(all_continents)
 }
 
-# Function to load and select continents
-load_select_continents <- function(continent_names) {
-  continents <- ne_countries(scale = "medium", returnclass = "sf")
-  
-  # handle merged "Central & South America"
-  if ("Central & South America" %in% continent_names){
-    central_south_america <- continents %>%
-      dplyr::filter(subregion %in% c("Central America", "South America", "Caribbean")) %>%
-      summarise(geometry = st_union(geometry)) %>%
-      mutate(continent = "Central & South America")
-    
-    # Ensure column consistency by adding missing columns to `central_south_america`
-    missing_columns <- setdiff(names(continents), names(central_south_america))
-    for (col in missing_columns) {
-      central_south_america[[col]] <- NA  # Add missing columns with NA values
-    }
-    central_south_america <- central_south_america[names(continents)]  # Reorder columns to match `continents`
-    
-    # Remove Central and South America from the original list
-    continent_names <- setdiff(continent_names, "Central & South America")
-    
-    # Add the merged continent
-    continents <- rbind(
-      continents %>% dplyr::filter(continent %in% continent_names),
-      central_south_america
-    )
-  } else {
-    # Filter by the remaining continent names
-    continents <- continents %>%
-      dplyr::filter(continent %in% continent_names)
-  }
-  # Group and combine geometries by continent
-  continents <- continents %>%
-    group_by(continent) %>%
-    summarise(geometry = st_combine(geometry)) %>%
-    ungroup()
-  
-  return(continents)
-}
 
 intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
   # Validate and fix geometries
@@ -385,8 +347,25 @@ extract_legend <- function(plot) {
   return(legend)
 }
 
+# Define bounding boxes for specific continents
+get_bounding_box <- function(continent_name) {
+  bounding_boxes <- list(
+    "North America" = st_bbox(c(xmin = -180, ymin = 20, xmax = -50, ymax = 80)),  # North America
+    "Europe" = st_bbox(c(xmin = -30, ymin = 40, xmax = 180, ymax = 80))  # Europe and Asia
+  )
+  return(bounding_boxes[[continent_name]])
+}
+
+# Apply bounding box to biome_geom if applicable
+if (!is.null(continent_name)) {
+  bounding_box <- get_bounding_box(continent_name)
+  if (!is.null(bounding_box)) {
+    biome_geom <- st_crop(biome_geom, bounding_box)
+  }
+}
+
 # Function to create individual plots for each scenario, class, and year
-plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value) {
+plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value, continent_name=NULL) {
   # Convert raster to data frame
   raster_df <- as.data.frame(raster, xy = TRUE)
   colnames(raster_df)[3] <- "value"  # Percentage change (%)
@@ -401,6 +380,14 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
   # Ensure CRS consistency
   biome_geom <- st_transform(biome_geom, crs = st_crs(countries))
   countries <- st_transform(countries, crs = st_crs(biome_geom))
+  
+  # Apply bounding box to countries if applicable
+  if (!is.null(continent_name)) {
+    bounding_box <- get_bounding_box(continent_name)
+    if (!is.null(bounding_box)) {
+      countries <- st_crop(countries, bounding_box)
+    }
+  }
   
   # Validate geometries
   countries <- st_make_valid(countries)
@@ -701,7 +688,7 @@ for (class in names(baseline_year_raster_classified)) {
     plots_spatial <- list()
     
     for (scenario in scenarios) {
-      for (continent in names(continent_geoms)) {
+      for (continent in names(continent_geoms)) { #continent_geoms or continent_names
         
         # Access the raster from cropped_rasters
         raster <- cropped_rasters[[year]][[scenario]][[class]][[continent]]
@@ -711,7 +698,8 @@ for (class in names(baseline_year_raster_classified)) {
           biome_continents[[continent]],
           custom_color_ramp,
           "Change in %", 
-          -100, 100
+          -100, 100,
+          continent_name = continent
         )+
           theme(legend.position = "none")  # Remove individual legends
         
@@ -725,7 +713,8 @@ for (class in names(baseline_year_raster_classified)) {
       color_ramp = custom_color_ramp,
       fill_label = "Change in %",
       min_value = -100,
-      max_value = 100
+      max_value = 100,
+      continent_name = continent[continent_names[1]]
     )
     shared_legend <- extract_legend(example_plot)
     
