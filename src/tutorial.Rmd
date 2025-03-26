@@ -21,13 +21,30 @@ source(here("src", "libraries.R"))
 
 # Introduction
 
-This tutorial explains how to run the metaRange model framework for multiple mammal species. It walks through formatting and loading input data, setting up the simulation, running the simulation and what outputs can be expected.
+This tutorial explains how to run the metaRange model framework for mammal species. It walks through formatting and loading input data, setting up the simulation, running the simulation and what outputs can be expected.
 
 > To run our approach, input directories (dirinput) and output directories (dirout) were previously created to save the input files and respective model output raster files and plots.
+
+> As well as, select a **target biome**, **target region** and **target species**. We can set multiple target species but only one target biome or region as these will be used in the names used to save output files.
 
 ```{r dirinput, echo=FALSE}
 dirinput <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/21Mar2025_TEST/Inputs"
 dirout <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/21Mar2025_TEST/Outputs"
+```
+
+
+```{r targets}
+# select target biome
+target_biome <- "Boreal Forests Taiga" 
+
+# select target region
+target_region <- "Sweden"  
+
+# select target species
+target_species <- "Alcesalces" 
+
+# import trait dataframe
+species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 ```
 
 # Model Inputs
@@ -71,12 +88,10 @@ duplicate_layers <- function(raster, times) {
 
 **3. Crop the global landscape to the target region** - Since we are modelling species within a specific biome and continent, we need to crop the global landscape to the relevant area,
 
-```         
 (Later we will be using the ecoregion from [Dinerstein et al. 2017](https://academic.oup.com/bioscience/article/67/6/534/3102935) and continental boundaries available in \`rnaturalearth\` package.) - code is already avaliable [here]()
-```
 
 ```{r crop rasters, eval=FALSE}
-SW <- ne_countries(scale = "large", country = "Sweden", returnclass = "sv")
+SW <- ne_countries(scale = "large", country = target_region, returnclass = "sv")
 
 # loop through each raster file
 for (r in raster_files) {
@@ -187,31 +202,28 @@ datatable(species_traits %>%
 >
 > The Species Trait dataframe should only have species without spaces between the genus and species names.
 
+# Model simulation
 
-# Model simulation 
-
-```{r moose, echo=FALSE, fig.align = 'center'}
+```{r moose, echo=FALSE, fig.align = 'center', fig.width=8}
 sps_uid <- rphylopic::get_uuid("Alces alces", n = 3)
-# plot icon and title
+world <- ne_countries(scale = "medium", returnclass = "sf")
+continent <- world[world$region_un == "Europe", ]
+region_sf <- world[world$name == target_region, ]
+
 ggplot() +
-    coord_cartesian(xlim = c(0, 1), ylim = c(0, 0.6)) +
-    rphylopic::add_phylopic(uuid = ifelse(is.na(sps_uid[3]), sps_uid[1], sps_uid[3]), x = 0.7, y = 0.4, height = 0.4) +
-    geom_text(aes(x = 0.6, y = 0.15, label = "For example purposes let's follow the moose simulation."), fontface = "italic", size = 5)+
-    theme_void()
-```
-
-## Pre set-up
-
-To run the model we need to decide our **target biome**, our **target region** and our **target species**. We can set multipel target species but only one target biome or region as these will be used in the names used to save output files.
-
-```{r targets}
-target_biome <- "Boreal Forests Taiga"  
-target_region <- "Sweden"  
-
-# import trait dataframe
-species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
-
-target_species <- "Alcesalces" 
+  geom_sf(data = continent, fill = "gray95", color = "black") +
+  geom_sf(data = region_sf, fill = "tan1", color = "black") +
+  coord_sf(xlim = c(-8, 50), ylim = c(37, 70)) +
+  rphylopic::add_phylopic(uuid = ifelse(is.na(sps_uid[3]), sps_uid[1], sps_uid[3]), x = 30, y = 47, height = 17) +
+    geom_text(aes(x = 20, y = 37, label = "As an example let's follow the moose simulation, in Sweden."), fontface = "bold", size = 4) +
+  ggspatial::annotation_north_arrow(location = "tl", height = unit(0.8, "cm"),
+  width = unit(0.6, "cm")) +
+  theme_minimal() +
+  theme(panel.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank())
 ```
 
 ## Step 1 - Setting up the simulation
@@ -263,7 +275,6 @@ ggplot() +
         plot.margin = margin(t = 0, r = 0, b = 0, l = 0))
 ```
 
-**ADD HERE SUITABILITY PLOTS MAKE SOURCE FOR THAT SCRIPT**
 
 ## Step 3 - Create a simulation object
 
@@ -403,7 +414,7 @@ sim$add_process(
 
 To model population’s dispersal movements, the metaRange function `dispersal()` was used, where the dispersal is modeled as a dispersal kernel applied to each cell of the abundance matrix. The function distributes the individuals from a source cell to the surrounding cells, influenced by weights (calculated as the habitat suitability multiplied with the climate suitability), which are used to redistribute the individuals within the dispersal kernel, resulting in heterogeneous dispersal.
 
-Additionally, we introduce **dispersal change** within the dispersal process to track population movements in the landscape. Dispersal change is defined as the difference between the number of individuals in a cell after dispersal and the number of individuals before dispersal, allowing us to quantify how many individuals left and entered each cell in each timestep.
+Additionally, we introduce **dispersal change** within the dispersal process to track population movements in the landscape (see Dispersal change section bellow). 
 
 ```{r dispersal}
 # Dispersal
@@ -537,7 +548,7 @@ sim$begin()
 print("Simulation finished")
 ```
 
-The following steps are additional.
+The following steps are optional.
 
 ## Step 9 - Save mean abundance per cell plots
 
@@ -554,7 +565,6 @@ plot(sim$globals[[species]][["mean_abundance"]],
 dev.off()
 }
 ```
-
 
 ## Step 10 - Settings file
 
@@ -578,35 +588,172 @@ sink()
 
 # Model results
 
-In this example, we saved the simulation results in raster format, for the abundance, reproduction rate and dispersal change. Visualising those results, we can see that:
+In this example, we saved the simulation results in raster format, for the abundance, reproduction rate and dispersal change, allowing to produce the following maps.
 
-**Final abundance maps**
+## Abundance in the last timestep
 
-```{r abundance, warning=FALSE, message=FALSE, fig.dim=c(8,9)}
+We can assess the species abundance in the final timestep and assess how the species reacted to the changes in the landscape, by retrieving the last timestep abundance raster as follows:
+
+```{r abundance, warning=FALSE, message=FALSE, fig.dim=c(6,9), fig.align='center'}
 # find raster for sps final abundance
-  abund125 <- rast(list.files(dirout,
-                              pattern = paste0("125_", target_species, "_abundance\\.tif"), full.names = TRUE))
-  # convert to dataframe
-  abundance125_df <- as.data.frame(abund125, xy = TRUE)
-  
-  # plot final abundance values for sps
-  abundance125_plot <- ggplot() +
-    geom_raster(data = abundance125_df, aes(x = x, y = y, fill = lyr1)) +
-    scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), na.value = "transparent", name = "Abundance\n(nº indiv.)") +
-    #scale_fill_viridis_c(name = "Nº of\nindividuals", na.value = NA) +
-    # remove space between axis and plot area
-    scale_x_continuous(expand = c(0,0)) +
-    scale_y_continuous(expand = c(0,0)) +
-    labs(x = "Latitude", y = "Longitude") +
-    theme_minimal() +
-    theme(legend.title = element_text(size = 10, face = "bold", vjust = 0.9),
-          legend.position = c(0.9, 0.15),
-          legend.box.background = element_rect(fill = "white", color = NA),
-          axis.ticks = element_line(color = "black", linewidth = 0.5))
+abund125 <- rast(list.files(dirout,
+                            pattern = paste0("125_", target_species, "_abundance\\.tif"), full.names = TRUE))
+# convert to dataframe
+abundance125_df <- as.data.frame(abund125, xy = TRUE)
+
+# plot final abundance values for sps
+abundance125_plot <- ggplot() +
+  geom_raster(data = abundance125_df, aes(x = x, y = y, fill = lyr1)) +
+  scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), na.value = "transparent", name = "Abundance\n(nº indiv.)") +
+  #scale_fill_viridis_c(name = "Nº of\nindividuals", na.value = NA) +
+  # remove space between axis and plot area
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(x = "Latitude", y = "Longitude", caption = "EPSG:3006") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10, face = "bold", vjust = 0.9),
+        legend.position = c(0.9, 0.15),
+        legend.box.background = element_rect(fill = "white", color = NA),
+        axis.ticks = element_line(color = "black", linewidth = 0.5))
 abundance125_plot
 ```
+## Dispersal change in the last timestep
 
-**Model validation**
+Dispersal change was defined as the difference between the number of individuals in a cell after dispersal  and the number of individuals before dispersal, in the current timestep, which allows us to quantify how many individuals left and entered each cell in each timestep. 
+
+```{r dispersal change, warning=FALSE, message=FALSE, fig.dim=c(6,9), fig.align='center'}
+# list dispersal change files
+dispersal_files <- rast(list.files(path = dirout,
+                                pattern = paste0("125_", target_species, "_dispersal_change\\.tif"),
+                                full.names = TRUE))
+dispersal_df <- as.data.frame(dispersal_files, xy = TRUE)
+
+# plot dispersal change 
+dispersal_plot <- ggplot() +
+  geom_raster(data = dispersal_df, aes(x = x, y = y, fill = lyr1)) +
+  labs(x = "Latitude", y = "Longitude", caption = "EPSG:3006") +
+  scale_fill_gradient2(low = "chartreuse3", mid = "white", high = "firebrick3", midpoint = 0,
+                       breaks = c(min(dispersal_df$lyr1, na.rm = TRUE),
+                                  mean(dispersal_df$lyr1, na.rm = TRUE),
+                                  max(dispersal_df$lyr1, na.rm = TRUE)),
+                       labels = c(paste0(round(min(dispersal_df$lyr1, na.rm = TRUE)), "\n(emigration)"),
+                                  paste(round(mean(dispersal_df$lyr1, na.rm = TRUE)), "\n(no change)"),
+                                  paste(round(max(dispersal_df$lyr1, na.rm = TRUE)), "\n(immigration)")),
+                       name = "Mean Dispersal\nChange Over\nTime (nº of indiv.)") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10, face = "bold", vjust = 1.9),
+        legend.position = c(0.9, 0.2),
+        legend.text = element_text(vjust = 0.8),
+        # remove background and line from legend box
+        legend.box.background = element_rect(fill = NA, color = NA),
+        # remove grid lines
+        panel.background = element_blank(),
+        panel.grid.minor = element_blank(),
+        # remove coordinates and axis labels
+        axis.title = element_blank())
+dispersal_plot
+```
+
+## Proportion of abundance change
+
+We can also quantify the change in abundance for each species using the model output rasters. By comparing abundance rasters from the final and initial timesteps (after the burn-in period), we can calculate the proportional change in abundance for each species. This is done using the following formula:
+
+$Prop.\ Abundance\ Change\ = \frac{Abundance\ t = 125\  -\  abundance\ t = 101} {abundance\ t = 101}$
+
+providing a clear measure of how much a species' abundance has changed over time.
+
+```{r prop abund change, warning=FALSE, message=FALSE, fig.dim=c(6,8), fig.align='center'}
+# go back for the final timestep abundance raster for the sps
+abundance125_df <- abundance125_df %>% 
+  # add timestep info
+  mutate(timestep = 125)
+
+# get 1st timestep after the burn-in
+abund101 <- rast(list.files(dirout,
+                              pattern = paste0("101_", target_species, "_abundance\\.tif"), full.names = TRUE))
+# convert to dataframe
+  abundance101_df <- as.data.frame(abund101, xy = TRUE) %>% 
+  # add timestep info
+  mutate(timestep = 101)
+
+# bind dataframes from both timesteps needed
+abund_change <- rbind(abundance101_df, abundance125_df) %>% 
+  # rename to more understandable
+  rename("abundance" = lyr1) %>% 
+  # calculate the proportion of abundance change
+  mutate(abund_change_prop = (abundance - abundance[timestep == 101])/abundance[timestep == 101])
+
+library(RColorBrewer)
+# proportion of abundance change plot
+prop_abund_change <- ggplot() +
+  geom_raster(data = abund_change, aes(x = x, y = y, fill = abund_change_prop)) +
+  scale_fill_gradientn(colors = brewer.pal(11, "RdBu"), na.value = "transparent") +
+  labs(x = "Latitude", y = "Longitude", fill = "Proportion of\nAbundance\nChange", caption = "EPSG:3006") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10, face = "bold", vjust = 0.9), legend.position = c(0.8, 0.2),
+        # remove background and line from legend box
+        legend.box.background = element_rect(fill = NA, color = NA),
+        # remove grid lines
+        panel.background = element_blank(), panel.grid.minor = element_blank(),
+        # remove coordinates and axis labels
+        axis.title = element_blank())
+prop_abund_change
+```
+
+## Average dispersal change
+
+To analyze how a species has moved in our landscape, over time, we can aggregate and visualize dispersal patterns using the produced dispersal change rasters. By selecting all relevant dispersal change rasters for our target species (after the burn-in and until the simulation's last timestep) and computing their average, we can generate a spatial representation of the target species movement trends. This allows us to identify areas where the species is more likely to emigrate (where more individuals tend to leave) and areas where it is more likely to immigrate (where more individuals tend to arrive).
+
+```{r avg dispersal change, warning=FALSE, message=FALSE, fig.dim=c(6,9), fig.align='center'}
+# list dispersal change files
+dispersal_files <- list.files(path = dirout,
+                            pattern = paste0(".*(10[1-9]|11[0-9]|12[0-5])_", target_species, "_dispersal_change\\.tif"),
+                            full.names = TRUE)
+# read rasters & stack them
+dispersal_stack <- c(rast(dispersal_files))
+# average rasters across ALL years
+dispersal_avg <- mean(dispersal_stack, na.rm = TRUE)
+# transform into dataframe
+dispersal_df <- as.data.frame(dispersal_avg, xy = TRUE)
+
+# plot dispersal change 
+avg_dispersal_plot <- ggplot() +
+  geom_raster(data = dispersal_df, aes(x = x, y = y, fill = mean)) +
+  labs(x = "Latitude", y = "Longitude", caption = "EPSG:3006") +
+  scale_fill_gradient2(low = "chartreuse3", mid = "white", high = "firebrick3", midpoint = 0,
+                       breaks = c(min(dispersal_df$mean, na.rm = TRUE),
+                                  mean(dispersal_df$mean, na.rm = TRUE),
+                                  max(dispersal_df$mean, na.rm = TRUE)),
+                       labels = c(paste0(round(min(dispersal_df$mean, na.rm = TRUE)), "\n(emigration)"),
+                                  paste(round(mean(dispersal_df$mean, na.rm = TRUE)), "\n(no change)"),
+                                  paste(round(max(dispersal_df$mean, na.rm = TRUE)), "\n(immigration)")),
+                       name = "Mean Dispersal\nChange Over\nTime (nº of indiv.)") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10, face = "bold", vjust = 1.9),
+        legend.position = c(0.9, 0.2),
+        legend.text = element_text(vjust = 0.8),
+        # remove background and line from legend box
+        legend.box.background = element_rect(fill = NA, color = NA),
+        # remove grid lines
+        panel.background = element_blank(),
+        Panel.grid.minor = element_blank(),
+        # remove coordinates and axis labels
+        axis.title = element_blank())
+avg_dispersal_plot
+```
+
+
+## Model validation
+
+To determine whether the model accurately represents the behavior of the real system being modeled, we can compare the estimated abundance for our target species with an external source dataset. In this case used the dataset from [Santini et. al 2022](<https://onlinelibrary.wiley.com/doi/full/10.1111/geb.13476>) and a user defined function, which takes as inputs:
+
+-   targetspecies: Vector of species names for which the validation will be performed
+
+-   independentDensity: dataframe containing species density estimates from an Santini et. al 2022
+
+-   estimatedDensity: dataframe containing species abundance data derived from the model output
+
+-   spData: dataframe with species traits (with ModellingRes) to calculate density from abundance
 
 ```{r modelvalidation function & data, echo=FALSE, warning=FALSE, message=FALSE}
 validateModel_1sps <- function(
@@ -674,8 +821,7 @@ santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDR
 spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 ```
 
-
-```{r validation, warning=FALSE, message=FALSE, fig.dim=c(8,9)}
+```{r validation, warning=FALSE, message=FALSE, fig.dim=c(8,7)}
 # find raster for timestep to validate
 abund101 <- rast(list.files(dirout,
                             pattern = paste0("101_", target_species, "_abundance\\.tif"), full.names = TRUE))
@@ -707,4 +853,3 @@ validation_plot <- ggplot(validationList$independentDensity, aes(species)) +
         axis.text.x = element_text(size = 10))
 validation_plot
 ```
-
