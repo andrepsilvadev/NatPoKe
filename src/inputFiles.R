@@ -97,7 +97,8 @@ duplicate_layers <- function(raster, times) {
 
 # Getting region to model shapefile --------------------------------------------
 
-
+# work on flat earth
+sf_use_s2(FALSE) 
 # function to load and select the biome shapefile
 load_select_biome <- function(biome_name) {
   biome_sf <- st_read(here("data/Ecoregions2017", "Ecoregions2017.shp"))

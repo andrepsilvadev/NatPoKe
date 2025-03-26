@@ -67,7 +67,7 @@ sim_name <- "example_01"# simulation parameters
 sim_env <- sds(list.files(dirinput,
                           pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
 invisible(gc())
-
+plot(sim_env$Alcesalces_suitability_cropped_modified_reprojectedKm)
 ##########
 # Step 3 # Create a simulation object 
 ##########
@@ -180,6 +180,7 @@ sim$add_process(
   species = species_names,
   process_name = "dispersal_process",
   process_fun = function() {
+    # save the number of individuals before dispersing
     self$traits[["abundance_before"]] <- trunc(self$traits[["abundance"]])
     # weighted dispersal
     # i.e. individuals disperse more likely into more suitable cells
@@ -187,6 +188,7 @@ sim$add_process(
       abundance = self$traits[["abundance"]],
       weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojectedKm")]],
       dispersal_kernel = self$traits[["dispersalKernel"]])
+    # calculate the dispersal change
     self$traits[["dispersal_change"]] <- self$traits[["abundance"]] - self$traits[["abundance_before"]]
   },
   execution_priority = 3
