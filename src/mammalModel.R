@@ -282,8 +282,11 @@ sim$begin()
 print("Simulation finished")
 
 ##########
-# Step 9 # Save a mean abundance per cell plot (for easy diagnostics)
+# Step 9 # Save additional outputs (for easy diagnostics & plotting)
 ##########
+
+## mean abundance per cell plots ##
+
 for (species in target_species) {
 tiff(file.path(dirout, paste0("MeanAbundancePerCell", species, ".tiff")),
      width = 300, height = 230, units = "mm", res = 1200, compression = "lzw")
@@ -293,6 +296,25 @@ plot(sim$globals[[species]][["mean_abundance"]],
      xlab = "Time", ylab = "Mean Abundance Per Cell", main = species)
 dev.off()
 }
+
+## total number of individuals ##
+
+# create a list to store dfs
+df_list <- list()
+# save total number of individuals (TNIND) in the landscape for each species
+for (species in target_species) {
+  df_list[[species]] <-  as.data.frame(sim$globals[[species]]$n_abundance)%>% 
+    mutate(#Scenario = scenario,
+      Biome = target_biome,
+      Region = target_region,
+      Species = species,
+      Timestep = row_number()) %>% 
+    rename("TNIND" = "sim$globals[[species]]$n_abundance")
+}
+# combine all species together
+TNIND_yr <- do.call(rbind, df_list)
+# save csv file with TNIND
+write.csv(TNIND_yr, file = file.path(dirout, paste0("TNIND_yr_", sim_name, ".csv")), row.names = FALSE)
 
 ###########
 # Step 10 # Save a settings file
@@ -314,4 +336,6 @@ sink()
 
 # remove unecessary objects
 rm(i, species, species_names, species_sum_abundance, this_species)
+
+
 

@@ -124,7 +124,7 @@ crop_biome_to_continent <- function(biome, continent_geom) {
 # Step 3 - crop the target region to model
 biome_to_model <- crop_biome_to_continent(biome = load_select_biome(biome_name = target_biome),
                                           continent_geom = load_select_continents(continent_names = target_continent))
-
+#SW <- ne_countries(scale ="medium", country = "Sweden", returnclass = "sv")
 
 # Cropping ---------------------------------------------------------------------
 
@@ -174,7 +174,7 @@ for (landscape in landscapes) {
   r <- rast(landscape)
   
   # reproject to SWEREF99 TM (EPSG:3006) 
-  r_utm <- project(r, "EPSG:3006")
+  r_utm <- project(r, "EPSG:3035")
   
   # convert to rasterStack
   r_raster <- stack(r_utm)
@@ -186,10 +186,10 @@ for (landscape in landscapes) {
   extent(r_raster) <- extent(r_raster) / 1000
   
   # Modify CRS to indicate the new unit is kilometers
-  new_crs <- gsub("UNIT\\[\"metre\",1\\]", "UNIT[\"kilometre\",1000]", orig_crs)
+  #new_crs <- gsub("UNIT\\[\"metre\",1\\]", "UNIT[\"kilometre\",1000]", orig_crs)
   
   # Apply modified CRS
-  crs(r_raster) <- new_crs
+  #crs(r_raster) <- new_crs
   
   # set target resolution
   target_resolution <- 10 # km
@@ -199,7 +199,7 @@ for (landscape in landscapes) {
   
   # Convert back to SpatRaster while keeping all layers
   #r_km <- rast(agregated_raster)
-  r_km <- rast(agregated_raster)
+  #r_km <- rast(agregated_raster)
   
   #r_km[is.na(r_km)] <- 0
   
@@ -207,7 +207,7 @@ for (landscape in landscapes) {
   output_filename <- gsub("\\.tif$", "_reprojectedKm.tif", landscape)
   
   # save reprojected raster
-  writeRaster(r_km, output_filename, overwrite = TRUE)
+  writeRaster(agregated_raster, output_filename, overwrite = TRUE)
   
   # remove unecessary objects
   #rm(r, r_utm, r_raster, orig_crs, new_crs, r_km, output_filename)

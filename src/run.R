@@ -9,7 +9,7 @@ source("./src/libraries.R") # load necessary packages
 source("./src/customFunctions.R") # load customized functions
 
 # working directories ----------------------------------------------------------
-runname <- "21Mar2025_TEST"
+runname <- "26Mar2025_Europe"
 source("./src/generalSettings.R") # paths and spatial settings
 
 # Input Files ------------------------------------------------------------------
