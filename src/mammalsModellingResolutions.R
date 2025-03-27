@@ -1,10 +1,24 @@
+######################################################
+# MAMMALS WITH COMPLETE TRAITS AND MODELLINGRES PLOT #
+######################################################
+# Inês Silva
+# 27 March 2025
 
+# packages
+library(tidyverse)
+library(xlsx)
 
-sps_traits <- read_csv("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/all_mammals_available_for_metaRange_model.csv")
+# import csv
+sps_traits <- read_csv("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/traits/all_mammals_available_for_metaRange_model.csv")
 
+# delete weird column and keep only one row per species
 fileToSave <- sps_traits %>% 
-  distinct()
-write.csv(fileToSave, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/all_mammals_available_for_metaRange_model.csv")
+  dplyr::select(!"...1") %>% 
+  distinct() %>% 
+  as.data.frame()
+
+write.csv(fileToSave, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/traits/all_mammals_available_for_metaRange_model.csv", row.names = FALSE)
+write.xlsx(fileToSave, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/traits/all_mammals_available_for_metaRange_model.xlsx", row.names = FALSE)
 
 sps_modelling_res <- species_traits %>%
   dplyr::filter(Biome %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
