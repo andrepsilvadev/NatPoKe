@@ -41,7 +41,7 @@ target_biome <- "Boreal Forests Taiga" # Tropical & Subtropical Moist Broadleaf 
 
 # select target region (only one)
 #target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
-target_region <- "Sweden"
+target_region <- "Europe"
 
 # select target species (multiple sps are allowed)
 target_species <- species_traits$Species
@@ -305,16 +305,16 @@ df_list <- list()
 for (species in target_species) {
   df_list[[species]] <-  as.data.frame(sim$globals[[species]]$n_abundance)%>% 
     mutate(#Scenario = scenario,
-      Biome = target_biome,
-      Region = target_region,
-      Species = species,
-      Timestep = row_number()) %>% 
+      biome = target_biome,
+      region = target_region,
+      species = species,
+      timestep = row_number()) %>% 
     rename("TNIND" = "sim$globals[[species]]$n_abundance")
 }
 # combine all species together
 TNIND_yr <- do.call(rbind, df_list)
 # save csv file with TNIND
-write.csv(TNIND_yr, file = file.path(dirout, paste0("TNIND_yr_", sim_name, ".csv")), row.names = FALSE)
+write.csv(TNIND_yr, file = file.path(dirout, paste0("TNIND_yr_", runname, ".csv")), row.names = FALSE)
 
 ###########
 # Step 10 # Save a settings file
