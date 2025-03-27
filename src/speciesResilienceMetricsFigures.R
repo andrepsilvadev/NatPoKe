@@ -24,10 +24,11 @@ library(data.table)
 # several runs together before this
 ### DO NOT FORGET ###
 
-totalDataset <- fread(file.path(dirout, "metaRangeOutputs24Mar2025_afternoon10km.csv")) %>% 
-  mutate(scenario = "BAU")
+TNIND_yr <- fread(file.path(dirout, paste0("TNIND_yr_", runname, ".csv"))) %>% 
+  mutate(scenario = "BAU",
+         taxa = "Mammals")
 invisible(gc())
-
+colnames(TNIND_yr) <- c("TNIND", "biome", "region", "species", "timestep", "scenario", "taxa")
 
 ###############################
 # TOTAL NUMBER OF INDIVIDUALS #
@@ -36,34 +37,7 @@ invisible(gc())
 t_burnin <- 100
 t_policy <- 110
 
-# !!! BE CAREFULL !!! #
-## Total number of individuals is different from mean number of individuals
-## In a landscape with three cells where cell 1 has two moose, cell 2 has three
-## moose and cell 3 has no moose, the total number of individuals in the landscape
-## would be 2+3+0 = 5 moose. But if we wanted the mean abundance of moose in those
-## three cells it would be (2+3)/2 = 2.5 moose
-
-# Total number of individuals (TNIND) per year and cellid
-######### AT THE MOMENT WE STILL DON'T HAVE DIFFERENT REPLICATES ###############
-TNIND <- totalDataset %>%
-  group_by(species, Taxa, biome, scenario, timestep) %>% # ADD HERE WHEN IT EXISTS THE REP VARIABLE (REP FOR REPLICATES)
-  dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
-                   n = n()) %>% 
-  dplyr::select(!n) %>% 
-  group_by(species, Taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
-  dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
-head(TNIND)
-
-# Total number of individuals per year
-TNIND_yr <- TNIND %>% # n cells used for the calculus
-  group_by(species, Taxa, biome, scenario, timestep) %>%
-  dplyr::summarize(mean_yr = mean(mean_TNIND, na.rm = TRUE), # cell mean 
-                   sd_yr = sd(mean_TNIND, na.rm = TRUE),
-                   n = n()) %>% 
-  dplyr::select(!n) %>% 
-  dplyr::filter(timestep > t_burnin)
-
-TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = mean_yr, group = species)) + 
+TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = TNIND, group = species)) + 
   geom_line() + 
   facet_wrap(scenario~ species, scales = "free_y", ncol = 4) +
   labs(y = "Total number of individuals") +
@@ -85,27 +59,27 @@ post_disturbance_values <- TNIND_yr %>%
   #filter(timestep > t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep > t_burnin &
                            timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
-  group_by(biome, species, scenario, period, Taxa) %>%
+  group_by(biome, species, scenario, period, taxa) %>%
   filter(period == "Post") %>% # filter for the post policy period only
-  summarise(mean_post = mean(mean_yr, na.rm = TRUE))
+  summarise(mean_post = mean(TNIND, na.rm = TRUE))
 invisible(gc())
 
 # calculate all stability metrics per biome, policy & species
 stability_sps <- TNIND_yr %>%
   filter(timestep > t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep >= t_burnin & timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy
-  left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "Taxa")) %>%
-  group_by(biome, species, scenario, period, Taxa) %>%
-  summarise(mean = mean(mean_yr, na.rm = TRUE),
+  left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "taxa")) %>%
+  group_by(biome, species, scenario, period, taxa) %>%
+  summarise(mean = mean(TNIND, na.rm = TRUE),
             # find mean nº of individuals
-            min = min(mean_yr, na.rm = TRUE),
+            min = min(TNIND, na.rm = TRUE),
             # find min. nº of individuals
-            max = max(mean_yr, na.rm = TRUE),
+            max = max(TNIND, na.rm = TRUE),
             # find max. nº of individuals
-            impact_year = timestep[which.min(mean_yr)],
+            impact_year = timestep[which.min(TNIND)],
             # find the year the pop. reaches a min. value in the post policy period
-            recovery_year = ifelse(any(timestep > t_policy & mean_yr >= mean_post),
-                                   min(timestep[timestep > t_policy & mean_yr >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
+            recovery_year = ifelse(any(timestep > t_policy & TNIND >= mean_post),
+                                   min(timestep[timestep > t_policy & TNIND >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
                                    NA), .groups = "drop") %>%
   pivot_wider(names_from = period, values_from = c(mean, min, max, impact_year, recovery_year)) %>%
   dplyr::select(!c(impact_year_Pre, recovery_year_Pre)) %>% # remove year of min. nº of individuals in the pre policy period and the year in which the nº ind is equal to the mean values of the post policy period
@@ -123,7 +97,7 @@ invisible(gc())
 
 # average stability metrics ACROSS TAXA
 stability_avg <- stability_sps %>%
-  group_by(biome, scenario, Taxa) %>%
+  group_by(biome, scenario, taxa) %>%
   dplyr::summarize(
     impact_avg = mean(impact, na.rm = TRUE),
     impact_sd = sd(impact, na.rm = TRUE),
@@ -157,12 +131,12 @@ names(metric.labs) <- c("impact",
                         "timerecovery")
 
 # Custom color palette
-custom_colors <- c("Bird" = "#38b2fe", "Mammal" = "#ffab27", "Insect" = "#99cc00")
+custom_colors <- c("Bird" = "#38b2fe", "Mammals" = "#ffab27", "Insect" = "#99cc00")
 
 # Updated plot
 figure1 <- stability_avg_long %>%
   dplyr::filter(metric %in% c("impact", "recovery")) %>%
-  ggplot(aes(x = scenario, y = avg, fill = Taxa)) +
+  ggplot(aes(x = scenario, y = avg, fill = taxa)) +
   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
   geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
@@ -206,7 +180,7 @@ ggsave(plot = figure1,
 # Updated plot
 suplementary_figure1 <- stability_avg_long %>%
   dplyr::filter(metric %in% c("timeimpact", "timerecovery")) %>%
-  ggplot(aes(x = scenario, y = avg, fill = Taxa)) +
+  ggplot(aes(x = scenario, y = avg, fill = taxa)) +
   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
   geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
@@ -240,3 +214,37 @@ invisible(gc())
 ggsave(plot = suplementary_figure1,
         file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/SuplementaryFig1_TimeImpact&TimeRecoveryTwoBadRuns.tiff",
         bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+
+
+##########################################
+### OLD CODE THAT CONSIDERS REPLICATES ###
+##########################################
+
+# !!! BE CAREFULL !!! #
+## Total number of individuals is different from mean number of individuals
+## In a landscape with three cells where cell 1 has two moose, cell 2 has three
+## moose and cell 3 has no moose, the total number of individuals in the landscape
+## would be 2+3+0 = 5 moose. But if we wanted the mean abundance of moose in those
+## three cells it would be (2+3)/2 = 2.5 moose
+
+# 
+# # Total number of individuals (TNIND) per year and cellid
+# ######### AT THE MOMENT WE STILL DON'T HAVE DIFFERENT REPLICATES ###############
+# TNIND <- totalDataset %>%
+#   group_by(species, Taxa, biome, scenario, timestep) %>% # ADD HERE WHEN IT EXISTS THE REP VARIABLE (REP FOR REPLICATES)
+#   dplyr::summarize(sum_TNIND = sum(abundance, na.rm = TRUE), # n individuals in each cell in each group (per replicate basically)
+#                    n = n()) %>% 
+#   dplyr::select(!n) %>% 
+#   group_by(species, Taxa, biome, scenario, timestep) %>% # KEEP SIM BUT REMOVE REP HERE
+#   dplyr::summarize(mean_TNIND = mean(sum_TNIND, na.rm = TRUE))
+# head(TNIND)
+# 
+# # Total number of individuals per year
+# TNIND_yr <- TNIND %>% # n cells used for the calculus
+#   group_by(species, Taxa, biome, scenario, timestep) %>%
+#   dplyr::summarize(mean_yr = mean(mean_TNIND, na.rm = TRUE), # cell mean 
+#                    sd_yr = sd(mean_TNIND, na.rm = TRUE),
+#                    n = n()) %>% 
+#   dplyr::select(!n) %>% 
+#   dplyr::filter(timestep > t_burnin)
+
