@@ -19,16 +19,46 @@ library(data.table)
 # IMPORT DATA #
 ###############
 
-### DO NOT FORGET ###
-# When the model is workning we need to add a simple pice of code combining
-# several runs together before this
-### DO NOT FORGET ###
+# Boreal Forests ---------------------------------------------------------------
 
-TNIND_yr <- fread(file.path(dirout, paste0("TNIND_yr_", runname, ".csv"))) %>% 
+## Europe
+TNIND_europe <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
+  mutate(scenario = "BAU",
+         taxa = "Mammals") 
+colnames(TNIND_europe) <- c("TNIND", "biome", "region", "species", "timestep", "scenario", "taxa")
+
+## North America
+TNIND_northamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
+  mutate(scenario = "BAU",
+         taxa = "Mammals",
+         biome = case_when(biome == "oreal Forests Taiga" ~ "Boreal Forests Taiga")) 
+
+# Tropical Moist Forests -------------------------------------------------------
+
+## Asia
+TNIND_asia <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
+
+## Africa
+TNIND_africa <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
+  mutate(scenario = "BAU",
+         taxa = "Mammals")
+
+## South America
+TNIND_southamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
+  mutate(scenario = "BAU",
+         taxa = "Mammals") 
+
 invisible(gc())
-colnames(TNIND_yr) <- c("TNIND", "biome", "region", "species", "timestep", "scenario", "taxa")
+
+##################
+# COMBINING DATA #
+##################
+
+datasets <- list(TNIND_europe, TNIND_northamerica, TNIND_asia, TNIND_africa, TNIND_southamerica)
+
+TNIND_yr <- do.call("rbind", datasets)
 
 ###############################
 # TOTAL NUMBER OF INDIVIDUALS #
@@ -39,7 +69,7 @@ t_policy <- 110
 
 TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = TNIND, group = species)) + 
   geom_line() + 
-  facet_wrap(scenario~ species, scales = "free_y", ncol = 4) +
+  facet_wrap(biome+region~ species, scales = "free_y", ncol = 4) +
   labs(y = "Total number of individuals") +
   theme_minimal() +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance

@@ -10,10 +10,10 @@
 ##########
 
 # select Target biome (only one)
-target_biome <- "Boreal Forests/Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
+target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
 
 # select target region (only one)
-target_continent <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
+target_region <- "Africa" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
 
 # select target species
 target_species <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv")) %>% 
@@ -123,7 +123,7 @@ crop_biome_to_continent <- function(biome, continent_geom) {
 
 # Step 3 - crop the target region to model
 biome_to_model <- crop_biome_to_continent(biome = load_select_biome(biome_name = target_biome),
-                                          continent_geom = load_select_continents(continent_names = target_continent))
+                                          continent_geom = load_select_continents(continent_names = target_region))
 #SW <- ne_countries(scale ="medium", country = "Sweden", returnclass = "sv")
 
 # Cropping ---------------------------------------------------------------------
@@ -174,7 +174,7 @@ for (landscape in landscapes) {
   r <- rast(landscape)
   
   # reproject to SWEREF99 TM (EPSG:3006) 
-  r_utm <- project(r, "EPSG:3035")
+  r_utm <- project(r, "EPSG:10603")
   
   # convert to rasterStack
   r_raster <- stack(r_utm)
@@ -226,7 +226,7 @@ res(species1) # checking initial resolution
 ## at this stage all species shoudl still have the same landscape resolution
 
 ## checking reprojection & conversion to km
-species1_reprojected <- rast(file.path(dirinput, paste0(target_species[5], "_suitability_cropped_modified_reprojectedKm.tif")))
+species1_reprojected <- rast(file.path(dirinput, paste0(target_species[2], "_suitability_cropped_modified_reprojectedKm.tif")))
 plot(species1_reprojected) 
 res(species1_reprojected) # checking new resolution
 

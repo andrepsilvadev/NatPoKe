@@ -37,11 +37,11 @@
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
 # select target biome (only one)
-target_biome <- "Boreal Forests Taiga" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
+target_biome <- "Tropical Subtropical Moist Broadleaf Forests" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
 
 # select target region (only one)
 #target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
-target_region <- "Europe"
+target_region <- "Africa"
 
 # select target species (multiple sps are allowed)
 target_species <- species_traits$Species
@@ -63,11 +63,14 @@ sim_name <- "example_01"# simulation parameters
 ###########
 # Step 2  # Add landscape for all target species 
 ###########
+# r <- rast(list.files(dirinput,
+#            pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
+# sim_env <- sds(r)
 
 sim_env <- sds(list.files(dirinput,
                           pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
 invisible(gc())
-plot(sim_env$Alcesalces_suitability_cropped_modified_reprojectedKm)
+
 ##########
 # Step 3 # Create a simulation object 
 ##########
