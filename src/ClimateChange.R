@@ -248,7 +248,7 @@ plot_ClimatespatialChanges <- function(raster, biome_geom, color_ramp, fill_labe
     theme_minimal() +
     theme(
       axis.title = element_text(size = 18),
-      axis.text = element_text(size = 18),
+      axis.text = element_text(size = 14),
       plot.title = element_blank(),
       legend.title = element_text(size = 22, margin = margin(b = 10)),
       legend.text = element_text(size = 18),
@@ -394,7 +394,6 @@ continent_geoms <- setNames(lapply(continent_names, function(continent) {
 # Intersect the biome with the continents
 biome_continents <- intersect_biome_with_continents(biome_sf, continent_geoms)
 
-
 # Calculate changes and crop/mask to continents
 for (variable in variables) {
   for (scenario in scenarios) {
@@ -456,7 +455,7 @@ for (variable in variables) {
         max_value <- max_values[[variables[1]]]
       } else {
         color_ramp <- color_ramps[["var2"]]
-        fill_label <- paste("Change in", value_units[2])
+        fill_label <- paste("Change in", "\n", value_units[2])
         min_value <- min_values[[variables[2]]]
         max_value <- max_values[[variables[2]]]
       }
@@ -496,14 +495,14 @@ for (variable in variables) {
       combined_plot_spatial <- grid.arrange(
         arrangeGrob(
           grobs = lapply(continent_title, function(continent) {
-            textGrob(continent, gp = gpar(fontsize = 16))
+            textGrob(continent, gp = gpar(fontsize = 22))
           }),
           ncol = num_continents,
           heights = unit(c(0.5), "null")
         ),
         arrangeGrob(
           grobs = c(
-            list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 16))),
+            list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 22))),
             lapply(continent_names, function(continent) {
               plots_spatial[[paste0(scenarios[1], "_", tolower(continent))]]
             })
@@ -513,7 +512,7 @@ for (variable in variables) {
         ),
         arrangeGrob(
           grobs = c(
-            list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 16))),
+            list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 22))),
             lapply(continent_names, function(continent) {
               plots_spatial[[paste0(scenarios[2], "_", tolower(continent))]]
             })
@@ -532,17 +531,17 @@ for (variable in variables) {
             ncol = 1
           ),
           ncol = 2,  # Two columns: one for the plot and one for the legend
-          widths = unit(c(15, 3), "null"),
+          widths = unit(c(15, 4), "null"),
           top = textGrob(
             paste0(ifelse(variable == variables[1], variable_names[1], variable_names[2]), " ", fill_label, " for the ", biome_name_short, " (", years[1], " vs. ", year,")"), 
-            gp = gpar(fontsize = 18)
+            gp = gpar(fontsize = 24)
         )
       )
       
       # Save the combined plot
       ggsave(filename = file.path(output_folder, 
                                   paste0("ClimateChange_", variable, "_spatialChanges_", year, "_", gsub(" ", "_", biome_name_short), ".png")), 
-             plot = combined_plot_spatial, 
+             plot = final_plot, 
              width = 15, height = 6, dpi = 300)
     }
   }
