@@ -2,7 +2,7 @@
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate percentage changes over time and spatial explicit changes for a given Biome
 ## for the ssp126 and ssp585 scenarios in various years ##
-## Date: March 18th 2025 ##
+## Date: March 27th 2025 ##
 
 # Settings & libraries -------------------------------------------
 source("./src/libraries.R") # libraries
@@ -347,25 +347,8 @@ extract_legend <- function(plot) {
   return(legend)
 }
 
-# Define bounding boxes for specific continents
-get_bounding_box <- function(continent_name) {
-  bounding_boxes <- list(
-    "North America" = st_bbox(c(xmin = -180, ymin = 20, xmax = -50, ymax = 80)),  # North America
-    "Europe" = st_bbox(c(xmin = -30, ymin = 40, xmax = 180, ymax = 80))  # Europe and Asia
-  )
-  return(bounding_boxes[[continent_name]])
-}
-
-# Apply bounding box to biome_geom if applicable
-if (!is.null(continent_name)) {
-  bounding_box <- get_bounding_box(continent_name)
-  if (!is.null(bounding_box)) {
-    biome_geom <- st_crop(biome_geom, bounding_box)
-  }
-}
-
 # Function to create individual plots for each scenario, class, and year
-plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value, continent_name=NULL) {
+plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value) {
   # Convert raster to data frame
   raster_df <- as.data.frame(raster, xy = TRUE)
   colnames(raster_df)[3] <- "value"  # Percentage change (%)
@@ -380,14 +363,6 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
   # Ensure CRS consistency
   biome_geom <- st_transform(biome_geom, crs = st_crs(countries))
   countries <- st_transform(countries, crs = st_crs(biome_geom))
-  
-  # Apply bounding box to countries if applicable
-  if (!is.null(continent_name)) {
-    bounding_box <- get_bounding_box(continent_name)
-    if (!is.null(bounding_box)) {
-      countries <- st_crop(countries, bounding_box)
-    }
-  }
   
   # Validate geometries
   countries <- st_make_valid(countries)
@@ -694,12 +669,12 @@ for (class in names(baseline_year_raster_classified)) {
         raster <- cropped_rasters[[year]][[scenario]][[class]][[continent]]
         # creat the plots
         plot <- plot_landUse_spatialChanges(
-          raster,
-          biome_continents[[continent]],
-          custom_color_ramp,
-          "Change in %", 
-          -100, 100,
-          continent_name = continent
+          raster = raster,
+          biome_geom = biome_continents[[continent]],
+          color_ramp = custom_color_ramp,
+          fill_label = "Change in %", 
+          min_value = -100,
+          max_value = 100
         )+
           theme(legend.position = "none")  # Remove individual legends
         
@@ -713,8 +688,7 @@ for (class in names(baseline_year_raster_classified)) {
       color_ramp = custom_color_ramp,
       fill_label = "Change in %",
       min_value = -100,
-      max_value = 100,
-      continent_name = continent[continent_names[1]]
+      max_value = 100
     )
     shared_legend <- extract_legend(example_plot)
     
