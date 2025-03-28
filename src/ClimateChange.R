@@ -2,7 +2,7 @@
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate spatial explicit temperature and precipitation change in a given Biome
 ## for the ssp126 and ssp585 scenarios in various time periods ##
-## Date: March 19th 2025 ##
+## Date: March 28th 2025 ##
 
 # Settings & libraries -------------------------------------------
 source("./src/libraries.R") # libraries
@@ -36,7 +36,7 @@ continent_title <- c("Central & South America", "Africa", "Asia")
 # Boreal Biome
 biome_name <- "Boreal Forests/Taiga"
 biome_name_short <- "Boreal Biome"
-continent_names <- c("Europe", "North America")
+continent_names <- c("North America", "Europe")
 continent_title <- c("North America", "Europe & Asia")
 
 # Functions - later add them to CustomFunctions.R -------------------------------------------
@@ -177,16 +177,6 @@ intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
   return(biome_continents)
 }
 
-
-# Function to load and select continents
-#load_select_continents <- function(continent_names) {
-  continents <- ne_countries(scale = "medium", returnclass = "sf") %>%
-    dplyr::filter(continent %in% continent_names) %>% 
-    group_by(continent) %>%
-    summarise(geometry = st_union(geometry))
-  continents
-}
-
 # Function to crop and mask the rasters to the continents
 crop_and_mask_continent <- function(raster, continent_geom) {
   mask(crop(raster, continent_geom), continent_geom)
@@ -270,28 +260,6 @@ plot_ClimatespatialChanges <- function(raster, biome_geom, color_ramp, fill_labe
   return(plot)
 }
 
-# Function to plot the changes
-#plot_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value) {
-  raster_df <- as.data.frame(raster, xy = TRUE)
-  colnames(raster_df)[3] <- "value"  # Ensure the column name is "value"
-  
-  ggplot() +
-    geom_sf(data = biome_geom, fill = "lightgrey", color = "lightgrey", size = 0.2) +  # Biome and continent basemap
-    geom_tile(data = raster_df, aes(x = x, y = y, fill = value)) +
-    scale_fill_gradientn(name = fill_label, colors = color_ramp(seq(min_value, max_value, length.out = 101)), limits = c(min_value, max_value), na.value = "grey") +
-    labs(x = "Longitude", y = "Latitude") +
-    theme_minimal() +
-    theme(
-      axis.title = element_text(size = 10),
-      axis.text = element_text(size = 8),
-      plot.title = element_blank(),
-      legend.title = element_text(size = 10),
-      legend.text = element_text(size = 8)
-    ) +
-    coord_sf()  # Use coord_sf() for spatial data
-}
-
-
 # Prepare the climate scenarios rasters for further calculations and graphical representation -------------------------------------------
 # Load the selected biome
 biome_sf <- load_select_biome(biome_name)
@@ -331,8 +299,6 @@ for (scenario in scenarios) {
     }
   }
 }
-# create a list as output?
-
 
 # Loop through the variables and years to create raster stacks
 for (variable in variables) {
@@ -405,7 +371,7 @@ combined_plot_time <- grid.arrange(
 
 # Save the combined plot
 ggsave(filename = file.path(output_folder, 
-                            paste0("ClimateChange_", variable, "_timeChanges_", year, "_", biome_name_short, ".png")),
+                            paste0("ClimateChange_", variable, "_timeChanges_", year, "_", gsub(" ", "_", biome_name_short), ".png")),
        plot = combined_plot_time,
        width = 14, height = 7, dpi = 600)
 
@@ -428,11 +394,6 @@ continent_geoms <- setNames(lapply(continent_names, function(continent) {
 # Intersect the biome with the continents
 biome_continents <- intersect_biome_with_continents(biome_sf, continent_geoms)
 
-
-# Crop the biome boundaries to the continents
-#biome_continents <- lapply(continent_geoms, function(continent_geom) {
-  crop_biome_to_continent(biome_sf, continent_geom)
-})
 
 # Calculate changes and crop/mask to continents
 for (variable in variables) {
