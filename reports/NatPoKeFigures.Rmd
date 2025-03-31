@@ -1,0 +1,609 @@
+---
+title: "NatPoke Figures - March 2025"
+subtitle: "Update"
+author: "Inês Silva"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    code_folding: show
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+pkgdown:
+  as_is: true 
+---
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+# Introduction
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+library(here)
+source(here("src", "libraries.R"))
+source(here("src", "speciesResilienceMetricsFigures.R"))
+source(here("src", "communityMetricsFigures.R"))
+suppressMessages(suppressWarnings(source(here("src", "updatedSpatiallyExplicitMaps.R"))))
+```
+
+Using the metaRange simulations' outputs for mammal species we can produce multiple metrics to assess populations status and the impact of a specific scenario.
+
+Here we modeled a total of `r length(unique(TNIND_yr$species))` species, including:
+
+| Biome                                              | Region        | Species                |
+|----------------------------------|-------------------|-------------------|
+| **Boreal Forests/ Taiga**                          | North America | Lynx rufus             |
+|                                                    |               | Odocoileus virginianus |
+|                                                    | Europe        | Alces alces            |
+|                                                    |               | Canis lupus            |
+|                                                    |               | Cervus elaphus         |
+|                                                    |               | Dama dama              |
+|                                                    |               | Lynx lynx              |
+|                                                    |               | Rangifer tarandus      |
+|                                                    |               | Sus scrofa             |
+| **Tropical & Subtropical Moist Broadleaf Forests** | South America | Callithrix jacchus     |
+|                                                    |               | Nasua nasua            |
+|                                                    |               | Puma concolor          |
+|                                                    | Africa        | Crocuta crocuta        |
+|                                                    |               | Panthera leo           |
+|                                                    | Asia          | Panthera tigris        |
+|                                                    |               | Sus scrofa             |
+
+: Species modeled and where
+
+# Species abundance over time
+
+Making use of the .csv file saved as a model output for each species, we will analyze how species populations change over time by combining data from multiple regions.
+
+1.  Create a list, `datasets`, that includes the directories to the .csv files containing the total number of individuals (`TNIND`) data for different continents: Europe, North America, Asia, Africa, and South America.
+
+2.  Then use `do.call("rbind", datasets)` to merge these datasets into a single dataframe called `TNIND_yr`.
+
+3.  Set the two key timepoints: `t_burnin <- 100` marks the end of the burn-in period (a stabilization phase before the actual analysis) and `t_policy <- 110` represents the moment when a specific policy or environmental change occurs, which may impact population trends.
+
+4.  Plot Total Number of Individuals Over Time using `ggplot()`
+
+```{r TNIND plot, fig.dim=c(8,10), warning=FALSE, message=FALSE}
+# list directories for all continents output folder
+datasets <- list(TNIND_europe, TNIND_northamerica, TNIND_asia, TNIND_africa, TNIND_southamerica)
+
+# bind all df together
+TNIND_yr <- do.call("rbind", datasets)
+
+# define key timespoints
+t_burnin <- 100
+t_policy <- 110
+
+# Custom labeller to show biome name only once per section
+custom_labeller <- function(labels) {
+  labels$biome <- ifelse(duplicated(labels$biome), "", labels$biome)
+  labels
+}
+
+TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = TNIND, group = species)) + 
+  geom_line() + 
+  facet_wrap(biome+region~ species, scales = "free_y", ncol = 4) +
+  labs(y = "Total number of individuals") +
+  theme_minimal() +
+  geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
+
+TNIND_per_year
+
+```
+
+# Resilience metrics
+
+Next, we can calculate and analyze species stability metrics to better understand how different species respond to environmental changes under each policy scenario. These metrics quantify both the magnitude of impact and the recovery process, capturing how strongly a policy affects species populations and the time required for them to reach their lowest point and/or recover. By summarizing these values across various biomes, species, and scenarios, we can assess population resilience and identify which groups are most vulnerable or adaptable to disturbances.
+
+1.  Calculate mean population size after policy implementation
+
+    1.  assign Pre and Post-Policy Periods (Pre before timestep 101 and post after)
+
+    2.  calculate the Mean Post-Policy Population Size
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
+# calculate post policy mean value for the recovery time metric 
+# to be possible in one go with the other metrics)
+post_disturbance_values <- TNIND_yr %>%
+  #filter(timestep > t_burnin) %>% # remove burn-in period
+  mutate(period = ifelse(timestep > t_burnin &
+                           timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
+  group_by(biome, species, scenario, period, taxa) %>%
+  filter(period == "Post") %>% # filter for the post policy period only
+  summarise(mean_post = mean(TNIND, na.rm = TRUE))
+```
+
+2.  Compute the actual stability metrics, from the TNIND_yr put together before, join with `post_disturbance_values` to include `mean_post` values for each species
+
+    1.  mean: Average population size
+
+    2.  min: Minimum population size
+
+    3.  max: Maximum population size
+
+    4.  impact_year: The year when the population reaches its lowest value after the policy implementation
+
+    5.  recovery_year: The first year when the population recovers to at least mean_post
+
+3.  Calculate Impact and Recovery Metrics:
+
+    1.  `impact`: Measures how much the population was affected by the policy (increase or decrease).
+
+        \$\$ Impact\\ (I) = \\frac{min\\ OR\\ max\\ nº\\ individuals\\ Post\\ policy - mean\\ nº\\ individuals\\ Baseline} {mean\\ nº\\ individuals\\ Baseline}\$\$
+
+    2.  `time_impact`: The time (in years) between policy implementation and the year of lowest population size.
+
+        \$\$ Time\\ to\\ Impact\\ (T_I) = t(highest\\ impact) − t(policy\\ implementation)\$\$
+
+    3.  `recovery`: Measures how much the population recovers compared to its pre-policy size.
+
+        \$\$ Recovery\\ (R) = \\frac{mean\\ nº\\ individuals\\ Post\\ policy - mean\\ nº\\ individuals\\ Baseline} {mean\\ nº\\ individuals\\ Baseline} \$\$
+
+    4.  `time_recovery`: The time taken for the species to recover to mean_post.
+
+        \$\$ Time\\ to\\ recovery\\ (T_R) = t(nIND\\ Post\\ policy = mean(nIND Post\\ policy)) - t (policy implementation)\$\$
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
+# calculate all stability metrics per biome, policy & species
+stability_sps <- TNIND_yr %>%
+  filter(timestep > t_burnin) %>% # remove burn-in period
+  mutate(period = ifelse(timestep >= t_burnin & timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy
+  left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "taxa")) %>%
+  group_by(biome, species, scenario, period, taxa) %>%
+  summarise(mean = mean(TNIND, na.rm = TRUE),
+            # find mean nº of individuals
+            min = min(TNIND, na.rm = TRUE),
+            # find min. nº of individuals
+            max = max(TNIND, na.rm = TRUE),
+            # find max. nº of individuals
+            impact_year = timestep[which.min(TNIND)],
+            # find the year the pop. reaches a min. value in the post policy period
+            recovery_year = ifelse(mean == 0, 
+                                   NA, 
+                                   ifelse(any(timestep > t_policy & TNIND >= mean_post),
+                                          min(timestep[timestep > t_policy & TNIND >= mean_post], na.rm = TRUE), 
+                                          NA)), 
+            .groups = "drop") %>%
+  pivot_wider(names_from = period, values_from = c(mean, min, max, impact_year, recovery_year)) %>%
+  dplyr::select(!c(impact_year_Pre, recovery_year_Pre)) %>% # remove year of min. nº of individuals in the pre policy period and the year in which the nº ind is equal to the mean values of the post policy period
+  mutate(impact = ifelse( mean_Post > mean_Pre,
+                          (max_Post - mean_Pre) / mean_Pre,
+                          (min_Post - mean_Pre) / mean_Pre),
+         time_impact = impact_year_Post - t_policy,
+         # WORTH CALCULATING RECOVERY IF IMPACT IS POSITIVE? See metrics explanation canva
+         recovery = ifelse(impact <= 0,
+                           (mean_Post - mean_Pre) / mean_Pre,
+                           NA),
+         time_recovery = recovery_year_Post - t_policy)
+```
+
+4.  Compute Average Stability Metrics Across Taxa
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
+# average stability metrics ACROSS TAXA
+stability_avg <- stability_sps %>%
+  group_by(biome, scenario, taxa) %>%
+  dplyr::summarize(
+    impact_avg = mean(impact, na.rm = TRUE),
+    impact_sd = sd(impact, na.rm = TRUE),
+    recovery_avg = mean(recovery, na.rm = TRUE),
+    recovery_sd = sd(recovery, na.rm = TRUE),
+    timeimpact_avg = mean(time_impact, na.rm = TRUE),
+    timeimpact_sd = sd(time_impact, na.rm = TRUE),
+    timerecovery_avg = mean(time_recovery, na.rm = TRUE),
+    timerecovery_sd = sd(time_recovery, na.rm = TRUE)
+  )
+```
+
+5.  Convert Stability Metrics to Long Format for Plotting
+
+```{r, message=FALSE, warning=FALSE}
+library(grr)
+# stability metrics in long format for plots
+stability_avg_long <- stability_avg %>%
+  pivot_longer(
+    cols = matches("_avg$|_sd$"),
+    names_to = c("metric", ".value"),
+    names_sep = "_")
+```
+
+6.  Finally plot the results using `ggplot()`
+
+```{r, warning=FALSE, message=FALSE}
+# Updated plot
+figure1 <- stability_avg_long %>%
+  dplyr::filter(metric %in% c("impact", "recovery")) %>%
+  ggplot(aes(x = scenario, y = avg, fill = taxa)) +
+  geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
+  geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
+  facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs, biome = biome_names), switch = "y") +
+  geom_hline(yintercept = 0) +
+  # use custom colors for taxa
+  scale_fill_manual("Taxa", values = custom_colors) +
+  ylab("") +
+  xlab("\nEconomic policy scenario") +
+  theme_minimal() +
+  theme(
+    # remove gridlines 
+    panel.grid = element_blank(),
+    # add subtle horizontal lines 
+    panel.grid.major.y = element_line(color = "gray90", linetype = "dashed"),
+    # modify facet labels
+    strip.text = element_text(face = "bold", size = rel(1)),
+    strip.placement = "outside",
+    # adjust legend
+    legend.position = "right",
+    legend.title = element_text(face = "bold"),
+    # modify y & x-axis text
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    axis.title = element_text(face = "bold", margin = margin(t = 20, r = 0, b = 0, l = 0)),
+    # remove panel borders
+    panel.border = element_blank(),
+    panel.spacing.x = unit(1, "lines"),
+    panel.spacing.y = unit(2, "lines"))
+figure1
+```
+
+> [**More data COMMING SOON!**]{style="color:red;"}
+>
+> [Once data is collected for more species and different policy scenarios are concluded, more runs can be added to these figures, with [this](https://ulisboa-my.sharepoint.com/:i:/g/personal/misilva_fc_ul_pt/EQmzE4IR3WNKoHVoQuN23iYBAoP8LMvtwXgn9zTAVESK_Q?e=zvjgHq) being the end goal!]{style="color:red;"}
+
+# Community metrics
+
+To gain a broader understanding of population dynamics in each biome, we can calculate community-level metrics, such as:
+
+Shannon's Diversity Index: Measures species diversity based on their relative abundance.
+
+1.  First, we need to **merge species trait data** (e.g., trophic level) into our population dataset (`TNIND_yr`).
+
+2.  Compute Shannon's Diversity Index
+
+    1.  Remove Zero Population Values - to avoid bias we need to filter out cell where the species do not exist
+
+    2.  Group Data by Scenario, Biome, and Time - so we can calculate diversity separately
+
+    3.  Calculate the proportion of individuals (`p_i`) = represents the relative abundance of that species.
+
+    4.  Compute the natural logarithm of each proportion. To prevent errors, we replace log(0) with 0.
+
+    5.  Finally, we sum the resulting values of `-p_i * ln_p_i` to get the **Shannon-Wiener Index** for each biome, scenario, and timestep.
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
+# calculate the Shannon index
+Shannon_index <- TNIND_yr %>%
+  dplyr::filter(TNIND != 0) %>% # keep only cells where species exist 
+  group_by(scenario, biome, timestep) %>%
+  dplyr::mutate(p_i = TNIND / sum(TNIND),
+                # calculate proportion of individuals of species i
+                ln_p_i = ifelse(p_i > 0, log(p_i), 0)) %>%  # in case pi is 0
+  # up until here the table has values for each species, then info is summarised
+  dplyr::summarize(Shannon_Wiener_Index = -sum(p_i * ln_p_i))  # calculate the Shannon-Wiener index
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
+                                aes(x = timestep, y = values, color = scenario)) +
+  geom_line() +
+  facet_grid(biome ~ taxa, scales = "free",
+             labeller = labeller(
+               biome = as_labeller(biome_names),
+               taxa = as_labeller(taxas)),
+             switch = "y") +
+  labs(title = "Shannon's Index") +
+  xlab("Time") +
+  ylab("Metric value") +
+  coord_cartesian(clip = "off") + 
+  theme_minimal() +
+  theme(
+    # remove gridlines 
+    panel.grid = element_blank(),
+    # add subtle horizontal lines 
+    panel.grid.major.y = element_line(color = "gray90", linetype = "dashed"),
+    # modify facet labels
+    strip.text = element_text(face = "bold", size = rel(1)),
+    strip.placement = "outside",
+    #plot title
+    plot.title = element_text(hjust = 0.5),
+    # adjust legend
+    legend.position = "bottom",
+    # modify x-axis text
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    # remove panel borders
+    panel.border = element_blank(),
+    panel.spacing.x = unit(1, "lines"),
+    panel.spacing.y = unit(2, "lines"),
+    plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
+  geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
+shannon_over_time
+```
+
+Functional Diversity Index: Captures trophic levels diversity also based on their relative abundance of individuals.
+
+A similar procedure for the Shannon's Diversity Index was used to calculate the Functional diversity index, but here it was necessary to merge our dataset with the [mammal traits info](https://ulisboa-my.sharepoint.com/:x:/g/personal/misilva_fc_ul_pt/EVOf6YCgWLVBnAWRzyFahPMBWcKv-2TRGKud35fyjf3Kig?e=zraW2t) to recover each species trophic level information
+
+```{r, message=FALSE, warning=FALSE}
+mammalTraits <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
+  dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
+  mutate(Trophic = case_when(
+    # based on Schloss 2012
+    Diet.Meat >= 90 ~ "Carnivore",
+    Diet.Plant >= 90 ~ "Herbivore",
+    TRUE ~ NA_character_),
+    trophic_level = case_when(
+      # from original database
+      trophic_level == 1 ~ "Herbivore",
+      trophic_level == 2 ~ "Omnivore",
+      trophic_level == 3 ~ "Carnivore",
+      TRUE ~ as.character(trophic_level)),
+    sci_name = stringr::str_replace_all(sci_name, " ", "")) %>% 
+  distinct()
+
+# left join TNIND dataframe with mammal traits to get sps trophic levels
+TNIND_yr <- TNIND_yr %>%
+  left_join(mammalTraits, by = c("species" = "sci_name")) %>%
+  dplyr::select(TNIND, biome, region, species, timestep, scenario, taxa, trophic_level) %>% 
+  dplyr::group_by(species, biome, region, timestep, scenario, taxa, trophic_level) %>% # Group by the original unique identifiers
+  dplyr::slice(1) %>% # Take only the first row within each group
+  dplyr::ungroup()
+```
+
+1.  As before, we filter out species with zero individuals.\~
+
+2.  This time, we group by biome, scenario, timestep, and **trophic level** (instead of species).
+
+3.  For each trophic level, we calculate the mean number of individuals.
+
+4.  Then calculate the relative abundance of each functional group.
+
+5.  Similar to Shannon's Index, we apply the log transformation, replacing log(0) with 0.
+
+6.  The final step applies the formula summing the resulting values of `-p_i * ln_p_i`
+
+```{r, message=FALSE, warning=FALSE}
+Funct_diversity <- TNIND_yr %>%
+  dplyr::filter(TNIND != 0) %>% # keep only cells where species exist
+  group_by(biome, scenario, timestep, trophic_level) %>%
+  dplyr::summarise(Fmean_TNIND = mean(TNIND, na.rm = TRUE)) %>%
+  group_by(biome, scenario, timestep) %>%
+  dplyr::mutate(Fp_i = Fmean_TNIND / sum(Fmean_TNIND),
+                # calculate proportion of individuals of fucntional group i
+                Fln_p_i = ifelse(Fp_i > 0, log(Fp_i), 0)) %>%  # in case Fpi is 0
+  # up until here the table has values for each functional group, then info is summarised
+  dplyr::summarize(Funct_diversity_Index = -sum(Fp_i * Fln_p_i))  # calculate the functional diversity index
+```
+
+```{r function div plot, message=FALSE, warning=FALSE, echo=FALSE}
+# build the plot
+functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
+                            aes(x = timestep, y = values, color = scenario)) +
+  geom_line() +
+  #facet_wrap(biome ~ taxa, scales = "free", 
+  # labeller = labeller(biome = as_labeller(biome_names), taxa = as_labeller(taxas))) +
+  facet_grid(biome ~ taxa, scales = "free",
+             labeller = labeller(
+               biome = as_labeller(biome_names),
+               taxa = as_labeller(taxas)),
+             switch = "y") +
+  labs(title = "Functional Diversity Index") +
+  xlab("Time") +
+  ylab("Metric value") +
+  #scale_color_discrete("Economic policy \nscenario") +
+  coord_cartesian(clip = "off") +  # Allow plotting outside the panel
+  #geom_phylopic(data = icon_positions_functional, aes(x = x, y = y, uuid = phylopic), 
+   #            size = 0.0005, inherit.aes = FALSE) +  # Add PhyloPic icons
+  theme_minimal() +
+  theme(
+    # remove gridlines 
+    panel.grid = element_blank(),
+    # add subtle horizontal lines 
+    panel.grid.major.y = element_line(color = "gray90", linetype = "dashed"),
+    # modify facet labels
+    strip.text = element_text(face = "bold", size = rel(1)),
+    strip.placement = "outside",
+    #plot title
+    plot.title = element_text(hjust = 0.5),
+    # adjust legend
+    legend.position = "bottom",
+    # modify x-axis text
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    # remove panel borders
+    panel.border = element_blank(),
+    panel.spacing.x = unit(1, "lines"),
+    panel.spacing.y = unit(2, "lines"),
+    plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
+  geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
+functdiv_over_time
+```
+
+Another additional metric simple to calculate can be the species richness index, as the count of the number of distinct species per biome, scenario and timestep.
+
+To analyze all metrics together, we combine the Shannon Index, Functional Diversity Index, and Species Richness into a single dataset.
+
+```{r, message=FALSE, warning=FALSE}
+community_df <- TNIND_yr %>%
+  group_by(biome, scenario, timestep, region, taxa) %>%
+  dplyr::summarize(Sps_richness = n_distinct(species))# calculate species richness
+invisible(gc())
+
+# join all community metrics into one dataframe
+community_df <- community_df %>%
+  group_by(biome, scenario, timestep, region) %>%
+  left_join(Shannon_index, select(Shannon_Wiener_Index, biome, scenario, timestep, region),
+            by = c("biome", "scenario", "timestep")) %>%
+  left_join(Funct_diversity, select(Funct_diversity_Index,
+                   biome,
+                   scenario,
+                   timestep, region),
+            by = c("biome", "scenario", "timestep"))
+```
+
+# Spatially explicit maps
+
+It can also be helpful to visualize changes in these diversity indexes spatially, as different patterns can only be seen in maps.
+
+> Important Note:
+>
+> The metaRange model runs on projected landscapes so it can work around species dispersal distances, However projecting landscapes can distort the "normal" appearance fo a raster, since we are change from one grid system to another. To compute metrics we went for equal area projections whenever possible but for these next steps the model was run with the Robinson projection (ESRI:54030) to produce more visually appealing maps.
+
+1.  Start by defining where all the output abundance raster for all the runs in analysis are, as well as all modeled species
+
+```{r, eval=FALSE}
+# all directories
+directories <- c(europe, asia, africa, southAmerica, northAmerica)
+
+# get every species that was modeled for the outputs
+target_species <- c("Alcesalces", "Lynxlynx", "Canislupus", "Susscrofa", "Rangifertarandus", "Odocoileusvirginianus", "Cervuselaphus", "Damadama", "Lynxrufus", "Crocutacrocuta", "Pantheraleo", "Pantheratigris", "Pumaconcolor", "Callithrix jacchus", "Nasua nasua")
+```
+
+2.  Next, resort to a for loop to import all rasters for timesteps 101 and 125 from all directories and for all target species, transform them into a dataframe format for later plotting and store them per directory (this needs to happens because one species can have a broader distribution, meaning that teh same species could be modeled in multiple continents and when this happens extents of rasters from different areas do not match and the for loop will throw an error)
+
+```{r, eval=FALSE}
+# Initialize an empty list to store final dataframes
+all_final_data <- list()
+
+# Loop through each directory
+for (dir in directories) {
+  # Initialize an empty list to store dataframes for the current directory
+  dir_data <- list()
+  
+  # Loop through each species within the directory
+  for (target_sps in target_species) {
+    # Import abundance raster for timestep 101
+    sps101_files <- list.files(path = dir,
+                               pattern = paste0(".*101_", target_sps, "_abundance\\.tif"),
+                               full.names = TRUE)
+    if (length(sps101_files) > 0) {
+      sps101 <- rast(sps101_files)
+      sps101_df <- as.data.frame(sps101, xy = TRUE) %>%
+        mutate(timestep = 101, species = target_sps)
+      dir_data[[paste(target_sps, "101", sep = "_")]] <- sps101_df
+    }
+    
+    # Import abundance raster for timestep 125
+    sps125_files <- list.files(path = dir,
+                               pattern = paste0(".*125_", target_sps, "_abundance\\.tif"),
+                               full.names = TRUE)
+    if (length(sps125_files) > 0) {
+      sps125 <- rast(sps125_files)
+      sps125_df <- as.data.frame(sps125, xy = TRUE) %>%
+        mutate(timestep = 125, species = target_sps)
+      dir_data[[paste(target_sps, "125", sep = "_")]] <- sps125_df
+    }
+  }
+  
+  # Combine all dataframes for the current directory into a single dataframe
+  final_df <- bind_rows(dir_data)
+  
+  # Extract the second-to-last folder name as the key
+  folder_names <- strsplit(dir, "/")[[1]] #split path into each folder name.
+  short_dir_name <- folder_names[length(folder_names) - 1] #get the second to last.
+  
+  # Store the final dataframe in the all_final_data list, using the directory path as the name
+  all_final_data[[short_dir_name]] <- final_df
+} 
+```
+
+3.  Calculate the Shannon's Index & an then the **Shannon's Index Change** per cell. keep storing the results per directory
+
+```{r, eval=FALSE}
+Shannon_indexes <- list()
+
+for (dir_name in names(all_final_data)) { 
+  df <- all_final_data[[dir_name]] 
+  
+  Shannon_index_df <- df %>% 
+    dplyr::filter(lyr1 != 0) %>% # keep only cells where species exist 
+    group_by(timestep, x, y) %>%
+    dplyr::mutate(p_i = lyr1 / sum(lyr1),
+                  # calculate proportion of individuals of species i
+                  ln_p_i = ifelse(p_i > 0, log(p_i), 0)) %>%  # in case pi is 0
+    # up until here the table has values for each species, then info is summarised
+    dplyr::summarize(Shannon_Wiener_Index = -sum(p_i * ln_p_i)) %>%   # calculate the Shannon-Wiener index
+    group_by(x, y) %>% #group only by x and y for the change calculation.
+    mutate(
+      Shannon_change = (Shannon_Wiener_Index - Shannon_Wiener_Index[timestep == 101])
+    ) %>% 
+    dplyr::filter(timestep == 125)
+  
+  Shannon_indexes[[dir_name]] <- Shannon_index_df # Store the result per region
+}
+```
+
+4.  Prepare inset maps for each continent's forests to enable cleaner plotting and help readers easily locate the represented areas in the main plot. Let's look only at europe as an example, as the procedure repeats it self for all continents and forests
+
+```{r, eval=FALSE}
+regions <- c("Europe", "North America", "South America", "Africa", "Asia")
+# Get world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+unique(world$continent)
+
+region_sfs <- list()
+# Loop through each region
+for (region in regions) {
+  # Filter the world map for the current region
+  region_sf <- world[world$continent == region,] %>% 
+    dplyr::select(continent, geometry)
+  region_sfs[[region]] <- st_transform(region_sf, crs = "ESRI:54030")
+}
+
+# work on flat earth
+sf_use_s2(FALSE) 
+# function to load and select the biome shapefile
+load_select_biome <- function(biome_name) {
+  biome_sf <- st_read(here("data/Ecoregions2017", "Ecoregions2017.shp"))
+  biome_sf[biome_sf$BIOME_NAME == biome_name, ] %>% 
+    group_by(BIOME_NAME) %>% 
+    summarise(geometry = st_union(geometry))
+}
+
+# function to load and select continents
+load_select_continents <- function(continent_names) {
+  continents <- ne_countries(scale = "medium", returnclass = "sf") %>%
+    dplyr::filter(continent %in% continent_names) %>% 
+    group_by(continent) %>%
+    summarise(geometry = st_union(geometry))
+}
+
+# function to crop the biome boundaries to the continents
+crop_biome_to_continent <- function(biome, continent_geom) {
+  st_intersection(biome, continent_geom)
+}
+
+
+# Europe
+europe_bor <- crop_biome_to_continent(biome = load_select_biome(biome_name = "Boreal Forests/Taiga"),
+                                      continent_geom = load_select_continents(continent_names = "Europe"))
+
+# europe inset - continent + tropical forests
+europe_plot <- ggplot() +
+  geom_sf(data = region_sfs[["Europe"]], color = "black", fill = "gray95") + 
+  geom_sf(data = europe_bor, fill = "gray20") +
+  coord_sf(crs = st_crs("ESRI:54030"), xlim = c(-2984101.5843,13538200), ylim = c(3825520.3916,7850400)) +
+  theme_void()
+```
+
+```{r, echo=FALSE}
+europe_plot
+```
+
+5.  Using the dataframes stored per directory from step 3 we can plot the Shannon's Index Change as a map
+
+```{r, warning=FALSE, message=FALSE}
+europe_shannon <- ggplot() +
+  geom_tile(data = Shannon_indexes$`28Mar2025_EuropeRobinson`, aes(x = x, y = y, fill = Shannon_change)) +
+  scale_fill_viridis_c(name = "Shannon's Index\nChange", limits = c(-0.5, 0.5)) +
+  labs(x = "Latitude", y = "Longitude" , title = "Europe") +
+  #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
+  ylim(6130500,6134000)+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom")
+
+europe_Shannon <- europe_shannon + inset_element(europe_plot, 0.6, 0.7, 1, 1)
+```
+
+```{r, echo=FALSE}
+europe_Shannon
+```
