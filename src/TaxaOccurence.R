@@ -19,7 +19,7 @@ gbif_taxon_keys <-
   filter(!matchType == "NONE") %>% #get matched names
   pull(usageKey) #get the GBIF taxon keys
 
-test <- occ_download(
+test <- occ_download( # creates key
   pred_in("taxonKey", gbif_taxon_keys),
   format = "SIMPLE_CSV",
   user = "jorinde_rgr", # needs registration before #"maria_ines_silva"
@@ -27,13 +27,13 @@ test <- occ_download(
   email = "jorinde.rieger@su.se") #"ncisines@gmail.com"
 
 # check if download is finished
-occ_download_wait('0055274-241126133413365') # check if you get that with the account
+occ_download_wait('0008317-250325103851331')
 invisible(gc())
 
-# retrieve the download from GBIF to my computer
+# retrieve the download from GBIF to local computer
 d <- occ_download_get(
-  key = '0055274-241126133413365',
-  path = "./trait_datasets"
+  key = '0008317-250325103851331',
+  path = "~/data/data/trait_datasets"
 )
 
 # import download to current session
@@ -50,7 +50,7 @@ GBIF_mammal_sps <-
 # Write species occurences, with the subselection of variables
 write.csv(
   GBIF_mammal_sps[, c("species", "decimalLatitude", "decimalLongitude", "year")],
-  "./trait_datasets/GBIF_mammal_30+occurrences_speciesTest.csv",
+  "~/data/data/trait_datasets/GBIF_mammal_30+occurrences_speciesTest.csv",
   row.names = FALSE
 )
 invisible(gc())
