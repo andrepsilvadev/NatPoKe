@@ -26,8 +26,8 @@ This tutorial explains how to run the metaRange model framework for mammal speci
 > To run our approach, input directories (dirinput) and output directories (dirout) were previously created to save the input files and respective model output raster files and plots.
 
 ```{r dirinput, echo=FALSE}
-dirinput <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
-dirout <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
+dirinput <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
+dirout <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
 ```
 
 First tings first! In order to use metaRange to model mammal species populations we need to decide:
@@ -58,12 +58,14 @@ species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
 
 ```{r moose, echo=FALSE, fig.align = 'center', fig.width=8}
-library(rphylopic)
+# get moose icon from the rphylopic repo
 sps_uid <- rphylopic::get_uuid("Alces alces", n = 3)
+# get world map from rnaturalearth
 world <- ne_countries(scale = "medium", returnclass = "sf")
 continent <- world[world$region_un == "Europe", ]
 region_sf <- world[world$name == target_region, ]
 
+# plot moose and world map 
 ggplot() +
   geom_sf(data = continent, fill = "gray95", color = "black") +
   geom_sf(data = region_sf, fill = "tan1", color = "black") +
@@ -88,9 +90,9 @@ A complete introduction to the metaRange framework can be found [here](https://m
 
 To run the model simulation two external inputs are required:
 
--   **Landscapes** - raster files containing the environment or hypothetical scenario in which species will be modeled (e.g. species habitat suitability map)
+-   **Landscapes** - raster files containing the environment or hypothetical scenario in which species will be modeled (e.g. species habitat suitability map);
 
--   **Species Traits Dataframe** - a dataframe containing species specific trait information which will act as starting values for the model (e.g. species abundance or reproduction rates)
+-   **Species Traits Dataframe** - a dataframe containing species specific trait information which will act as starting values for the model (e.g. species abundance or reproduction rates).
 
 ## Landscapes
 
@@ -121,7 +123,8 @@ duplicate_layers <- function(raster, times) {
 }
 ```
 
-**3. Crop the global landscape to the target region** - Since we are modelling species within a specific biome and continent, we need to crop our global landscapes to the relevant area. For that we can use the `rnaturalearth` packages functions to retrieve regions boundaries and crop landscapes raster files. Here we will retrieve Sweden's political borders (SW).
+**3. Crop the global landscape to the target region** - Since we are modelling species within a specific biome and continent, we need to crop our global landscapes to the relevant area. For that we can use the rnaturalearth packages functions to retrieve regions boundaries and crop landscapes raster files. Here we will retrieve Sweden's political borders (SW).
+
 
 > This approach can be scaled up to crop ecoregion's shapefiles, from [Dinerstein et al. 2017](https://academic.oup.com/bioscience/article/67/6/534/3102935), by continental boundaries, also available in \`rnaturalearth\` package, and use those cropped raster as landscapes to model our target species. - code already available [here](https://github.com/andrepsilvadev/NatPoKe/blob/dev/src/inputFiles.R).
 
@@ -155,7 +158,7 @@ for (r in raster_files) {
 }
 ```
 
-**4. Project landscapes to appropriate coordinate system** - To ensure accurate distance measurements, our dynamic landscapes need to projected to a adequate projected coordinates systems (CRS), depending on our study region, in meters or kilometers. The conversion from meters to kilometers or vice.verse needs to be accounted for in this step. The processed rasters to an inputs folder so they can be used in the metaRange model next.
+**4. Project landscapes to appropriate coordinate system** - To ensure accurate distance measurements, our dynamic landscapes need to projected to a adequate projected coordinates systems (crs), depending on our study region, in meters or kilometers. The conversion from meters to kilometers or vice.verse needs to be accounted for in this step. The processed rasters to an inputs folder so they can be used in the metaRange model next.
 
 ```{r reprojecting, eval=FALSE}
 # list cropped and dynamic landscapes created the last step
@@ -223,7 +226,7 @@ library(DT)
 # import trait dataframe
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 datatable(species_traits %>% 
-  dplyr::filter(Species == "Alcesalces"))
+  dplyr::filter(Species == "Alcesalces"), caption = htmltools::tags$caption(style = 'caption-side: bottom; text-align: left;', 'Cell resolution (km2), modelling resolution (km), remaining units are indicated in the table above'))
 ```
 
 > [Warnings!]{style="color:red"}
@@ -236,7 +239,7 @@ datatable(species_traits %>%
 
 ## Step 1 - Setting up the simulation
 
-After setting up our modelling targets, the simulation needs to be initialized and reporting can (and should) be enabled. Setting the verbosity to zero, means the simulation will run silent with no warnings or updates, 1 will give us progress updates and 2 will go into the debugging mode.
+After setting up our modelling targets and the model's external inputs, the simulation needs to be initialized and reporting can (and should) be enabled. Setting the verbosity to zero, means the simulation will run silent with no warnings or updates, 1 will give us progress updates and 2 will go into the debugging mode.
 
 ```{r initializing the simulation}
 set_verbosity(2L)  
@@ -287,7 +290,7 @@ ggplot() +
 
 After the landscapes for our target species are loaded, the simulation object needs to be created, with landscapes being the only argument the function needs.
 
-```{r sim object}
+```{r sim object, message=FALSE}
 sim <- create_simulation(sim_env)
 ```
 
@@ -357,7 +360,7 @@ plot(sim$Alcesalces, "dispersalDistance",
 
 A list of global variables can be created to track species populations throughout the simulation and allow easy model diagnostics in the end. Here we added global variables for the total number of individuals (n_abundance), mean number of individuals per cell (mean_abundance), mean reproduction rate (mean_rrate), mean carrying capacity (mean_ccap) and total number of occupied cells (n_occupied).
 
-```{r global variables}
+```{r global variables, message=FALSE, results='hide'}
 species_names <- sim$species_names()
 species_sum_abundance <- vector("list", length(species_names))
 names(species_sum_abundance) <- species_names
@@ -374,7 +377,7 @@ for (i in species_names) {
 do.call(sim$add_globals, species_sum_abundance)
 ```
 
-For our example, the total number of individuals (n_abundance) will useful later on for us to calculate impact and recovery metrics, for each species or for the taxa, and as such we can save those results as .csv as explained further in Step 9.
+For our example, the total number of individuals (n_abundance) will useful later on for us to calculate impact and recovery metrics, for each species or for the taxa, and as such we can save those results as .csv as explained further in [Step 9.](#step9---save-mean-abundance-per-cell-plots)
 
 
 ## Step 7 - Adding the processes
@@ -387,7 +390,7 @@ The processes also make use of the `self` keyword. It refers to the species that
 
 Suitability influences species traits. To account for this, we incorporated a process that simultaneously adjusts both the reproductive rates and carrying capacities of each species, ensuring they respond dynamically to habitat suitability for each cell.
 
-```{r suitability process}
+```{r suitability process, message=FALSE, results='hide'}
 # Suitability influence on the environment  
 sim$add_process(
   species = species_names,
@@ -409,7 +412,7 @@ sim$add_process(
 
 To include local population’s dynamics was included in this model through the **Beverton & Holt model**, a density-dependent population dynamics model where population size stabilizes as resource limitations increase competition among individuals. Considering the large macroecological approach used here, this model was used as an alternative to more stage dynamics focused models, which are already included in the metaRange package.
 
-```{r beverton and holt}
+```{r beverton and holt, message=FALSE, results='hide'}
 # Demographic processes (Beverton & Holt)
 sim$add_process(
   species = species_names,
@@ -430,7 +433,7 @@ To model population’s dispersal movements, the metaRange function `dispersal()
 
 Additionally, here we introduce **dispersal change** within the dispersal process to track population movements in the landscape (see Dispersal change section bellow).
 
-```{r dispersal}
+```{r dispersal, message=FALSE, results='hide'}
 # Dispersal
 sim$add_process(
   species = species_names,
@@ -457,7 +460,7 @@ sim$add_process(
 
 To ensure that only whole individuals occur in our landscape we use the `truncate` function to eliminate the possibility of 0.5 individuals.
 
-```{r truncate}
+```{r truncate, message=FALSE, results='hide'}
 # Ensure whole individuals
 sim$add_process(
   process_name = "truncate",
@@ -475,7 +478,7 @@ sim$add_process(
 
 We also introduce tracking statistics, based on the global variables defined in a previous step and remove species from the process queue in case they go extinct.
 
-```{r stats}
+```{r stats, message=FALSE, results='hide'}
 # Tracking statistics
 sim$add_process(
   process_name = "track_stats",
@@ -526,7 +529,7 @@ Saving the results is also included as a process in the model where we can defin
 
 -   BIOMENAME_REGION_TIMESTEP_SPSNAME_RASTERTYPE.tif.
 
-```{r save results}
+```{r save results, message=FALSE, results='hide'}
 # Saving results
 sim$add_process(
   process_name = "save_results",
@@ -580,11 +583,16 @@ dev.off()
 }
 ```
 
+```{r mean abund per cell, echo=FALSE}
+grid::grid.raster(tiff::readTIFF( file.path(dirout,"MeanAbundancePerCellAlcesalces.tiff")))
+```
+
+
 ## Step 10 - Settings file
 
 We can save a simulation summary with an overall description of the simulation and a species specific report to allow us to revisit simualtion parameters and set up in the future.
 
-```{r, eval=FALSE}
+```{r settings file, eval=FALSE}
 sink(file.path(dirout, "simulationSettings.txt"))
 # write overall summary of simulation
 cat("### Overall Simulation Summary ###\n")
@@ -905,7 +913,7 @@ names_replace <- c("Alcesalces" = "Alces alces",
                    "Canislupus" = "Canis lupus")
 
 # import external data for model validation
-santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
+santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # import species traits df for model validation
@@ -936,7 +944,7 @@ validation_plot <- ggplot(validationList$independentDensity, aes(species)) +
              aes(x = species, y = estimatedDensity), color = "firebrick3", position = "jitter", size = 1) +
   labs(y = "Independent density estimate", x = element_blank(),
        #title = "Model validation",
-       subtitle =  "Estimated densities in red", 
+       subtitle =  "Estimated densities in red (nº individuals/km2", 
        #caption = "performed for timestep 100"
        ) +
   theme_minimal() +
