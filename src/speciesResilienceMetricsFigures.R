@@ -22,13 +22,13 @@ library(data.table)
 # Boreal Forests ---------------------------------------------------------------
 
 ## Europe
-TNIND_europe <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
+TNIND_europe <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals") 
 colnames(TNIND_europe) <- c("TNIND", "biome", "region", "species", "timestep", "scenario", "taxa")
 
 ## North America
-TNIND_northamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
+TNIND_northamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals",
          biome = case_when(biome == "oreal Forests Taiga" ~ "Boreal Forests Taiga")) 
@@ -36,19 +36,20 @@ TNIND_northamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/AN
 # Tropical Moist Forests -------------------------------------------------------
 
 ## Asia
-TNIND_asia <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
+TNIND_asia <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
 
 ## Africa
-TNIND_africa <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
+TNIND_africa <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
 
 ## South America
-TNIND_southamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
+TNIND_southamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
   mutate(scenario = "BAU",
-         taxa = "Mammals") 
+         taxa = "Mammals",
+         biome = case_when(biome == "TropicalSubtropicalMoistBroadleafForests" ~ "Tropical Subtropical Moist Broadleaf Forests")) 
 
 invisible(gc())
 
@@ -59,6 +60,7 @@ invisible(gc())
 datasets <- list(TNIND_europe, TNIND_northamerica, TNIND_asia, TNIND_africa, TNIND_southamerica)
 
 TNIND_yr <- do.call("rbind", datasets)
+unique(TNIND_yr$biome)
 
 ###############################
 # TOTAL NUMBER OF INDIVIDUALS #
@@ -108,9 +110,12 @@ stability_sps <- TNIND_yr %>%
             # find max. nº of individuals
             impact_year = timestep[which.min(TNIND)],
             # find the year the pop. reaches a min. value in the post policy period
-            recovery_year = ifelse(any(timestep > t_policy & TNIND >= mean_post),
-                                   min(timestep[timestep > t_policy & TNIND >= mean_post], na.rm = TRUE), # find the year where n_abundance is equal or smaller than the post policy mean 
-                                   NA), .groups = "drop") %>%
+            recovery_year = ifelse(mean == 0, 
+                                   NA, 
+                                   ifelse(any(timestep > t_policy & TNIND >= mean_post),
+                                          min(timestep[timestep > t_policy & TNIND >= mean_post], na.rm = TRUE), 
+                                          NA)), 
+            .groups = "drop") %>%
   pivot_wider(names_from = period, values_from = c(mean, min, max, impact_year, recovery_year)) %>%
   dplyr::select(!c(impact_year_Pre, recovery_year_Pre)) %>% # remove year of min. nº of individuals in the pre policy period and the year in which the nº ind is equal to the mean values of the post policy period
   mutate(impact = ifelse( mean_Post > mean_Pre,

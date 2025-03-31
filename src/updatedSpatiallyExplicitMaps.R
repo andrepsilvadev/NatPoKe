@@ -7,7 +7,7 @@
 ##########
 # Step 1 # Set up, load needed packages & functions
 ##########
-
+library(here)
 source(here("src", "libraries.R"))
 source(here("src", "customFunctions.R"))
 
@@ -18,11 +18,11 @@ source(here("src", "customFunctions.R"))
 # specifically look for the rasters in Robinson projection (better looking maps)
 
 # list all directories with outputs to map
-europe <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_EuropeRobinson/Outputs"
+europe <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/28Mar2025_EuropeRobinson/Outputs"
 #northAmerica <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/28Mar2025_Europe/Outputs"
-southAmerica <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_SouthAmericaRobinson/Outputs"
-africa <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_AfricaRobinson/Outputs"
-asia <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_AsiaRobinson/Outputs"
+southAmerica <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/28Mar2025_SouthAmericaRobinson/Outputs"
+africa <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/28Mar2025_AfricaRobinson/Outputs"
+asia <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/28Mar2025_AsiaRobinson/Outputs"
 # all directories
 directories <- c(europe, asia, africa, southAmerica)
 
@@ -99,6 +99,7 @@ for (dir_name in names(all_final_data)) {
   
   Shannon_indexes[[dir_name]] <- Shannon_index_df # Store the result per region
 }
+
 ##########
 # Step 4 # Prepare maps insets for better visualisation 
 ##########
@@ -176,17 +177,18 @@ southamerica_plot <- ggplot() +
 southamerica_shannon <- ggplot() +
   geom_tile(data = Shannon_indexes$`28Mar2025_SouthAmericaRobinson`, aes(x = x, y = y, fill = Shannon_change)) +
   scale_fill_viridis_c(name = "Shannon's Index\nChange", limits = c(-0.5, 0.5)) +
+  ylim(-1207500,-1200500) + 
   labs(x = "Latitude", y = "Longitude" , title = "South America") +
   #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 
 # build final south america plot
-southAmerica_Shannon <- southamerica_shannon + inset_element(southamerica_plot, 0.7, 0.7, 1, 1)
+southAmerica_Shannon <- southamerica_shannon + inset_element(southamerica_plot, 0.6, 0.7, 1, 1)
 # save plot
 ggsave(plot = southAmerica_Shannon,
-       file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/SouthAmericaShannonIndexMap",
-       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/SouthAmericaShannonIndexMap.tif",
+       bg = 'white', width = 250, height = 300, units = "mm", dpi = 1200, compression = "lzw")
 
 
 ## AFRICA ##
@@ -200,6 +202,8 @@ africa_plot <- ggplot() +
 
 africa_shannon <- ggplot() +
   geom_tile(data = Shannon_indexes$`28Mar2025_AfricaRobinson`, aes(x = x, y = y, fill = Shannon_change)) +
+  xlim(1734000, 1742000) +
+  ylim(-1176000, -1171000)+
   scale_fill_viridis_c(name = "Shannon's Index\nChange", limits = c(-0.5, 0.5)) +
   labs(x = "Latitude", y = "Longitude" , title = "Africa") +
   #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
@@ -210,8 +214,8 @@ africa_shannon <- ggplot() +
 Africa_Shannon <- africa_shannon + inset_element(africa_plot, 0.7, 0.7, 1, 1)
 # save plot
 ggsave(plot = Africa_Shannon,
-       file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/AfricaShannonIndexMap",
-       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/AfricaShannonIndexMap.tif",
+       bg = 'white', width = 300, height = 200, units = "mm", dpi = 1200, compression = "lzw")
 
 
 ## ASIA ##
@@ -242,10 +246,11 @@ Asia_Shannon <- asia_shannon + inset_element(asia_plot, 0.7, 0.7, 1, 1)
 tropical_forests <- southAmerica_Shannon +
   Africa_Shannon +
   Asia_Shannon +
+  plot_layout(widths = c(1, 2, 2)) +
   plot_annotation(title = 'Tropical & Subtropical Moist Broadleaf Forests', theme = theme(plot.title = element_text(size = 16, hjust = 0.5))) +
   plot_layout(guides = 'collect') & theme(legend.position = 'bottom')
 ggsave(plot = tropical_forests,
-       file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/TropicalForestsShannonIndex.tif",
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/TropicalForestsShannonIndex.tif",
        bg = 'white', width = 700, height = 250, units = "mm", dpi = 1200, compression = "lzw")
 
 ##################
