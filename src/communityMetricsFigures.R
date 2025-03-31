@@ -9,13 +9,13 @@
 # Boreal Forests ---------------------------------------------------------------
 
 ## Europe
-TNIND_europe <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
+TNIND_europe <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals") 
 colnames(TNIND_europe) <- c("TNIND", "biome", "region", "species", "timestep", "scenario", "taxa")
 
 ## North America
-TNIND_northamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
+TNIND_northamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals",
          biome = case_when(biome == "oreal Forests Taiga" ~ "Boreal Forests Taiga")) 
@@ -23,17 +23,17 @@ TNIND_northamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)
 # Tropical Moist Forests -------------------------------------------------------
 
 ## Asia
-TNIND_asia <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
+TNIND_asia <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
 
 ## Africa
-TNIND_africa <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
+TNIND_africa <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
 
 ## South America
-TNIND_southamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
+TNIND_southamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals") 
 
@@ -164,7 +164,7 @@ invisible(gc())
 
 taxas <- unique(TNIND_yr$biome)
 variables <- unique(c(community_df_year_long$variables))
-biome_names <- c("Boreal Forests Taiga" = "Boreal Forests Taiga", "Tropical Subtropical Moist Broadleaf Forests" = "Tropical & Subtropical Moist Broadleaf Forests")
+biome_names <- c("Boreal Forests Taiga" = "Boreal Forests Taiga", "Tropical Subtropical Moist Broadleaf Forests" = "Tropical & Subtropical\nMoist Broadleaf Forests")
 vars_names <- c("mean_Sps_richness_yr" = "Species \n Richness", "mean_Shannon_Index_yr" = "Shannon Wienner \nIndex", "mean_Funct_Div_yr" = "Functional \nDiversity")
 
 # split full dataframe per variable
@@ -203,6 +203,7 @@ shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
                biome = as_labeller(biome_names),
                taxa = as_labeller(taxas)),
              switch = "y") +
+  labs(title = "Shannon's Index") +
   xlab("Time") +
   ylab("Metric value") +
   #scale_color_discrete("Economic policy \nscenario") +
@@ -218,6 +219,8 @@ shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
     # modify facet labels
     strip.text = element_text(face = "bold", size = rel(1)),
     strip.placement = "outside",
+    #plot title
+    plot.title = element_text(hjust = 0.5),
     # adjust legend
     legend.position = "bottom",
     # modify x-axis text
@@ -230,7 +233,7 @@ shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
 # save shannon_over_time plot
-ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_ShannonWienerOverTime.tiff", # path
+ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure2_ShannonWienerOverTime29March.tiff", # path
        shannon_over_time, # plot
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
@@ -268,12 +271,13 @@ functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
                biome = as_labeller(biome_names),
                taxa = as_labeller(taxas)),
              switch = "y") +
+  labs(title = "Functional Diversity Index") +
   xlab("Time") +
   ylab("Metric value") +
   #scale_color_discrete("Economic policy \nscenario") +
   coord_cartesian(clip = "off") +  # Allow plotting outside the panel
-  geom_phylopic(data = icon_positions_functional, aes(x = x, y = y, uuid = phylopic), 
-               size = 0.0005, inherit.aes = FALSE) +  # Add PhyloPic icons
+  #geom_phylopic(data = icon_positions_functional, aes(x = x, y = y, uuid = phylopic), 
+   #            size = 0.0005, inherit.aes = FALSE) +  # Add PhyloPic icons
   theme_minimal() +
   theme(
     # remove gridlines 
@@ -283,6 +287,8 @@ functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
     # modify facet labels
     strip.text = element_text(face = "bold", size = rel(1)),
     strip.placement = "outside",
+    #plot title
+    plot.title = element_text(hjust = 0.5),
     # adjust legend
     legend.position = "bottom",
     # modify x-axis text
@@ -294,10 +300,22 @@ functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
     plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
+
 # save functdiv_over_time plot
 ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_FunctionalDiversityOverTime.tiff", # path
       functdiv_over_time, # plot
       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+
+
+
+
+# COMBINIG BOTH #
+
+shannon_over_time + functdiv_over_time +  plot_layout(axes = "collect")
+ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure2_Shannon_FunctionalDiversityOverTime29March.tiff", # path
+       plot = shannon_over_time + functdiv_over_time +  plot_layout(axes = "collect"), # plot
+       bg = 'white', width = 350, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+
 
 
 # Species richness  ------------------------------------------------------------

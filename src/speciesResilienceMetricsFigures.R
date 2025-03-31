@@ -22,13 +22,13 @@ library(data.table)
 # Boreal Forests ---------------------------------------------------------------
 
 ## Europe
-TNIND_europe <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
+TNIND_europe <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals") 
 colnames(TNIND_europe) <- c("TNIND", "biome", "region", "species", "timestep", "scenario", "taxa")
 
 ## North America
-TNIND_northamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
+TNIND_northamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals",
          biome = case_when(biome == "oreal Forests Taiga" ~ "Boreal Forests Taiga")) 
@@ -36,17 +36,17 @@ TNIND_northamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)
 # Tropical Moist Forests -------------------------------------------------------
 
 ## Asia
-TNIND_asia <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
+TNIND_asia <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
 
 ## Africa
-TNIND_africa <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
+TNIND_africa <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
 
 ## South America
-TNIND_southamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
+TNIND_southamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals") 
 
@@ -172,7 +172,7 @@ figure1 <- stability_avg_long %>%
   facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
-  scale_fill_manual("Taxa", values = custom_colors, ) +
+  scale_fill_manual("Taxa", values = custom_colors) +
   ylab("") +
   xlab("\nEconomic policy scenario") +
   theme_minimal() +
@@ -198,8 +198,8 @@ figure1
 invisible(gc())
 
 ggsave(plot = figure1,
-       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/Figure1_Impact&RecoveryTwoBadRuns.tiff",
-       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+       file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure1_Impact&Recovery29March.tiff",
+       bg = 'white', width = 300, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
 
@@ -242,7 +242,7 @@ suplementary_figure1
 invisible(gc())
 
 ggsave(plot = suplementary_figure1,
-        file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/SuplementaryFig1_TimeImpact&TimeRecoveryTwoBadRuns.tiff",
+        file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/SuplementaryFig1_TimeImpact&TimeRecovery29March.tiff",
         bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
