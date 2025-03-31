@@ -445,7 +445,7 @@ It can also be helpful to visualize changes in these diversity indexes spatially
 
 > Important Note:
 >
-> The metaRange model runs on projected landscapes so it can work around species dispersal distances, However projecting landscapes can distort the "normal" appearance fo a raster, since we are change from one grid system to another. To compute metrics we went for equal area projections whenever possible but for these next steps the model was run with the Robinson projection (ESRI:54030) to produce more visually appealing maps.
+> The metaRange model runs on projected landscapes so it can work around species dispersal distances, However projecting landscapes can distort the "normal" appearance fo a raster, since we are change from one grid system to another. To compute metrics we went for equal area projections whenever possible but for these next steps the model was run with the Robinson projection (ESRI:54030) to produce more visually appealing maps. Bellow a list of all projetions used can be checked
 
 1.  Start by defining where all the output abundance raster for all the runs in analysis are, as well as all modeled species
 
@@ -607,3 +607,18 @@ europe_Shannon <- europe_shannon + inset_element(europe_plot, 0.6, 0.7, 1, 1)
 ```{r, echo=FALSE}
 europe_Shannon
 ```
+
+# Annex
+
+## Projections used
+
+| Continent     | Projection            | Purpose                    |
+|---------------|-----------------------|----------------------------|
+| North America | 10598 (probably...)   | metrics estimates and math |
+| Europe        | EPSG:3035             | metrics estimates and math |
+| South America | EPSG:10603            | metrics estimates and math |
+| Africa        | EPSG:27701            | metrics estimates and math |
+| Asia          | EPSG:10594            | metrics estimates and math |
+| All           | ESRI:54030 (Robinson) | better looking maps        |
+
+## 
