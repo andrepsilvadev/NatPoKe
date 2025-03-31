@@ -9,13 +9,13 @@
 # Boreal Forests ---------------------------------------------------------------
 
 ## Europe
-TNIND_europe <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
+TNIND_europe <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals") 
 colnames(TNIND_europe) <- c("TNIND", "biome", "region", "species", "timestep", "scenario", "taxa")
 
 ## North America
-TNIND_northamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
+TNIND_northamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals",
          biome = case_when(biome == "oreal Forests Taiga" ~ "Boreal Forests Taiga")) 
@@ -23,19 +23,21 @@ TNIND_northamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/AN
 # Tropical Moist Forests -------------------------------------------------------
 
 ## Asia
-TNIND_asia <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
+TNIND_asia <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
 
 ## Africa
-TNIND_africa <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
+TNIND_africa <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
   mutate(scenario = "BAU",
          taxa = "Mammals")
 
 ## South America
-TNIND_southamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
+TNIND_southamerica <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
   mutate(scenario = "BAU",
-         taxa = "Mammals") 
+         taxa = "Mammals",
+         biome = case_when(biome == "TropicalSubtropicalMoistBroadleafForests" ~ "Tropical Subtropical Moist Broadleaf Forests")) 
+ 
 
 ##################
 # COMBINING DATA #
@@ -44,7 +46,7 @@ TNIND_southamerica <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/AN
 datasets <- list(TNIND_europe, TNIND_northamerica, TNIND_asia, TNIND_africa, TNIND_southamerica)
 
 TNIND_yr <- do.call("rbind", datasets)
-
+#unique(TNIND_yr$biome)
 
 mammalTraits <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
@@ -62,6 +64,7 @@ mammalTraits <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>%
     sci_name = stringr::str_replace_all(sci_name, " ", "")) %>% 
   distinct()
 
+# left join TNIND dataframe with mammal traits to get sps trophic levels
 TNIND_yr <- TNIND_yr %>%
   left_join(mammalTraits, by = c("species" = "sci_name")) %>%
   dplyr::select(TNIND, biome, region, species, timestep, scenario, taxa, trophic_level) %>% 
@@ -147,8 +150,8 @@ community_df_year <- community_df %>%
     mean_Funct_Div_yr = mean(Funct_diversity_Index, na.rm = TRUE))
 invisible(gc())
 
-# write this dataframe into a .csv to feed NatPoKe_Task2_Spatially_explicit_maps.R script
-write.csv(community_df_year, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/community_df_peryear_24Feb2025.csv")
+# # write this dataframe into a .csv to feed NatPoKe_Task2_Spatially_explicit_maps.R script
+# write.csv(community_df_year, "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/community_df_peryear_24Feb2025.csv")
 
 # change community metrics per year from wide to LONG format for plots
 community_df_year_long <- community_df_year %>%
@@ -169,7 +172,7 @@ vars_names <- c("mean_Sps_richness_yr" = "Species \n Richness", "mean_Shannon_In
 
 # split full dataframe per variable
 variable_data <- split(community_df_year_long, community_df_year_long$variables)
-
+variable_data$mean_Shannon_Index_yr
 
 # Shannon's index --------------------------------------------------------------
 
@@ -233,9 +236,9 @@ shannon_over_time <- ggplot(data = variable_data$mean_Shannon_Index_yr,
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
 # save shannon_over_time plot
-ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure2_ShannonWienerOverTime29March.tiff", # path
-       shannon_over_time, # plot
-       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+# ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure2_ShannonWienerOverTime29March.tiff", # path
+#        shannon_over_time, # plot
+#        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
 
 
@@ -302,9 +305,9 @@ functdiv_over_time <- ggplot(data = variable_data$mean_Funct_Div_yr,
 
 
 # save functdiv_over_time plot
-ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_FunctionalDiversityOverTime.tiff", # path
-      functdiv_over_time, # plot
-      bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+# ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_FunctionalDiversityOverTime.tiff", # path
+#       functdiv_over_time, # plot
+#       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
 
 
@@ -312,9 +315,9 @@ ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoK
 # COMBINIG BOTH #
 
 shannon_over_time + functdiv_over_time +  plot_layout(axes = "collect")
-ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure2_Shannon_FunctionalDiversityOverTime29March.tiff", # path
-       plot = shannon_over_time + functdiv_over_time +  plot_layout(axes = "collect"), # plot
-       bg = 'white', width = 350, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+# ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure2_Shannon_FunctionalDiversityOverTime29March.tiff", # path
+#        plot = shannon_over_time + functdiv_over_time +  plot_layout(axes = "collect"), # plot
+#        bg = 'white', width = 350, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
 
 
 
@@ -377,10 +380,10 @@ richness_over_time <- ggplot(data = variable_data$mean_Sps_richness_yr,
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
 # save functdiv_over_time plot
-ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_SpeciesRichnessOverTime.tiff", # path
-        richness_over_time, # plot
-        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
- 
+# ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/24Feb2025/Figure2_SpeciesRichnessOverTime.tiff", # path
+#         richness_over_time, # plot
+#         bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+#  
 
 
 # IF WE WANT A MORE AUTOMATED WAY THAT MIGHT NOT WORK WITH DIFFERENT SCALES 

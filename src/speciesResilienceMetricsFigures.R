@@ -60,7 +60,7 @@ invisible(gc())
 datasets <- list(TNIND_europe, TNIND_northamerica, TNIND_asia, TNIND_africa, TNIND_southamerica)
 
 TNIND_yr <- do.call("rbind", datasets)
-unique(TNIND_yr$biome)
+unique(TNIND_yr$species)
 
 ###############################
 # TOTAL NUMBER OF INDIVIDUALS #
@@ -76,9 +76,9 @@ TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = TNIND, group = s
   theme_minimal() +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
 
-ggsave(plot = TNIND_per_year,
-       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Feb2025/TotalNumberIndividualsTwoBadRuns.tiff",
-       bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+# ggsave(plot = TNIND_per_year,
+#        file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Feb2025/TotalNumberIndividualsTwoBadRuns.tiff",
+#        bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
 ################################
@@ -164,6 +164,9 @@ names(metric.labs) <- c("impact",
                         "recovery",
                         "timeimpact",
                         "timerecovery")
+biome_names <- c("Boreal Forests Taiga" = "Boreal Forests Taiga", "Tropical Subtropical Moist Broadleaf Forests" = "Tropical & Subtropical\nMoist Broadleaf Forests")
+
+biome_names
 
 # Custom color palette
 custom_colors <- c("Bird" = "#38b2fe", "Mammals" = "#ffab27", "Insect" = "#99cc00")
@@ -174,7 +177,7 @@ figure1 <- stability_avg_long %>%
   ggplot(aes(x = scenario, y = avg, fill = taxa)) +
   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
   geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
-  facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs), switch = "y") +
+  facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs, biome = biome_names), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
   scale_fill_manual("Taxa", values = custom_colors) +
@@ -202,9 +205,9 @@ figure1 <- stability_avg_long %>%
 figure1
 invisible(gc())
 
-ggsave(plot = figure1,
-       file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure1_Impact&Recovery29March.tiff",
-       bg = 'white', width = 300, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+# ggsave(plot = figure1,
+#        file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/Figure1_Impact&Recovery29March.tiff",
+#        bg = 'white', width = 300, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
 
@@ -246,9 +249,9 @@ suplementary_figure1 <- stability_avg_long %>%
 suplementary_figure1
 invisible(gc())
 
-ggsave(plot = suplementary_figure1,
-        file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/SuplementaryFig1_TimeImpact&TimeRecovery29March.tiff",
-        bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+# ggsave(plot = suplementary_figure1,
+#         file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/SuplementaryFig1_TimeImpact&TimeRecovery29March.tiff",
+#         bg = 'white', width = 200, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
 ##########################################

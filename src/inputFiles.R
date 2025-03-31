@@ -8,13 +8,6 @@
 ##########
 # Step 1 # Define area and species
 ##########
-
-# select Target biome (only one)
-target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
-
-# select target region (only one)
-target_region <- "Africa" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
-
 # select target species
 target_species <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv")) %>% 
   dplyr::pull(Species)
@@ -174,7 +167,7 @@ for (landscape in landscapes) {
   r <- rast(landscape)
   
   # reproject to SWEREF99 TM (EPSG:3006) 
-  r_utm <- project(r, "EPSG:10603")
+  r_utm <- project(r, "ESRI:54030")
   
   # convert to rasterStack
   r_raster <- stack(r_utm)

@@ -42,7 +42,7 @@ species_names <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) 
   dplyr::pull(Species)
 
 # (2) independentDensity
-santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
+santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
   # santini's dataframe has species names with spaces but metaRange does not like spaces
   # remove spaces again
   mutate(Species = str_replace_all(Species, " ", ""))
@@ -64,12 +64,6 @@ for (target_sps in species_names) {
   # stack all rasters into one
   abundance_stack <- terra::rast(unlist(abundance_rasters))
 }
-
-# convert the raster stack to a list of data frames
-raster_list <- lapply(1:nlayers(abundance_stack), function(i) {
-  as.data.frame(abundance_stack[[i]], xy = TRUE) %>%
-    mutate(layer = names(abundance_stack)[i])
-})
 
 # convert raster stack to df
 species_df <- lapply(1:nlyr(abundance_stack), function(i){
@@ -201,8 +195,7 @@ pvalidation1 <- ggplot(validationList$independentDensity, aes(species)) +
   ggtitle(label = "Model validation - estimated densities in red") + 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-pvalidation1
+#pvalidation1
 
 # saving the plot
 ggsave(filename = file.path(dirout, paste0("ModelValidation", runname, ".tiff")),
@@ -216,8 +209,8 @@ pvalidation2 <- ggplot(validationList$independentDensity, aes(x = "", y = meanDe
   geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
   geom_point(data = validationList$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
   facet_wrap(~ species, scales = "free_y") + 
-  ylab("Independent density estimate") +
-  xlab("Species") +
+  ylab("Independent density estimate (individuals/km2") +
+  xlab(" ") +
   ggtitle("Model validation - estimated densities in red") + 
   theme_minimal() +
   theme(axis.text.x = element_blank(),

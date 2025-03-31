@@ -36,12 +36,10 @@
 # import trait dataframe
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
-# select target biome (only one)
-target_biome <- "Tropical Subtropical Moist Broadleaf Forests" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
-
-# select target region (only one)
-#target_region <- "Europe" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
-target_region <- "Africa"
+# modify target biome 
+target_biome <- gsub("[/& ]", "", target_biome)
+# modify target region
+target_region <- gsub("[/& ]", "", target_region)
 
 # select target species (multiple sps are allowed)
 target_species <- species_traits$Species
@@ -253,27 +251,57 @@ sim$add_process(
 )
 
 # Saving results
+# sim$add_process(
+#   process_name = "save_results",
+#   process_fun = function() {
+# 
+#     for (species in species_names) {
+#       suffix <- paste0(target_biome, "_", target_region, "_")
+#       save_species(
+#         # pass the species object
+#         self[[species]],
+#         # specify traits we want to save
+#         traits = c("abundance", "reproductionRate", "dispersal_change"),
+#         # a prefix for each time step
+#         prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
+#         # where should it be saved
+#         path = dirout,
+#         overwrite = TRUE
+#       )
+#     }
+#   },
+#   execution_priority = 7
+# )
+
+
+# Saving results
 sim$add_process(
   process_name = "save_results",
   process_fun = function() {
-
-    for (species in species_names) {
-      suffix <- paste0(str_replace_all(target_biome, " ", ""), "_", target_region, "_")
-      save_species(
-        # pass the species object
-        self[[species]],
-        # specify traits we want to save
-        traits = c("abundance", "reproductionRate", "dispersal_change"),
-        # a prefix for each time step
-        prefix = paste0(suffix, sprintf("%03d", self$get_current_time_step()), "_"),
-        # where should it be saved
-        path = dirout,
-        overwrite = TRUE
-      )
+    
+    timesteps_to_save <- c(101, 125)
+    current_timestep <- self$get_current_time_step()
+    
+    if (current_timestep %in% timesteps_to_save) {
+      for (species in species_names) {
+        suffix <- paste0(str_replace_all(target_biome, " ", ""), "_", target_region, "_")
+        save_species(
+          # pass the species object
+          self[[species]],
+          # specify traits we want to save
+          traits = c("abundance"),
+          # a prefix for each time step
+          prefix = paste0(suffix, sprintf("%03d", current_timestep), "_"),
+          # where should it be saved
+          path = dirout,
+          overwrite = TRUE
+        )
+      }
     }
   },
   execution_priority = 7
 )
+
 
 ##########  
 # Step 8 # STARTING THE SIMULATION

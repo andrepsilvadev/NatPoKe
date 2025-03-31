@@ -4,29 +4,34 @@
 # Inês Silva
 # 13 Feb 2024
 
-# settings & libraries ---------------------------------------------------------
-source("./src/libraries.R") # load necessary packages
-source("./src/customFunctions.R") # load customized functions
+# Load Settings & Libraries ----------------------------------------------------
+source("./src/libraries.R")            # Load necessary packages
+source("./src/customFunctions.R")      # Load customized functions
 
-# working directories ----------------------------------------------------------
-runname <- "28Mar2025_SouthAmericaRobinson"
-source("./src/generalSettings.R") # paths and spatial settings
+runname <- "28Mar2025_NorthAmericaRobinson"   # Unique identifier for the run
+source("./src/generalSettings.R")      # Load paths and spatial settings
 
-# Input Files ------------------------------------------------------------------
-## species dataframe
 
-# select Target biome (only one)
-target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
+# Input Selection --------------------------------------------------------------
+## Select Target Biome (choose one)
+target_biome <- "Boreal Forests/Taiga" 
+# Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
 
-# select target region (only one)
-target_region <- "South America" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
+## Select Target Region (choose one)
+target_region <- "North America" 
+# Options: "North America", "South America", "Europe", "Asia", "Africa"
 
-# select target species (multiple sps are allowed)
-target_species <- c("Puma concolor")
+## Select Target Species (multiple allowed)
+target_species <- c(
+                    "Lynx rufus",      
+                    "Odocoileus virginianus"
+                    )
+# Simply modify or add species names in the list above
+# Options: see https://ulisboa-my.sharepoint.com/:x:/g/personal/misilva_fc_ul_pt/EVOf6YCgWLVBnAWRzyFahPMBWcKv-2TRGKud35fyjf3Kig?e=zraW2t
 
-source("./src/mammalMetaRangeSpeciesDataframe.R") 
-#source("./src/birdMetaRangeSpeciesDataframe.R") 
-#source("./src/treeMetaRangeSpeciesDataframe.R") 
+# Load Species Data ------------------------------------------------------------
+source("./src/mammalMetaRangeSpeciesDataframe.R")
+
 
 ## load global suitability raster files & crop 
 source("./src/inputFiles.R") 
@@ -34,21 +39,23 @@ source("./src/inputFiles.R")
 
 # models -----------------------------------------------------------------------
 source("./src/mammalModel.R") # run metaRange model for mammals species
-#source("./birdsModel.R") # run metaRange model for bird species !! DOES NOT EXIST YET !!
-#source("./largeTreesModel.R") # run metaRange model for large tree species !! EXISTS BUT HAS NOT BEEN USED YET !!
+
 
 # saving simulation outputs ----------------------------------------------------
-source("./src/savingSimulationOutputs.R")
+#source("./src/savingSimulationOutputs.R") # DEPRECATED
 
-# metrics and plotting figures -------------------------------------------------
+# outputs ----------------------------------------------------------------------
+source("./mammalSpeciesSpecificPlots.R") # produce multiple maps (abund, repRate and prop abund change) and model validation plot per species
+
+# next scripts can take multiple directories to produce figures and maps
 source("./speciesResilienceMetricsFigures.R") # calculate and plot stability metrics for all taxa
-# builds 2 figures with impact & recovery values plus time to impact & recovery
-
 source("./communityMetricsFigures.R") # calculate community metrics and build plots over time
+source("./updatedSpatiallyExplicitMaps.R") # produces Shannon's index change maps for each continent
 
-
-source("./spatiallyExplicitMaps.R") # build spatially explicit maps of the world to show community metrics
-
-# model validation and sensitivity analysis ------------------------------------
+# other analysis ---------------------------------------------------------------
 source("./src/modelValidation.R")
 source("./sensitivityAnalysis.R")
+
+
+#source("./spatiallyExplicitMaps.R") # DEPRECATED
+
