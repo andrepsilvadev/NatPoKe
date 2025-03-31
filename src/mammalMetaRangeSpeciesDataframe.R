@@ -9,15 +9,6 @@
 # Step 1 # Define area and species to model
 ##########
 
-# select Target biome (only one)
-target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
-
-# select target region (only one)
-target_region <- "Africa" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
-
-# select target species (multiple sps are allowed)
-target_species <- c("Crocuta crocuta", "Panthera leo")
-
 ##########
 # Step 2 # Import Trait Dataframe 
 ##########

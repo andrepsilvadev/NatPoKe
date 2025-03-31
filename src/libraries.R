@@ -40,6 +40,7 @@ easypackages::packages(
     "grid",
     "gridExtra",
     "patchwork",
+    "RColorBrewer",
   
   prompt = FALSE)
 

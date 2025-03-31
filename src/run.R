@@ -9,11 +9,21 @@ source("./src/libraries.R") # load necessary packages
 source("./src/customFunctions.R") # load customized functions
 
 # working directories ----------------------------------------------------------
-runname <- "27Mar2025_Africa"
+runname <- "28Mar2025_SouthAmericaRobinson"
 source("./src/generalSettings.R") # paths and spatial settings
 
 # Input Files ------------------------------------------------------------------
 ## species dataframe
+
+# select Target biome (only one)
+target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Tropical & Subtropical Moist Broadleaf Forests OR Boreal Forests/Taiga
+
+# select target region (only one)
+target_region <- "South America" # "North America" OR "South America" OR "Europe" OR "Asia" OR "Antarctica" OR "Africa" OR "Australia" OR "Oceania"     
+
+# select target species (multiple sps are allowed)
+target_species <- c("Puma concolor")
+
 source("./src/mammalMetaRangeSpeciesDataframe.R") 
 #source("./src/birdMetaRangeSpeciesDataframe.R") 
 #source("./src/treeMetaRangeSpeciesDataframe.R") 
