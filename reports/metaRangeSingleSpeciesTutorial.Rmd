@@ -26,8 +26,8 @@ This tutorial explains how to run the metaRange model framework for mammal speci
 > To run our approach, input directories (dirinput) and output directories (dirout) were previously created to save the input files and respective model output raster files and plots.
 
 ```{r dirinput, echo=FALSE}
-dirinput <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
-dirout <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
+dirinput <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
+dirout <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
 ```
 
 First tings first! In order to use metaRange to model mammal species populations we need to decide:
@@ -569,7 +569,7 @@ The following steps are optional.
 
 ## Step 9 - Save mean abundance per cell plots
 
-To allow a simple and quick way to asses the model simulation for each species we plot the mean abundance per cell for each species separately. This way we can we the behavior of the species abundance over time imedeatly after the simulation finishes
+To allow a simple and quick way to asses the model simulation for each species we plot the mean abundance per cell for each species separately. This way we can we the behavior of the species abundance over time immediately after the simulation finishes
 
 ```{r, eval=FALSE}
 for (species in target_species) {
@@ -585,6 +585,28 @@ dev.off()
 
 ```{r mean abund per cell, echo=FALSE}
 grid::grid.raster(tiff::readTIFF( file.path(dirout,"MeanAbundancePerCellAlcesalces.tiff")))
+```
+
+We can also save a .csv file with the total number of individuals that was saved as a global variable for each time step, being the sum of all individuals in the complete landscape.
+
+```{r, eval=FALSE}
+# create a list to store dfs
+df_list <- list()
+# save total number of individuals (TNIND) in the landscape for each species
+for (species in target_species) {
+  df_list[[species]] <-  as.data.frame(sim$globals[[species]]$n_abundance)%>% 
+    mutate(#Scenario = scenario,
+      biome = target_biome,
+      region = target_region,
+      species = species,
+      timestep = row_number()) %>% 
+    rename("TNIND" = "sim$globals[[species]]$n_abundance")
+}
+# combine all species together
+TNIND_yr <- do.call(rbind, df_list)
+# save csv file with TNIND
+write.csv(TNIND_yr, file = file.path(dirout, paste0("TNIND_yr_", runname, ".csv")), row.names = FALSE)
+
 ```
 
 
@@ -913,7 +935,7 @@ names_replace <- c("Alcesalces" = "Alces alces",
                    "Canislupus" = "Canis lupus")
 
 # import external data for model validation
-santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
+santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # import species traits df for model validation
