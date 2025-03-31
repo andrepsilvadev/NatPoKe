@@ -7,7 +7,7 @@
 library(easypackages)
 packages("readr","ggplot2","RColorBrewer",
          "rworldmap","sp","raster", "gam","mda", "earth", "maxnet", "ggtext","xgboost",
-         "rgbif","biomod2", "dplyr", "terra", "tidyterra", "ggpubr", prompt = FALSE)
+         "rgbif","biomod2", "dplyr", "terra", "tidyterra", "ggpubr", "randomForest", prompt = FALSE)
 
 # load dataset and variables -----------------------------------------------------------------
 # Load species occurrences (6 species available)
