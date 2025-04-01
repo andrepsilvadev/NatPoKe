@@ -14,6 +14,8 @@ packages("readr","ggplot2","RColorBrewer",
 data("DataSpecies")
 head(DataSpecies)
 
+#head(GBIF_mammal_sps)
+
 # Select the name of the studied species
 myRespName <- 'GuloGulo'
 
@@ -25,6 +27,7 @@ myRespXY <- DataSpecies[, c('X_WGS84', 'Y_WGS84')]
 
 # Load environmental variables extracted from BIOCLIM (bio_3, bio_4, bio_7, bio_11 & bio_12)
 data("bioclim_current")
+str(bioclim_current)
 myExpl <- rast(bioclim_current)
 
 ## Crop the data to biome extent
