@@ -7,11 +7,13 @@
 library(easypackages)
 packages("readr","ggplot2","RColorBrewer",
          "rworldmap","sp","raster", "gam","mda", "earth", "maxnet", "ggtext","xgboost",
-         "rgbif","biomod2", "dplyr", "terra", "tidyterra", "ggpubr", "randomForest", prompt = FALSE)
+         "rgbif","biomod2", "dplyr", 
+         "sf", "rnaturalearth", "rnaturalearthdata","terra", "tidyterra", "ggpubr", "randomForest", prompt = FALSE)
 
 # load dataset and variables -----------------------------------------------------------------
 # Load species occurrences (6 species available)
 data("DataSpecies")
+rast(DataSpecies)
 head(DataSpecies)
 
 #head(GBIF_mammal_sps)
@@ -25,9 +27,9 @@ myResp <- as.numeric(DataSpecies[, myRespName])
 # Get corresponding XY coordinates
 myRespXY <- DataSpecies[, c('X_WGS84', 'Y_WGS84')]
 
-# Load environmental variables extracted from BIOCLIM (bio_3, bio_4, bio_7, bio_11 & bio_12)
+# Load training landscape with environmental variables (inputClimate.R)
 data("bioclim_current")
-str(bioclim_current)
+print(bioclim_current)
 myExpl <- rast(bioclim_current)
 
 ## Crop the data to biome extent
