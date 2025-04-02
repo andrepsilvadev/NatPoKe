@@ -1,6 +1,6 @@
 ## Taxa occurrences ##
-## Andre P. Silva & Afonso Barrocal ##
-## January 7th, 2025 ##
+## Andre P. Silva & Afonso Barrocal ## Jorinde-M. Rieger ##
+## April 2nd, 2025 ##
 
 # Use IUCN species names and ranges
 # downloaded manually, later find a way to download automatically through R
@@ -8,8 +8,8 @@ IUCN_mammals <- sf::st_read("~/data/data/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRES
 mammal_sps <- unique(IUCN_mammals$sci_name)
 
 # for testing only
-#speciesTest <- c("Alces alces", "Canis lupus")
-#mammal_sps <- as.data.frame(mammal_sps) %>% dplyr::filter(mammal_sps %in% speciesTest)
+speciesTest <- c("Alces alces", "Canis lupus")
+mammal_sps <- as.data.frame(mammal_sps) %>% dplyr::filter(mammal_sps %in% speciesTest)
 
 # Extract occurrences available in GBIF (e.g. mammals). Filter species >30 records
 gbif_taxon_keys <-
