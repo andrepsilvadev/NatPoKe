@@ -1,14 +1,60 @@
 ## Name: SDMtest ##
-## Main function biomod2; Jorinde-M. Rieger ##
+## Author: Main function biomod2; Jorinde-M. Rieger ##
 ## Description: test SDM in R ##
+## Date: April 1nd 2025 ##
 
-
-# libraries -----------------------------------------------------------------
+# Settings & libraries -----------------------------------------------------------------
 library(easypackages)
 packages("readr","ggplot2","RColorBrewer",
          "rworldmap","sp","raster", "gam","mda", "earth", "maxnet", "ggtext","xgboost",
          "rgbif","biomod2", "dplyr", 
          "sf", "rnaturalearth", "rnaturalearthdata","terra", "tidyterra", "ggpubr", "randomForest", prompt = FALSE)
+
+source("./src/libraries.R") # libraries
+source("./src/customFunctions.R") # functions
+source("./scripts/inputSpeciesData.R") # format and reads input data
+source("./scripts/inputClimate.R") # format and reads input raster landscapes
+
+# customFunctions.R -----------------------------------------------------------------
+
+formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
+  # speciesData = species record coordinates with the following format c("species", "latitude", "longitude")
+  # targetSpecies = species to be modelled
+  # landscape = raster with all the environmental variables we wish to use
+  
+  ## rasterize species data
+  speciesStack <- raster::stack()
+  for(i in 1:length(targetSpecies)){
+    subset <- speciesData %>% dplyr::filter(species == targetSpecies[i])
+    xy <- data.frame(x=subset$longitude,
+                     y=subset$latitude)
+    spRaster <- rasterize(xy, landscape[[1]], fun="count")
+    
+    # reclassify species raster 
+    m <- c(NA, NA, NA,
+           0, +Inf, 1)
+    rclmat <- matrix(m, ncol=3, byrow=TRUE) # criteria for reclassification
+    rc <- reclassify(spRaster, rclmat)
+    names(rc) <- paste0(targetSpecies[i])
+    speciesStack <- addLayer(speciesStack, rc)
+  }
+  
+  # join species and environmental data
+  fullData <- stack(speciesStack, landscape)
+  plot(fullData)
+  xylandscape <- raster::coordinates(landscape)
+  inputDataFrame <- raster::extract(fullData, # raster or rasterstack
+                                    xylandscape, # landscape coordinates
+                                    method='simple', # or "bilinear" - value of the four nearest raster cells
+                                    buffer=NULL, # in meters (long lat) or map_units
+                                    small=FALSE,
+                                    cellnumbers=TRUE,
+                                    na.rm=TRUE,
+                                    df=TRUE) # return dataframe
+  write.csv(inputDataFrame,"./data/inputDataFrame.csv", row.names = FALSE)
+  return(inputDataFrame)
+}
+
 
 # load dataset and variables -----------------------------------------------------------------
 # Load species occurrences (6 species available)
@@ -16,49 +62,62 @@ data("DataSpecies")
 rast(DataSpecies)
 head(DataSpecies)
 
-#head(GBIF_mammal_sps)
+speciesData
+#rast(speciesData)
 
 # Select the name of the studied species
-myRespName <- 'GuloGulo'
+#myRespName <- 'GuloGulo'
+targetSpecies <- "Alces alces"
 
 # Get corresponding presence/absence data
-myResp <- as.numeric(DataSpecies[, myRespName])
+myResp <- as.numeric(speciesData[, targetSpecies])
 
 # Get corresponding XY coordinates
-myRespXY <- DataSpecies[, c('X_WGS84', 'Y_WGS84')]
+myRespXY <- speciesData[, c('X_WGS84', 'Y_WGS84')]
 
 # Load training landscape with environmental variables (inputClimate.R)
-data("bioclim_current")
-print(bioclim_current)
-myExpl <- rast(bioclim_current)
+#data("bioclim_current")
+#print(bioclim_current)
+# myExpl <- rast(bioclim_current)
+trainingLandscapes
+print(trainingLandscapes)
 
 ## Crop the data to biome extent
-# biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
-# biome_name <- "Boreal Forests/Taiga"
-#
-## Function to load and select the biome shapefile
-# load_select_biome <- function(biome_name) {
-#  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
-#  biome_sf[biome_sf$BIOME_NAME == biome_name, ]}
-#
-# biome_sf <- load_select_biome(biome_name)
-# biome_sp <- vect(biome_sf)
-#
-## Function to crop and mask rasters
-# crop_mask_raster <- function(raster, biome_sp) {
-#  mask(crop(raster, biome_sp), biome_sp)}
-#
-# myExpl <- crop_mask_raster(myExpl, biome_sp)
-# 
+biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
+biome_name <- "Boreal Forests/Taiga"
 
-plot(myExpl)
+# Function to load and select the biome shapefile
+load_select_biome <- function(biome_name) {
+biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
+biome_sf[biome_sf$BIOME_NAME == biome_name, ]}
+
+biome_sf <- load_select_biome(biome_name)
+biome_sp <- vect(biome_sf)
+
+# Function to crop and mask rasters to biome
+crop_mask_raster <- function(raster, biome_sp) {
+mask(crop(raster, biome_sp), biome_sp)}
+
+trainingLandscapes <- crop_mask_raster(trainingLandscapes, biome_sp)
+
+plot(trainingLandscapes)
 
 # Prepare data & Parameters -----------------------------------------------------------------
+
+
+ inputData <- formatInputDataFrame(
+  speciesData = speciesData,
+  targetSpecies = targetSpecies, 
+  landscape = landscapes)
+
+
+
+
 # Format Data with true absences
-myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
-                                     expl.var = myExpl,
+myBiomodData <- BIOMOD_FormatingData(resp.var = myResp, # myResp
+                                     expl.var = trainingLandscapes, # myExpl
                                      resp.xy = myRespXY,
-                                     resp.name = myRespName)
+                                     resp.name = targetSpecies) # myRespNames
 myBiomodData
 plot(myBiomodData)
 
@@ -77,6 +136,7 @@ plot(myBiomodData)
 # 
 # myBiomodData.r
 # plot(myBiomodData.r)
+#
 # # Select multiple sets of pseudo-absences
 #
 # # Transform true absences into potential pseudo-absences
@@ -231,16 +291,19 @@ plot(myBiomodEMProj)
 
 # Compare range sizes -----------------------------------------------------------------
 # Load environmental variables extracted from BIOCLIM (bio_3, bio_4, bio_7, bio_11 & bio_12)
-data("bioclim_future")
-myExplFuture = rast(bioclim_future)
+#data("bioclim_future")
+#myExplFuture = rast(bioclim_future)
 
-## crop the cliamte layers to the extent of the biome 
-# myExplFuture <- crop_mask_raster(myExplFuture, biome_sp)
+predictionLandscapes
+# rast(predictionLandscape)
+
+# crop the predictionLandscapes to the extent of the biome 
+predictionLandscapes <- crop_mask_raster(predictionLandscapes, biome_sp)
 
 # Project onto future conditions
 myBiomodProjectionFuture <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
                                               proj.name = 'Future',
-                                              new.env = myExplFuture,
+                                              new.env = predictionLandscapes, # myExplFuture
                                               models.chosen = 'all',
                                               metric.binary = 'TSS',
                                               build.clamping.mask = TRUE)
@@ -264,3 +327,4 @@ gg = bm_PlotRangeSize(bm.range = myBiomodRangeSize,
                       do.mean = TRUE,
                       do.plot = TRUE,
                       row.names = c("Species", "Dataset", "Run", "Algo"))
+
