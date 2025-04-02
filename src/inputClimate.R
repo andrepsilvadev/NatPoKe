@@ -42,58 +42,10 @@ crop_mask_raster <- function(raster, land) {
   mask(crop(raster, land), land)
 }
 
-# Function to stack training landscape rasters
-stack_trainingLandscape <- function(variable) {
-  variable_list <- list(
-    get(paste0("trainingLandscape_", variables[1])),
-    get(paste0("trainingLandscape_", variables[2]))
-  )
-  # Assign names to the list elements
-  names(variable_list) <- c(paste0(variables))
-  
-  # Create a raster stack from the list of scenarios
-  variable_stack <- rast(variable_list)
-  
-  # Assign names to the raster stack layers
-  names(variable_stack) <- names(variable_list)
-  
-  # Save the raster stack
-  stack_output_file <- file.path(output_path, paste0("trainingLandscape_stack", ".tif"))
-  writeRaster(variable_stack, stack_output_file, overwrite = TRUE)
-  
-  # Assign the raster stack to a variable in the environment
-  assign(paste0("trainingLandscape_stack"), variable_stack, envir = .GlobalEnv)
-  
-  return(variable_stack)
-}
+# Create environmental input Data (climate) as training and prediction landscapes-------------------------------------------
 
-# Function to stack prediction landscape rasters
-stack_predictionLandscape <- function(variable, year) {
-  variable_list <- list(
-    get(paste0("predictionLandscape_", scenario,"_", variables[1], "_", year)),
-    get(paste0("predictionLandscape_", scenario,"_", variables[2], "_", year))
-  )
-  
-  # Assign names to the list elements
-  names(variable_list) <- c(paste0(variables[1]), paste0(variables[2]))
-  
-  # Create a raster stack from the list of scenarios
-  variable_stack <- rast(variable_list)
-  
-  # Assign names to the raster stack layers
-  names(variable_stack) <- names(variable_list)
-  
-  # Save the raster stack
-  stack_output_file <- file.path(output_path, paste0("predictionLandscape_stack_", scenario, "_", year, ".tif"))
-  writeRaster(variable_stack, stack_output_file, overwrite = TRUE)
-  
-  # Assign the raster stack to a variable in the environment
-  assign(paste0("predictionLandscape_stack_", scenario, "_", year), variable_stack, envir = .GlobalEnv)
-  
-  return(variable_stack)
-}
-
-# Create environmental input Data (climate) as training and predition landscapes-------------------------------------------
+# Create an empty list to store training Landscapes
+trainingLandscapes <- list()
 # Loop through the training landscapes
 for (variable in variables) {
     # Load the raster
@@ -120,73 +72,20 @@ for (variable in variables) {
     # Crop and mask the raster
     raster_land <- crop_mask_raster(raster_agg, land)
     
-    # Save the aggregated rasters
-    output_file <- file.path(output_path, paste0("trainingLandscape_", variable, ".tif"))
-    writeRaster(raster_land, output_file, overwrite = TRUE)
-    
-    assign(paste0("trainingLandscape_", variable), raster_land)
+    trainingLandscapes[[variable]] <- raster_land
 }
+# Convert the list into a SpatRaster stack
+trainingLandscapes <- rast(trainingLandscapes)
 
-# Create trainingLandscape_stack
-for (variable in variables) {
-    stack_trainingLandscape(variable)
-  }
+# Rename layers to match variable names
+names(trainingLandscapes) <- variables
+
 # Test the rasters
-print(trainingLandscape_stack)
-plot(trainingLandscape_stack)
-
-
-# Loop through the prediction landscapes
-# L apply
-for (scenario in scenarios) {
-  for (variable in variables) {
-    for (year in years) {
-      # Load the raster
-      raster <- load_raster(scenario, variable, year)
-      
-      # Get the original resolution from the raster
-      original_resolution <- res(raster)[1]
-      
-      # Calculate the aggregation factor
-      aggregation_factor <- target_resolution / original_resolution
-      
-      # Aggregate the raster
-      raster_agg <- aggregate_raster(raster, aggregation_factor)
-      
-      # load the terrestrial extent
-      land <- ne_countries(scale = "medium", returnclass = "sf")
-      
-      # Ensure CRS consistency
-      land <- st_transform(land, crs = crs(raster_agg))
-      
-      # Convert the sf to a spatial object
-      land <- vect(land)
-      
-      # Crop and mask the raster
-      raster_land <- crop_mask_raster(raster_agg, land)
-      
-      # Save the aggregated raster
-      output_file <- file.path(output_path, paste0("predictionLandscape_", scenario, "_", variable, "_", year, ".tif"))
-      writeRaster(raster_land, output_file, overwrite = TRUE)
-      
-      # Assign the raster to a variable dynamically
-      assign(paste0("predictionLandscape_", scenario, "_", variable, "_", year), raster_land)
-    }
-  }
-}
-
-# Creat prediction landscapes stacks
-for (scenario in scenarios) {
-  for (variable in variables) {
-   for (year in years) {
-    stack_predictionLandscape(variable, year)
-    }
-  }
-}
-
+print(trainingLandscapes)
+plot(trainingLandscapes)
 
 # Create an empty list to store prediction landscapes
-predictionLandscape <- list()
+predictionLandscapes <- list()
 
 # Loop through the prediction landscapes
 for (scenario in scenarios) {
@@ -225,20 +124,15 @@ for (scenario in scenarios) {
     }
     
     # Convert the list of rasters into a SpatRaster stack
-    predictionLandscape[[paste0(scenario, "_", year)]] <- rast(raster_list)
+    predictionLandscapes[[paste0(scenario, "_", year)]] <- rast(raster_list)
   }
 }
 
 # Rename raster layers within each stack to match variable names
-for (i in seq_along(predictionLandscape)) {
-  names(predictionLandscape[[i]]) <- variables
+for (i in seq_along(predictionLandscapes)) {
+  names(predictionLandscapes[[i]]) <- variables
 }
 
 # Print the structure of the final list
-print(predictionLandscape)
-
-# Test
-print(`predictionLandscape_stack_ssp585_2071-2100`)
-plot(`predictionLandscape_stack_ssp585_2071-2100`)
-print(`predictionLandscape_stack_ssp126_2071-2100`)
-
+print(predictionLandscapes)
+plot(predictionLandscapes[["ssp126_2071-2100"]])
