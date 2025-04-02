@@ -136,3 +136,12 @@ for (i in seq_along(predictionLandscapes)) {
 # Print the structure of the final list
 print(predictionLandscapes)
 plot(predictionLandscapes[["ssp126_2071-2100"]])
+
+# Combined raster with all envrionmental variables
+#landscapes <- list()
+#for (name in names(predictionLandscapes)) {
+#  landscapes[[name]] <- c(trainingLandscapes, predictionLandscapes[[name]])
+#}
+#landscapes <- rast(landscapes)
+
+#print(landscapes)  # List of combined raster stacks
