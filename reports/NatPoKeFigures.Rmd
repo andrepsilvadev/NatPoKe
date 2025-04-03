@@ -441,6 +441,8 @@ community_df <- community_df %>%
 
 # Spatially explicit maps
 
+## Shannon's Diversity Index Change
+
 It can also be helpful to visualize changes in these diversity indexes spatially, as different patterns can only be seen in maps.
 
 > Important Note:
@@ -505,7 +507,7 @@ for (dir in directories) {
 } 
 ```
 
-3.  Calculate the Shannon's Index & an then the **Shannon's Index Change** per cell. keep storing the results per directory
+3.  Calculate the Shannon's Index & and then the **Shannon's Index Change** per cell. keep storing the results per directory
 
 ```{r, eval=FALSE}
 Shannon_indexes <- list()
@@ -607,6 +609,85 @@ europe_Shannon <- europe_shannon + inset_element(europe_plot, 0.6, 0.7, 1, 1)
 ```{r, echo=FALSE}
 europe_Shannon
 ```
+
+### Shannons' DIversity Index Chnage in all forests:
+
+```{r, echo=FALSE, fig.dim=c(8,6), warning=FALSE, message=FALSE}
+boreal_forests
+```
+
+```{r, echo=FALSE, fig.dim=c(8,6), warning=FALSE, message=FALSE}
+tropical_forests
+```
+
+## Functional Diversity Index Change
+
+Following a very similar procedure the Shannon's Index, we can also obtain the **Functional Diversity Index Change**, following the next steps:
+
+1.  Starting from the `all_final_data` we left join with the `mammalTraits` dataframe previously imported to get access to the functional level of each species and have it as a new column in each pf the dataframes.
+
+2.  Calculate Functional diversity index (again only in cells where the species exist
+
+3.  Calculate the Functional diversity index change between the first and lat timestep
+
+```{r}
+# left join each dataframe in the list with the mammal traits
+all_final_data_funct <- map(all_final_data, ~ suppressWarnings(left_join(.x, mammalTraits %>%
+                                             select("sci_name", "trophic_level"), by = c("species"="sci_name"))))
+# carefull if changing the code, I suppressed the warnings
+functionalDiv_index <- list()
+# go through each dataset to calculate fucntional diversity index and its change
+for (dir_name in names(all_final_data_funct)) { 
+  df <- all_final_data_funct[[dir_name]] 
+
+  functionalDiv_index_df <- df %>% 
+    dplyr::filter(lyr1 != 0) %>% # keep only cells where species exist
+    group_by(timestep, trophic_level, x, y) %>%
+    dplyr::summarise(Fmean_TNIND = mean(lyr1, na.rm = TRUE)) %>%
+    group_by(timestep, x, y) %>%
+    dplyr::mutate(Fp_i = Fmean_TNIND / sum(Fmean_TNIND),
+                  # calculate proportion of individuals of fucntional group i
+                  Fln_p_i = ifelse(Fp_i > 0, log(Fp_i), 0)) %>%  # in case Fpi is 0
+    # up until here the table has values for each functional group, then info is summarised
+    dplyr::summarize(Funct_diversity_Index = -sum(Fp_i * Fln_p_i)) %>%   # calculate the functional diversity index
+    # calculate the Shannon-Wiener index
+    group_by(x, y) %>% #group only by x and y for the change calculation.
+    mutate(
+      Functional_change = (Funct_diversity_Index - Funct_diversity_Index[timestep == 101])
+    ) %>% 
+    dplyr::filter(timestep == 125)
+  
+  functionalDiv_index[[dir_name]] <- functionalDiv_index_df # Store the result per region
+}
+```
+
+4.  Using the inset plots for each continent, also previously created, we can build the Functional diversity maps in similar manner to the Shannon's Index ones
+
+```{r}
+## EUROPE ##
+europe_funct <- ggplot() +
+  geom_tile(data = functionalDiv_index$`28Mar2025_EuropeRobinson`, aes(x = x, y = y, fill = Functional_change)) +
+  scale_fill_viridis_c(name = "Functional Diversity\n Index Change", limits = c(-0.5, 0.5)) +
+  labs(x = "Latitude", y = "Longitude" , title = "Europe") +
+  #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
+  ylim(6130500,6134000)+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+europe_funct + inset_element(europe_plot, 0.6, 0.7, 1, 1)
+```
+
+### Functional Diversity Index Change in all forests:
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#boreal_forests_FunctinalDiv
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#tropical_forests_functional
+```
+
+## 
 
 # Annex
 

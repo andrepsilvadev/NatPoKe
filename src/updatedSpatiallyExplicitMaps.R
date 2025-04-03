@@ -102,7 +102,58 @@ for (dir_name in names(all_final_data)) {
 }
 
 ##########
-# Step 4 # Prepare maps insets for better visualisation 
+# Step 4 # Calculate Functional Diversity Index & the Change per cell
+##########
+
+# import again the mammal traits so I can get the functional level of each species
+mammalTraits <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
+  dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
+  mutate(Trophic = case_when(
+                              # based on Schloss 2012
+                              Diet.Meat >= 90 ~ "Carnivore",
+                              Diet.Plant >= 90 ~ "Herbivore",
+                              TRUE ~ NA_character_),
+    trophic_level = case_when(# from original database
+                              trophic_level == 1 ~ "Herbivore",
+                              trophic_level == 2 ~ "Omnivore",
+                              trophic_level == 3 ~ "Carnivore",
+                              TRUE ~ as.character(trophic_level)),
+    sci_name = stringr::str_replace_all(sci_name, " ", "")) %>% 
+  distinct()
+      
+
+# left join each dataframe in the list with the mammal traits
+all_final_data_funct <- map(all_final_data, ~ suppressWarnings(left_join(.x, mammalTraits %>%
+                                             select("sci_name", "trophic_level"), by = c("species"="sci_name"))))
+# carefull if changing the code, I suppressed the warnings
+
+functionalDiv_index <- list()
+# go through each dataset to calculate fucntional diversity index and its change
+for (dir_name in names(all_final_data_funct)) { 
+  df <- all_final_data_funct[[dir_name]] 
+
+  functionalDiv_index_df <- df %>% 
+    dplyr::filter(lyr1 != 0) %>% # keep only cells where species exist
+    group_by(timestep, trophic_level, x, y) %>%
+    dplyr::summarise(Fmean_TNIND = mean(lyr1, na.rm = TRUE)) %>%
+    group_by(timestep, x, y) %>%
+    dplyr::mutate(Fp_i = Fmean_TNIND / sum(Fmean_TNIND),
+                  # calculate proportion of individuals of fucntional group i
+                  Fln_p_i = ifelse(Fp_i > 0, log(Fp_i), 0)) %>%  # in case Fpi is 0
+    # up until here the table has values for each functional group, then info is summarised
+    dplyr::summarize(Funct_diversity_Index = -sum(Fp_i * Fln_p_i)) %>%   # calculate the functional diversity index
+    # calculate the Shannon-Wiener index
+    group_by(x, y) %>% #group only by x and y for the change calculation.
+    mutate(
+      Functional_change = (Funct_diversity_Index - Funct_diversity_Index[timestep == 101])
+    ) %>% 
+    dplyr::filter(timestep == 125)
+  
+  functionalDiv_index[[dir_name]] <- functionalDiv_index_df # Store the result per region
+}
+
+##########
+# Step 5 # Prepare & build maps insets for better visualisation 
 ##########
 
 regions <- c("Europe", "North America", "South America", "Africa", "Asia")
@@ -142,27 +193,21 @@ crop_biome_to_continent <- function(biome, continent_geom) {
   st_intersection(biome, continent_geom)
 }
 
-# Asia
+# Asia forests
 asia_trop <- crop_biome_to_continent(biome = load_select_biome(biome_name = "Tropical & Subtropical Moist Broadleaf Forests"),
                                      continent_geom = load_select_continents(continent_names = "Asia"))
-# South America
+# South America forests
 southAmerica_trop <- crop_biome_to_continent(biome = load_select_biome(biome_name = "Tropical & Subtropical Moist Broadleaf Forests"),
                                              continent_geom = load_select_continents(continent_names = "South America"))
-# Africa
+# Africa forests
 africa_trop <- crop_biome_to_continent(biome = load_select_biome(biome_name = "Tropical & Subtropical Moist Broadleaf Forests"),
                                        continent_geom = load_select_continents(continent_names = "Africa"))
-# North America
+# North America forests
 northAmerica_bor <- crop_biome_to_continent(biome = load_select_biome(biome_name = "Boreal Forests/Taiga"),
                                             continent_geom = load_select_continents(continent_names = "North America"))
-# Europe
+# Europe forests
 europe_bor <- crop_biome_to_continent(biome = load_select_biome(biome_name = "Boreal Forests/Taiga"),
                                       continent_geom = load_select_continents(continent_names = "Europe"))
-
-##########
-# Step 5 # Build actual Shannon's Index change maps
-##########
-
-## SOUTH AMERICA ##
 
 # south america inset - continent + tropical forests
 southamerica_plot <- ggplot() +
@@ -171,6 +216,40 @@ southamerica_plot <- ggplot() +
   coord_sf(crs = st_crs("ESRI:54030")) +
   theme_void()
 
+# africa inset - continent + tropical forests
+africa_plot <- ggplot() +
+  geom_sf(data = region_sfs[["Africa"]], color = "black", fill = "gray95") + 
+  geom_sf(data = africa_trop, fill = "gray20") +
+  coord_sf(crs = st_crs("ESRI:54030")) +
+  theme_void()
+
+# asia inset - continent + boreal forests
+asia_plot <- ggplot() +
+  geom_sf(data = region_sfs[["Asia"]], color = "black", fill = "gray95") + 
+  geom_sf(data = asia_trop, fill = "gray20") +
+  coord_sf(crs = st_crs("ESRI:54030")) +
+  theme_void()
+
+# europe inset - continent + tropical forests
+europe_plot <- ggplot() +
+  geom_sf(data = region_sfs[["Europe"]], color = "black", fill = "gray95") + 
+  geom_sf(data = europe_bor, fill = "gray20") +
+  coord_sf(crs = st_crs("ESRI:54030"), xlim = c(-2984101.5843,13538200), ylim = c(3825520.3916,7850400)) +
+  theme_void()
+
+# north america inset - continent + tropical forests
+northamerica_plot <- ggplot() +
+  geom_sf(data = region_sfs[["North America"]], color = "black", fill = "gray95") + 
+  geom_sf(data = northAmerica_bor, fill = "gray20") +
+  coord_sf(crs = st_crs("ESRI:54030"), xlim = c(-15030000, -1500000), ylim = c(3031000, 8134000)) +
+  theme_void()
+
+
+##########
+# Step 6 # Build actual SHANNON'S INDEX change maps
+##########
+
+## SOUTH AMERICA ##
 southamerica_shannon <- ggplot() +
   geom_tile(data = Shannon_indexes$`28Mar2025_SouthAmericaRobinson`, aes(x = x, y = y, fill = Shannon_change)) +
   scale_fill_viridis_c(name = "Shannon's Index\nChange", limits = c(-0.5, 0.5)) +
@@ -189,14 +268,6 @@ southAmerica_Shannon <- southamerica_shannon + inset_element(southamerica_plot, 
 
 
 ## AFRICA ##
-
-# africa inset - continent + tropical forests
-africa_plot <- ggplot() +
-  geom_sf(data = region_sfs[["Africa"]], color = "black", fill = "gray95") + 
-  geom_sf(data = africa_trop, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030")) +
-  theme_void()
-
 africa_shannon <- ggplot() +
   geom_tile(data = Shannon_indexes$`28Mar2025_AfricaRobinson`, aes(x = x, y = y, fill = Shannon_change)) +
   xlim(1734000, 1742000) +
@@ -216,14 +287,6 @@ Africa_Shannon <- africa_shannon + inset_element(africa_plot, 0.7, 0.7, 1, 1)
 
 
 ## ASIA ##
-
-# asia inset - continent + boreal forests
-asia_plot <- ggplot() +
-  geom_sf(data = region_sfs[["Asia"]], color = "black", fill = "gray95") + 
-  geom_sf(data = asia_trop, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030")) +
-  theme_void()
-
 asia_shannon <- ggplot() +
   geom_tile(data = Shannon_indexes$`28Mar2025_AsiaRobinson`, aes(x = x, y = y, fill = Shannon_change)) +
   scale_fill_viridis_c(name = "Shannon's Index\nChange", limits = c(-0.5, 0.5)) +
@@ -240,10 +303,7 @@ Asia_Shannon <- asia_shannon + inset_element(asia_plot, 0.7, 0.7, 1, 1)
 #        bg = 'white', width = 300, height = 180, units = "mm", dpi = 1200, compression = "lzw")
 
 
-####################
-# Tropical Forests #
-####################
-
+# Tropical Forests -------------------------------------------------------------
 tropical_forests <- southAmerica_Shannon +
   Africa_Shannon +
   Asia_Shannon +
@@ -252,7 +312,6 @@ tropical_forests <- southAmerica_Shannon +
   plot_annotation(title = 'Tropical & Subtropical Moist Broadleaf Forests', theme = theme(plot.title = element_text(size = 16, hjust = 0.5))) +
   # ensure one color scale
   plot_layout(guides = 'collect') & theme(legend.position = 'bottom')
-
 # # save tropical forests
 # ggsave(plot = tropical_forests,
 #        file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/TropicalForestsShannonIndex.tif",
@@ -260,14 +319,6 @@ tropical_forests <- southAmerica_Shannon +
 
 
 ## EUROPE ##
-
-# europe inset - continent + tropical forests
-europe_plot <- ggplot() +
-  geom_sf(data = region_sfs[["Europe"]], color = "black", fill = "gray95") + 
-  geom_sf(data = europe_bor, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030"), xlim = c(-2984101.5843,13538200), ylim = c(3825520.3916,7850400)) +
-  theme_void()
-
 europe_shannon <- ggplot() +
   geom_tile(data = Shannon_indexes$`28Mar2025_EuropeRobinson`, aes(x = x, y = y, fill = Shannon_change)) +
   scale_fill_viridis_c(name = "Shannon's Index\nChange", limits = c(-0.5, 0.5)) +
@@ -285,14 +336,6 @@ europe_Shannon <- europe_shannon + inset_element(europe_plot, 0.6, 0.7, 1, 1)
 
 
 ## NORTH AMERICA
-
-# north america inset - continent + tropical forests
-northamerica_plot <- ggplot() +
-  geom_sf(data = region_sfs[["North America"]], color = "black", fill = "gray95") + 
-  geom_sf(data = northAmerica_bor, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030"), xlim = c(-15030000, -1500000), ylim = c(3031000, 8134000)) +
-  theme_void()
-
 nortamerica_shannon <- ggplot() +
   geom_tile(data = Shannon_indexes$`28Mar2025_NorthAmericaRobinson`, aes(x = x, y = y, fill = Shannon_change)) +
   scale_fill_viridis_c(name = "Shannon's Index\nChange", limits = c(-0.5, 0.5)) +
@@ -309,9 +352,7 @@ ggsave(plot = NorthAmerica_Shannon,
        file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/northAmericaShannonIndex.tif",
        bg = 'white', width = 400, height = 200, units = "mm", dpi = 1200, compression = "lzw")
 
-##################
-# Boreal Forests #
-##################
+# Boreal Forests ---------------------------------------------------------------
 
 # all regions combined
 boreal_forests <- NorthAmerica_Shannon + europe_Shannon +
@@ -323,4 +364,121 @@ ggsave(plot = boreal_forests,
        file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/BorealForestsShannonIndex.tif",
        bg = 'white', width = 700, height = 250, units = "mm", dpi = 1200, compression = "lzw")
 
+
+##########
+# Step 7 # Build actual FUNCTIONAL DIVERSITY INDEX change maps
+##########
+
+## SOUTH AMERICA ##
+southamerica_funct <- ggplot() +
+  geom_tile(data = functionalDiv_index$`28Mar2025_SouthAmericaRobinson`, aes(x = x, y = y, fill = Functional_change)) +
+  scale_fill_viridis_c(name = "Functional Diversity\n Index Change", limits = c(-0.5, 0.5)) +
+  ylim(-1207500,-1200500) + 
+  labs(x = "Latitude", y = "Longitude" , title = "South America") +
+  #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# build final south america plot
+southAmerica_FunctinalDiv <- southamerica_funct + inset_element(southamerica_plot, 0.6, 0.7, 1, 1)
+# save plot
+ggsave(plot = southAmerica_FunctinalDiv,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/SouthAmericaFunctionalDiversityMap.tif",
+       bg = 'white', width = 250, height = 300, units = "mm", dpi = 1200, compression = "lzw")
+
+
+## AFRICA ##
+africa_funct <- ggplot() +
+  geom_tile(data = functionalDiv_index$`28Mar2025_AfricaRobinson`, aes(x = x, y = y, fill = Functional_change)) +
+  xlim(1734000, 1742000) +
+  ylim(-1176000, -1171000)+
+  scale_fill_viridis_c(name = "Functional Diversity\n Index Change", limits = c(-0.5, 0.5)) +
+  labs(x = "Latitude", y = "Longitude" , title = "Africa") +
+  #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# build final africa plot
+Africa_FunctinalDiv <- africa_funct + inset_element(africa_plot, 0.7, 0.7, 1, 1)
+# save plot
+ggsave(plot = Africa_FunctinalDiv,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/AfricaFunctionalDiversityMap.tif",
+       bg = 'white', width = 300, height = 200, units = "mm", dpi = 1200, compression = "lzw")
+
+
+## ASIA ##
+asia_funct <- ggplot() +
+  geom_tile(data = functionalDiv_index$`28Mar2025_AsiaRobinson`, aes(x = x, y = y, fill = Functional_change)) +
+  scale_fill_viridis_c(name = "Functional Diversity\n Index Change", limits = c(-0.5, 0.5)) +
+  labs(x = "Latitude", y = "Longitude" , title = "Asia") +
+  #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# build final asia plot
+Asia_FunctinalDiv <- asia_funct + inset_element(asia_plot, 0.7, 0.7, 1, 1)
+# save plot
+ggsave(plot = Asia_FunctinalDiv,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/AsiaFunctionalDiversityMap.tif",
+       bg = 'white', width = 300, height = 180, units = "mm", dpi = 1200, compression = "lzw")
+
+# Tropical Forests -------------------------------------------------------------
+tropical_forests_functional <- southAmerica_FunctinalDiv +
+  Africa_FunctinalDiv +
+  Asia_FunctinalDiv +
+  # increase asia and africa's widths
+  plot_layout(widths = c(1, 2, 2)) +
+  plot_annotation(title = 'Functional Diversity Index Change - Tropical & Subtropical Moist Broadleaf Forests', theme = theme(plot.title = element_text(size = 16, hjust = 0.5))) +
+  # ensure one color scale
+  plot_layout(guides = 'collect') & theme(legend.position = 'bottom')
+# save tropical forests
+ggsave(plot = tropical_forests_functional,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/TropicalForestsFunctionalDiversity.tif",
+       bg = 'white', width = 700, height = 250, units = "mm", dpi = 1200, compression = "lzw")
+
+## EUROPE ##
+europe_funct <- ggplot() +
+  geom_tile(data = functionalDiv_index$`28Mar2025_EuropeRobinson`, aes(x = x, y = y, fill = Functional_change)) +
+  scale_fill_viridis_c(name = "Functional Diversity\n Index Change", limits = c(-0.5, 0.5)) +
+  labs(x = "Latitude", y = "Longitude" , title = "Europe") +
+  #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
+  ylim(6130500,6134000)+
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+europe_FunctinalDiv <- europe_funct + inset_element(europe_plot, 0.6, 0.7, 1, 1)
+# # save europe shannon
+# ggsave(plot = europe_Shannon,
+#       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/europeShannonIndex.tif",
+#         bg = 'white', width = 400, height = 200, units = "mm", dpi = 1200, compression = "lzw")
+
+
+## NORTH AMERICA
+nortamerica_funct <- ggplot() +
+  geom_tile(data = functionalDiv_index$`28Mar2025_NorthAmericaRobinson`, aes(x = x, y = y, fill = Functional_change)) +
+  scale_fill_viridis_c(name = "Functional Diversity\n Index Change", limits = c(-0.5, 0.5)) +
+  labs(x = "Latitude", y = "Longitude" , title = "North America") +
+  #scale_fill_gradientn(colors = rev(brewer.pal(11, "RdYlBu")), limits = c(-0.5, 0.5), na.value = "transparent", name = "Shannon Index\nChange") +
+  ylim(6080800, 6084000) +
+  #xlim(15030000, 1500000) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+NorthAmerica_FunctinalDiv <- nortamerica_funct + inset_element(northamerica_plot, 0.6, 0.7, 1, 1)
+# save europe shannon
+ggsave(plot = NorthAmerica_Shannon,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/northAmericaShannonIndex.tif",
+       bg = 'white', width = 400, height = 200, units = "mm", dpi = 1200, compression = "lzw")
+
+# Boreal Forests ---------------------------------------------------------------
+
+# all regions combined
+boreal_forests_FunctinalDiv <- NorthAmerica_FunctinalDiv + europe_FunctinalDiv +
+  plot_annotation(title = 'Boreal Forests/Taiga', theme = theme(plot.title = element_text(size = 16, hjust = 0.5))) +
+  plot_layout(guides = 'collect') & theme(legend.position = 'bottom')
+
+# save boreal forests shannon
+ggsave(plot = boreal_forests_FunctinalDiv,
+       file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/NatPoke_figures/BorealForestsFunctionalDiversity.tif",
+       bg = 'white', width = 700, height = 250, units = "mm", dpi = 1200, compression = "lzw")
 
