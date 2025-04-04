@@ -15,7 +15,7 @@ pkgdown:
 
 ```{r setup, include=FALSE}
 ## Global options
-knitr::opts_chunk$set(cache = FALSE)
+knitr::opts_chunk$set(cache = TRUE)
 ```
 
 # Introduction
