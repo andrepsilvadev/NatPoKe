@@ -1,7 +1,7 @@
-## Name: SpeciesDistributionModellingTest ##
-## Author: Jorinde-M. Rieger ##
-## Description: test SDM main function with true species occurence in R ##
-## Date: April 4th 2025 ##
+## Name: SDMtest ##
+## Author: Main function biomod2; Jorinde-M. Rieger ##
+## Description: test SDM in R ##
+## Date: April 1nd 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
 library(easypackages)
@@ -21,89 +21,66 @@ formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
   # speciesData = species record coordinates with the following format c("species", "latitude", "longitude")
   # targetSpecies = species to be modelled
   # landscape = raster with all the environmental variables we wish to use
-
-  speciesStack <- list()
   
+  ## rasterize species data
+  speciesStack <- raster::stack()
   for(i in 1:length(targetSpecies)){
-    #i = 1
     subset <- speciesData %>% dplyr::filter(species == targetSpecies[i])
-    xy <- data.frame(x=subset$decimalLongitude,
-                     y=subset$decimalLatitude)
-    # Convert to SpatVector ensure CRS consistency
-    xy_vect <- terra::vect(xy, geom = c("x", "y"), crs = terra::crs(landscape))
-    spRaster <- terra::rasterize(xy_vect, landscape[[1]], fun="count")
+    xy <- data.frame(x=subset$longitude,
+                     y=subset$latitude)
+    spRaster <- rasterize(xy, landscape[[1]], fun="count")
     
     # reclassify species raster 
     m <- c(NA, NA, NA,
            0, +Inf, 1)
     rclmat <- matrix(m, ncol=3, byrow=TRUE) # criteria for reclassification
-    rc <- terra::classify(spRaster, rclmat)
+    rc <- reclassify(spRaster, rclmat)
     names(rc) <- paste0(targetSpecies[i])
-    speciesStack[[i]] <- rc
+    speciesStack <- addLayer(speciesStack, rc)
   }
-  # Combine all species rasters into a single SpatRaster
-  speciesStack <- terra::rast(speciesStack)
   
   # join species and environmental data
-  fullData <- c(speciesStack, landscape)
+  fullData <- stack(speciesStack, landscape)
   plot(fullData)
-  xylandscape <- terra::crds(landscape, df = TRUE)
-  inputDataFrame <- terra::extract(fullData, # raster or rasterstack
-                                   xylandscape,
+  xylandscape <- raster::coordinates(landscape)
+  inputDataFrame <- raster::extract(fullData, # raster or rasterstack
+                                    xylandscape, # landscape coordinates
                                     method='simple', # or "bilinear" - value of the four nearest raster cells
-                                    cells=TRUE)
-  #xylandscape <- terra::crds(landscape, df = TRUE)
-  inputDataFrame <- cbind(xylandscape, inputDataFrame)
-  
-  write.csv(inputDataFrame,"~/data/data/inputDataFrame.csv", row.names = FALSE)
+                                    buffer=NULL, # in meters (long lat) or map_units
+                                    small=FALSE,
+                                    cellnumbers=TRUE,
+                                    na.rm=TRUE,
+                                    df=TRUE) # return dataframe
+  write.csv(inputDataFrame,"./data/inputDataFrame.csv", row.names = FALSE)
   return(inputDataFrame)
 }
 
 
 # load dataset and variables -----------------------------------------------------------------
-# Crop the landscapes to the extent of the biome
-biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
-biome_name <- "Boreal Forests/Taiga"
+# Load species occurrences (6 species available)
+data("DataSpecies")
+rast(DataSpecies)
+head(DataSpecies)
 
-# Function to load and select the biome shapefile
-load_select_biome <- function(biome_name) {
-  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
-  biome_sf[biome_sf$BIOME_NAME == biome_name, ]}
-
-biome_sf <- load_select_biome(biome_name)
-biome_sp <- vect(biome_sf)
-
-# Function to crop and mask rasters to biome
-crop_mask_raster <- function(raster, biome_sp) {
-  mask(crop(raster, biome_sp), biome_sp)}
-
-# Crop and mask trainingLandscapes to biome extent
-trainingLandscapes <- crop_mask_raster(trainingLandscapes, biome_sp)
-plot(trainingLandscapes)
+speciesData
+#rast(speciesData)
 
 # Select the name of the studied species
-targetSpecies <- c("Alces alces", "Canis lupus")
-
-# Format species occurence to true presence and NAs with corresonding coordinates
-# test with trainingLandscape? - use as species input data
-speciesData <- formatInputDataFrame(
-  speciesData = speciesDataOcc,
-  targetSpecies = targetSpecies, 
-  landscape = trainingLandscapes)
-head(speciesData)
-
+#myRespName <- 'GuloGulo'
+targetSpecies <- "Alces alces"
 
 # Get corresponding presence/absence data
-myResp <- as.numeric(speciesData[, targetSpecies[[1]]])
-
-# Get corresponding presence/absence data
-myResp <- as.matrix(speciesData[, targetSpecies[[1]]])  # Convert to a matrix
-myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
-View(myResp)
+myResp <- as.numeric(speciesData[, targetSpecies])
 
 # Get corresponding XY coordinates
-myRespXY <- speciesData[, c('x', 'y')]
+myRespXY <- speciesData[, c('X_WGS84', 'Y_WGS84')]
 
+# Load training landscape with environmental variables (inputClimate.R)
+#data("bioclim_current")
+#print(bioclim_current)
+# myExpl <- rast(bioclim_current)
+trainingLandscapes
+print(trainingLandscapes)
 
 ## Crop the data to biome extent
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
@@ -121,18 +98,26 @@ biome_sp <- vect(biome_sf)
 crop_mask_raster <- function(raster, biome_sp) {
 mask(crop(raster, biome_sp), biome_sp)}
 
-# Crop and mask trainingLandscapes to biome extent
 trainingLandscapes <- crop_mask_raster(trainingLandscapes, biome_sp)
 
 plot(trainingLandscapes)
 
 # Prepare data & Parameters -----------------------------------------------------------------
 
-# Format Data with true presences
+
+ inputData <- formatInputDataFrame(
+  speciesData = speciesData,
+  targetSpecies = targetSpecies, 
+  landscape = landscapes)
+
+
+
+
+# Format Data with true absences
 myBiomodData <- BIOMOD_FormatingData(resp.var = myResp, # myResp
                                      expl.var = trainingLandscapes, # myExpl
-                                     resp.xy = myRespXY, 
-                                     resp.name = targetSpecies[[1]]) # myRespNames
+                                     resp.xy = myRespXY,
+                                     resp.name = targetSpecies) # myRespNames
 myBiomodData
 plot(myBiomodData)
 

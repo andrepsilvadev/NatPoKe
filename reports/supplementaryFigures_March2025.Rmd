@@ -1,0 +1,223 @@
+---
+title: "Supplementary NatPoKe Figures March2025"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    code_folding: show
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+pkgdown:
+  as_is: true
+---
+
+```{r setup, include=FALSE}
+## Global options
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+# Introduction
+
+This .html file contains all the additional figures that will compose the Supplementary materials for the NatPoKe article.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+library(here)
+source(here("src", "libraries.R"))
+source(here("src", "speciesResilienceMetricsFigures.R"))
+source(here("src", "communityMetricsFigures.R"))
+```
+
+# Multi-species abundance over-time
+
+Making use of the .csv file saved as a model output for each species, we will analyze how species populations change over time by combining data from multiple regions.
+
+1.  Create a list, `datasets`, that includes the directories to the .csv files containing the total number of individuals (`TNIND`) data for different continents: Europe, North America, Asia, Africa, and South America.
+
+2.  Then use `do.call("rbind", datasets)` to merge these datasets into a single dataframe called `TNIND_yr`.
+
+3.  Set the two key timepoints: `t_burnin <- 100` marks the end of the burn-in period (a stabilization phase before the actual analysis) and `t_policy <- 110` represents the moment when a specific policy or environmental change occurs, which may impact population trends.
+
+4.  Plot Total Number of Individuals Over Time using `ggplot()`
+
+```{r TNIND plot, fig.dim=c(8,10), warning=FALSE, message=FALSE}
+# list directories for all continents output folder
+datasets <- list(TNIND_europe, TNIND_northamerica, TNIND_asia, TNIND_africa, TNIND_southamerica)
+
+# bind all df together
+TNIND_yr <- do.call("rbind", datasets)
+
+# define key timespoints
+t_burnin <- 100
+t_policy <- 110
+
+# Custom labeller to show biome name only once per section
+custom_labeller <- function(labels) {
+  labels$biome <- ifelse(duplicated(labels$biome), "", labels$biome)
+  labels
+}
+
+TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = TNIND, group = species)) + 
+  geom_line() + 
+  facet_wrap(biome+region~ species, scales = "free_y", ncol = 4) +
+  labs(y = "Total number of individuals") +
+  theme_minimal() +
+  geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)  # add line at time of disturbance
+
+TNIND_per_year
+```
+
+# Species richness
+
+
+STILL NEED TO GET TO THIS - NOT SURE IT MAKES ANY SENSE TO HAVE A PLOT OVER TIME. DID ANDRÉ MEAN A SPATIALLY EXPLICIT MAP??
+
+
+# Model Validation multi-species
+
+
+# Multispecies model validation
+
+TEST IF FUNCTION CAN REALLY GO THROUGH MULTIPLE DIRECTORIES TO FIND ALL TARGET SPECIES RASTERS.
+I THINK IT WORKS BUT I STILL HAVEN'T TESTED!!
+
+
+Model validation here relies on a previously set user defined function that compares estimated values from our model simulation with an external data source, which in this case came from Santini et al. 2022.
+
+The `validateModel1.2()` function evaluates the performance of our model abundance estimates. It facilitates a direct comparison between model-predicted densities and independent density estimates, providing insights into the model's accuracy. The function:
+
+1.  prepares the independent density data, filtering it to match the target species and formatting it
+
+2.  then it goes through user-specified directories, searching for and reading raster files for species abundance for the specified year. These rasters are then stacked and transformed into a data frame, enabling cell-by-cell analysis. (it also prints a message saying which raster was used for which species) and warns if some are missing.
+
+3.  subsequently, the function calculates the mean predicted abundance for each cell, effectively summarizing the model's output. This information is then joined with the species-specific modeling resolution data, allowing for the calculation of estimated densities. Finally, the function returns a list containing both the processed independent density estimates and the calculated model-predicted densities, facilitating the comparison and validation of the model's performance.
+
+```{r model validation function, warning=FALSE, message=FALSE}
+validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
+  # Compares mean density estimated by model per cell with
+  # predicted density from independent model extract predicted abundance
+  # and join with observed abundance
+  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE TO WORK THROUGH MULTIPLE DIRECTORIES (dirouts).
+  
+  ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
+  independentDensity <- independentDensity %>%
+    dplyr::filter(Species %in% targetspecies) %>%
+    dplyr::select(Species, lw95, lw75, PredMd, up75, up95) %>%
+    mutate(
+      lw95 = as.numeric(lw95),
+      lw75 = as.numeric(lw75),
+      PredMd = as.numeric(PredMd), # Predicted population density (individuals/km2)
+      up75 = as.numeric(up75),
+      up95 = as.numeric(up95)
+    ) %>%
+    rename(
+      species = Species,
+      meanDensity = PredMd
+    )
+  
+  ## Species density estimated by METARANGE from multiple directories
+  abundance_files <- list()
+  for (target_sps in targetspecies) {
+    all_files <- character()
+    for (dirout in dirouts) { #Iterate through each directory
+      files <- list.files(
+        path = dirout,
+        pattern = paste0(validationYear, "_", target_sps, "_abundance\\.tif$"),
+        full.names = TRUE
+      )
+      all_files <- c(all_files, files)
+    }
+    abundance_files[[target_sps]] <- all_files
+    if(length(all_files) > 0){
+      message(paste("Used rasters for", target_sps, ":", paste(basename(all_files), collapse = ", ")))
+    } else {
+      warning(paste("No rasters found for", target_sps, "in the given directories."))
+    }
+  }
+  
+  abundance_rasters <- lapply(abundance_files, function(files) {
+    lapply(files, terra::rast)
+  })
+  
+  abundance_stack_list <- lapply(abundance_rasters, function(raster_list){
+    if(length(raster_list) > 0){
+      terra::rast(unlist(raster_list))
+    } else {
+      NULL
+    }
+  })
+  
+  # convert raster stack to df
+  species_df <- lapply(names(abundance_stack_list), function(sps_name){
+    stack <- abundance_stack_list[[sps_name]]
+    if(!is.null(stack)){
+      lapply(1:terra::nlyr(stack), function(i){
+        as.data.frame(stack[[i]], xy = TRUE) %>%
+          mutate(species = sps_name) %>%
+          rename(abundance = 3)
+      }) %>% bind_rows()
+    } else {
+      NULL
+    }
+  }) %>% bind_rows()
+  
+  # format raster's dataframe for validation
+  predicted <- species_df %>%
+    dplyr::filter(species %in% targetspecies) %>%
+    dplyr::group_by(species, x, y) %>%
+    dplyr::summarise(
+      meanNInd = mean(abundance, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    as.data.frame()
+  
+  spData2 <- spData %>%
+    dplyr::select(Species, ModellingRes) %>%
+    rename(species = Species) %>%
+    mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
+    as.data.frame()
+  
+  estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
+    mutate(estimatedDensity = meanNInd / ModellingRes)
+  
+  ## compare observed with predicted density
+  result_list <- list(independentDensity, estimatedDensityJoin)
+  names(result_list) <- c("independentDensity", "estimatedDensity")
+  return(result_list)
+}
+```
+
+```{r multi-species validation, fig.dim=c(8,6), warning=FALSE, message=FALSE}
+#load external data
+# (2) independentDensity
+santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
+  # santini's dataframe has species names with spaces but metaRange does not like spaces
+  # remove spaces again
+  mutate(Species = str_replace_all(Species, " ", ""))
+
+# (4) spData
+spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+
+
+# applying the function
+validation_lists <- validateModel1.2(targetspecies = target_species,
+                       independentDensity = santini2022,
+                       dirouts = dirout,
+                       spData = spData,
+                       validationYear = 101)
+# plotting the results
+ggplot(validation_lists$independentDensity, aes(x = "", y = meanDensity)) +
+  geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+  geom_point(data = validation_lists$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+  facet_wrap(~ species, scales = "free_y") + 
+  ylab("Independent density estimate (individuals/km2)") +
+  xlab(" ") +
+  ggtitle("Model validation - estimated densities in red") + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+
+# Sensitivity Analysis
+
+NÃO QUERIA NADA VOLTAR AQUI MAS OK..

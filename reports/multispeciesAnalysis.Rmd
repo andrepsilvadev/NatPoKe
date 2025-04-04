@@ -14,7 +14,7 @@ pkgdown:
 
 ```{r setup, include=FALSE}
 ## Global options
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
 library(here)
 source(here("src", "libraries.R"))
 ```
@@ -207,7 +207,6 @@ The `validateModel1.2()` function evaluates the performance of our model abundan
 2.  then it goes through user-specified directories, searching for and reading raster files for species abundance for the specified year. These rasters are then stacked and transformed into a data frame, enabling cell-by-cell analysis. (it also prints a message saying which raster was used for which species) and warns if some are missing.
 
 3.  subsequently, the function calculates the mean predicted abundance for each cell, effectively summarizing the model's output. This information is then joined with the species-specific modeling resolution data, allowing for the calculation of estimated densities. Finally, the function returns a list containing both the processed independent density estimates and the calculated model-predicted densities, facilitating the comparison and validation of the model's performance.
-
 
 ```{r model validation function, warning=FALSE, message=FALSE}
 validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
