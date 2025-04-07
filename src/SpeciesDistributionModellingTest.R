@@ -1,13 +1,13 @@
-## Name: SDMtest ##
-## Author: Main function biomod2; Jorinde-M. Rieger ##
-## Description: test SDM in R ##
-## Date: April 1nd 2025 ##
+## Name: SpeciesDistributionModellingTest ##
+## Author: Jorinde-M. Rieger ##
+## Description: test SDM main function with true species occurence in R ##
+## Date: April 4th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
 library(easypackages)
 packages("readr","ggplot2","RColorBrewer",
          "rworldmap","sp","raster", "gam","mda", "earth", "maxnet", "ggtext","xgboost",
-         "rgbif","biomod2", "dplyr", 
+         "rgbif","biomod2", "dplyr", "doParallel",
          "sf", "rnaturalearth", "rnaturalearthdata","terra", "tidyterra", "ggpubr", "randomForest", prompt = FALSE)
 
 source("./src/libraries.R") # libraries
@@ -22,102 +22,95 @@ formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
   # targetSpecies = species to be modelled
   # landscape = raster with all the environmental variables we wish to use
   
-  ## rasterize species data
-  speciesStack <- raster::stack()
+  speciesStack <- list()
+  
   for(i in 1:length(targetSpecies)){
+    #i = 1
     subset <- speciesData %>% dplyr::filter(species == targetSpecies[i])
-    xy <- data.frame(x=subset$longitude,
-                     y=subset$latitude)
-    spRaster <- rasterize(xy, landscape[[1]], fun="count")
+    xy <- data.frame(x=subset$decimalLongitude,
+                     y=subset$decimalLatitude)
+    # Convert to SpatVector ensure CRS consistency
+    xy_vect <- terra::vect(xy, geom = c("x", "y"), crs = terra::crs(landscape))
+    spRaster <- terra::rasterize(xy_vect, landscape[[1]], fun="count")
     
     # reclassify species raster 
     m <- c(NA, NA, NA,
            0, +Inf, 1)
     rclmat <- matrix(m, ncol=3, byrow=TRUE) # criteria for reclassification
-    rc <- reclassify(spRaster, rclmat)
+    rc <- terra::classify(spRaster, rclmat)
     names(rc) <- paste0(targetSpecies[i])
-    speciesStack <- addLayer(speciesStack, rc)
+    speciesStack[[i]] <- rc
   }
+  # Combine all species rasters into a single SpatRaster
+  speciesStack <- terra::rast(speciesStack)
   
   # join species and environmental data
-  fullData <- stack(speciesStack, landscape)
+  fullData <- c(speciesStack, landscape)
   plot(fullData)
-  xylandscape <- raster::coordinates(landscape)
-  inputDataFrame <- raster::extract(fullData, # raster or rasterstack
-                                    xylandscape, # landscape coordinates
-                                    method='simple', # or "bilinear" - value of the four nearest raster cells
-                                    buffer=NULL, # in meters (long lat) or map_units
-                                    small=FALSE,
-                                    cellnumbers=TRUE,
-                                    na.rm=TRUE,
-                                    df=TRUE) # return dataframe
-  write.csv(inputDataFrame,"./data/inputDataFrame.csv", row.names = FALSE)
+  xylandscape <- terra::crds(landscape, df = TRUE)
+  inputDataFrame <- terra::extract(fullData, # raster or rasterstack
+                                   xylandscape,
+                                   method='simple', # or "bilinear" - value of the four nearest raster cells
+                                   cells=TRUE)
+  #xylandscape <- terra::crds(landscape, df = TRUE)
+  inputDataFrame <- cbind(xylandscape, inputDataFrame)
+  
+  write.csv(inputDataFrame,"~/data/data/inputDataFrame.csv", row.names = FALSE)
   return(inputDataFrame)
 }
 
 
 # load dataset and variables -----------------------------------------------------------------
-# Load species occurrences (6 species available)
-data("DataSpecies")
-rast(DataSpecies)
-head(DataSpecies)
-
-speciesData
-#rast(speciesData)
-
-# Select the name of the studied species
-#myRespName <- 'GuloGulo'
-targetSpecies <- "Alces alces"
-
-# Get corresponding presence/absence data
-myResp <- as.numeric(speciesData[, targetSpecies])
-
-# Get corresponding XY coordinates
-myRespXY <- speciesData[, c('X_WGS84', 'Y_WGS84')]
-
-# Load training landscape with environmental variables (inputClimate.R)
-#data("bioclim_current")
-#print(bioclim_current)
-# myExpl <- rast(bioclim_current)
-trainingLandscapes
-print(trainingLandscapes)
-
-## Crop the data to biome extent
+# Crop the landscapes to the extent of the biome
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
 biome_name <- "Boreal Forests/Taiga"
 
 # Function to load and select the biome shapefile
 load_select_biome <- function(biome_name) {
-biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
-biome_sf[biome_sf$BIOME_NAME == biome_name, ]}
+  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
+  biome_sf[biome_sf$BIOME_NAME == biome_name, ]}
 
 biome_sf <- load_select_biome(biome_name)
 biome_sp <- vect(biome_sf)
 
 # Function to crop and mask rasters to biome
 crop_mask_raster <- function(raster, biome_sp) {
-mask(crop(raster, biome_sp), biome_sp)}
+  mask(crop(raster, biome_sp), biome_sp)}
 
+# Crop and mask trainingLandscapes to biome extent
 trainingLandscapes <- crop_mask_raster(trainingLandscapes, biome_sp)
-
 plot(trainingLandscapes)
+
+# Select the name of the studied species
+targetSpecies <- c("Alces alces", "Canis lupus")
+
+# Format species occurence to true presence and NAs with corresonding coordinates
+# test with trainingLandscape? - use as species input data
+speciesData <- formatInputDataFrame(
+  speciesData = speciesDataOcc,
+  targetSpecies = targetSpecies, 
+  landscape = trainingLandscapes)
+head(speciesData)
+
+
+# Get corresponding presence/absence data
+myResp <- as.numeric(speciesData[, targetSpecies[[1]]])
+
+# Get corresponding presence/absence data
+myResp <- as.matrix(speciesData[, targetSpecies[[1]]])  # Convert to a matrix
+myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
+View(myResp)
+
+# Get corresponding XY coordinates
+myRespXY <- speciesData[, c('x', 'y')]
 
 # Prepare data & Parameters -----------------------------------------------------------------
 
-
- inputData <- formatInputDataFrame(
-  speciesData = speciesData,
-  targetSpecies = targetSpecies, 
-  landscape = landscapes)
-
-
-
-
-# Format Data with true absences
+# Format Data with true presences
 myBiomodData <- BIOMOD_FormatingData(resp.var = myResp, # myResp
                                      expl.var = trainingLandscapes, # myExpl
-                                     resp.xy = myRespXY,
-                                     resp.name = targetSpecies) # myRespNames
+                                     resp.xy = myRespXY, 
+                                     resp.name = targetSpecies[[1]]) # myRespNames
 myBiomodData
 plot(myBiomodData)
 
@@ -186,6 +179,10 @@ plot(myBiomodData)
 # opt.t
 
 # Run modeling -----------------------------------------------------------------
+# Register a parallel backend using the doParallel package
+cl <- makeCluster(detectCores() - 1)  # Use all but one core
+registerDoParallel(cl)
+
 # Model single models
 myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData,
                                     modeling.id = 'AllModels',
@@ -197,6 +194,10 @@ myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData,
                                     metric.eval = c('TSS','ROC'))
 # seed.val = 123)
 # nb.cpu = 8)
+
+# When done, stop the cluster
+stopCluster(cl)
+
 myBiomodModelOut
 
 # Get evaluation scores & variables importance
@@ -223,14 +224,17 @@ bm_PlotResponseCurves(bm.out = myBiomodModelOut,
                       fixed.var = 'median',
                       do.bivariate = TRUE)
 
+# Get evaluation scores for individual models
+eval_scores <- get_evaluations(myBiomodModelOut)
+print(eval_scores)
 
 # Model ensemble models
 myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
                                       models.chosen = 'all',
-                                      em.by = 'all',
+                                      em.by = 'PA+run', # Allow merging of datasets; #'all'
                                       em.algo = c('EMmean', 'EMcv', 'EMci', 'EMmedian', 'EMca', 'EMwmean'),
                                       metric.select = c('TSS'),
-                                      metric.select.thresh = c(0.7),
+                                      metric.select.thresh = c(0.5), # no model passed the threshold of 0.7 (suggested by main function)
                                       metric.eval = c('TSS', 'ROC'),
                                       var.import = 3,
                                       EMci.alpha = 0.05,
@@ -327,4 +331,3 @@ gg = bm_PlotRangeSize(bm.range = myBiomodRangeSize,
                       do.mean = TRUE,
                       do.plot = TRUE,
                       row.names = c("Species", "Dataset", "Run", "Algo"))
-
