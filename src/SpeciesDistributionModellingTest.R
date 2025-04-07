@@ -7,13 +7,13 @@
 library(easypackages)
 packages("readr","ggplot2","RColorBrewer",
          "rworldmap","sp","raster", "gam","mda", "earth", "maxnet", "ggtext","xgboost",
-         "rgbif","biomod2", "dplyr", "doParallel",
+         "rgbif","biomod2", "dplyr", "doParallel", "MAXENT",
          "sf", "rnaturalearth", "rnaturalearthdata","terra", "tidyterra", "ggpubr", "randomForest", prompt = FALSE)
 
 source("./src/libraries.R") # libraries
 source("./src/customFunctions.R") # functions
-source("./scripts/inputSpeciesData.R") # format and reads input data
 source("./scripts/inputClimate.R") # format and reads input raster landscapes
+source("./scripts/inputSpeciesData.R") # format and reads input data
 
 # customFunctions.R -----------------------------------------------------------------
 
@@ -93,13 +93,12 @@ speciesData <- formatInputDataFrame(
 head(speciesData)
 
 
-# Get corresponding presence/absence data
+# Get corresponding presence/absence data (for one specie)
 myResp <- as.numeric(speciesData[, targetSpecies[[1]]])
 
 # Get corresponding presence/absence data
 myResp <- as.matrix(speciesData[, targetSpecies[[1]]])  # Convert to a matrix
 myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
-View(myResp)
 
 # Get corresponding XY coordinates
 myRespXY <- speciesData[, c('x', 'y')]
@@ -118,18 +117,20 @@ plot(myBiomodData)
 # # Transform true absences into potential pseudo-absences
 # myResp.PA <- ifelse(myResp == 1, 1, NA)
 # 
-# # Format Data with pseudo-absences : random method
-# myBiomodData.r <- BIOMOD_FormatingData(resp.var = myResp.PA,
-#                                        expl.var = myExpl,
-#                                        resp.xy = myRespXY,
-#                                        resp.name = myRespName,
-#                                        PA.nb.rep = 4,
-#                                        PA.nb.absences = 1000,
-#                                        PA.strategy = 'random')
-# 
-# myBiomodData.r
-# plot(myBiomodData.r)
-#
+# Format Data with pseudo-absences : random method
+myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
+                                        expl.var = trainingLandscapes, # myExpl
+                                        resp.xy = myRespXY,
+                                        resp.name = targetSpecies[[1]], # myRespNames
+                                        PA.nb.rep = 4, # Number of pseudo-absences
+                                        PA.nb.absences = 1000, # Number of pseudo-absences per set
+                                        PA.strategy = 'random') # Random pseudo-absence generation
+ 
+myBiomodData.PA
+print(myBiomodData.PA)
+summary(myBiomodData.PA)
+plot(myBiomodData.PA)
+
 # # Select multiple sets of pseudo-absences
 #
 # # Transform true absences into potential pseudo-absences
@@ -148,19 +149,19 @@ plot(myBiomodData)
 # plot(myBiomodData.multi)
 
 # Cross-validation dataset -----------------------------------------------------------------
-# # k-fold selection
-# cv.k <- bm_CrossValidation(bm.format = myBiomodData,
-#                            strategy = "kfold",
-#                            nb.rep = 2,
-#                            k = 3)
-# 
-# # stratified selection (geographic)
+# k-fold selection
+cv.k <- bm_CrossValidation(bm.format = myBiomodData.PA, # failed I got only NAs
+                          strategy = "kfold",
+                          nb.rep = 2,
+                          k = 3)
+
+# stratified selection (geographic)
 # cv.s <- bm_CrossValidation(bm.format = myBiomodData,
 #                            strategy = "strat",
 #                            k = 2,
 #                            balance = "presences",
 #                            strat = "x")
-# head(cv.k)
+head(cv.k) # NAs as result
 # head(cv.s)
 
 # Retrieve modeling options -----------------------------------------------------------------
@@ -183,9 +184,38 @@ plot(myBiomodData)
 cl <- makeCluster(detectCores() - 1)  # Use all but one core
 registerDoParallel(cl)
 
+## Test the MAXENT model ##
+myBiomodModelOut <- BIOMOD_Modeling(
+  bm.format = myBiomodData.PA,
+  modeling.id = 'MaxEntTest',
+  models = c('MAXENT'),  # Use MaxEnt
+  CV.strategy = 'random',
+  CV.nb.rep = 1,
+  CV.perc = 0.8,
+  var.import = 1,
+  metric.eval = c('TSS', 'ROC')
+)
+
+# Check the output
+print(myBiomodModelOut)
+eval_scores <- get_evaluations(myBiomodModelOut)
+print(eval_scores)
+
+# Inspect Input files
+sp_data <- read.csv("./Alces.alces/models/MaxEntTest/Alces.alces_allData_allRun_MAXENT_outputs/Sp_swd.csv")
+back_data <- read.csv("./Alces.alces/models/MaxEntTest/Alces.alces_allData_allRun_MAXENT_outputs/Back_swd.csv")
+pred_data <- read.csv("./Alces.alces/models/MaxEntTest/Alces.alces_allData_allRun_MAXENT_outputs/Predictions/Pred_swd.csv")
+
+head(sp_data)
+head(back_data)
+head(pred_data)
+
+####
+
 # Model single models
-myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData,
-                                    modeling.id = 'AllModels',
+myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
+                                    modeling.id = 'AllModelsExMAXENT',
+                                    models = c('GLM', 'RF', 'GAM', 'GBM', 'ANN', 'CTA', 'FDA', 'MARS', 'SRE', 'XGBOOST'), # Exclude MAXENT
                                     CV.strategy = 'random',
                                     CV.nb.rep = 2,
                                     CV.perc = 0.8,
@@ -199,6 +229,7 @@ myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData,
 stopCluster(cl)
 
 myBiomodModelOut
+
 
 # Get evaluation scores & variables importance
 get_evaluations(myBiomodModelOut)
@@ -234,7 +265,7 @@ myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
                                       em.by = 'PA+run', # Allow merging of datasets; #'all'
                                       em.algo = c('EMmean', 'EMcv', 'EMci', 'EMmedian', 'EMca', 'EMwmean'),
                                       metric.select = c('TSS'),
-                                      metric.select.thresh = c(0.5), # no model passed the threshold of 0.7 (suggested by main function)
+                                      metric.select.thresh = c(0.4), # no model passed the threshold of 0.7 (suggested by main function)
                                       metric.eval = c('TSS', 'ROC'),
                                       var.import = 3,
                                       EMci.alpha = 0.05,
