@@ -36,5 +36,5 @@ speciesDataOcc <- removeSpeciesDuplicatesbyCellID(speciesData) # Remove duplicat
 View(speciesDataOcc)
 
 # Save the filtered data
-readr::write_csv(data_withoutDupl, 
-                 file =  "data/filtered_occurrences.csv")
+readr::write_csv(speciesDataOcc, 
+                 file =  "~/data/data/filtered_occurrences.csv")
