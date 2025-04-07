@@ -113,6 +113,16 @@ myBiomodData <- BIOMOD_FormatingData(resp.var = myResp, # myResp
 myBiomodData
 plot(myBiomodData)
 
+# Save the plot as a PNG file with higher resolution
+png(
+  filename = paste0("PresencePoints_", targetSpecies[[1]], ".png"),
+  width = 2000,  # Width in pixels
+  height = 1500, # Height in pixels
+  res = 300      # Resolution in DPI
+)
+plot(myBiomodData)
+dev.off()
+
 # Prseudo-absence extraction -----------------------------------------------------------------
 # # Transform true absences into potential pseudo-absences
 # myResp.PA <- ifelse(myResp == 1, 1, NA)
@@ -215,7 +225,7 @@ head(pred_data)
 # Model single models
 myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
                                     modeling.id = 'AllModelsExMAXENT',
-                                    models = c('GLM', 'RF', 'GAM', 'GBM', 'ANN', 'CTA', 'FDA', 'MARS', 'SRE', 'XGBOOST'), # Exclude MAXENT
+                                    models = c('GLM', 'RF', 'GAM', 'GBM', 'ANN', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT'
                                     CV.strategy = 'random',
                                     CV.nb.rep = 2,
                                     CV.perc = 0.8,
@@ -236,33 +246,53 @@ get_evaluations(myBiomodModelOut)
 get_variables_importance(myBiomodModelOut)
 
 # Represent evaluation scores & variables importance
-bm_PlotEvalMean(bm.out = myBiomodModelOut)
 bm_PlotEvalBoxplot(bm.out = myBiomodModelOut, group.by = c('algo', 'algo'))
-bm_PlotEvalBoxplot(bm.out = myBiomodModelOut, group.by = c('algo', 'run'))
-bm_PlotVarImpBoxplot(bm.out = myBiomodModelOut, group.by = c('expl.var', 'algo', 'algo'))
 bm_PlotVarImpBoxplot(bm.out = myBiomodModelOut, group.by = c('expl.var', 'algo', 'run'))
-bm_PlotVarImpBoxplot(bm.out = myBiomodModelOut, group.by = c('algo', 'expl.var', 'run'))
+
+# Create a plot for variable importance for all runs
+# Extract the data from bm_PlotVarImpBoxplot
+varImpData <- bm_PlotVarImpBoxplot(bm.out = myBiomodModelOut, group.by = c('expl.var', 'algo', 'run'))$tab
+# Filter the data to include only 'allRun'
+filteredData <- varImpData[varImpData$run == "allRun", ]
+# Create a custom boxplot for 'allRun'
+ggplot(filteredData, aes(x = expl.var, y = var.imp, fill = algo)) +
+  geom_boxplot() +
+  labs(
+    title = "Variable Importance for All Runs",
+    x = "Explanatory Variable",
+    y = "Variable Importance",
+    fill = "Model"
+  ) +
+  theme_minimal()
+ggsave("VarImpBoxplot_AllRun.png", width = 10, height = 6, dpi = 300)
+
 
 # Represent response curves
+
+# Check differnece between median, min output
 bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
                       models.chosen = get_built_models(myBiomodModelOut)[c(1:3, 12:14)],
-                      fixed.var = 'median')
+                      fixed.var = 'median') # non-focal var are fixed at median values which represents a "typical" condition for the non-focal var
 bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
                       models.chosen = get_built_models(myBiomodModelOut)[c(1:3, 12:14)],
-                      fixed.var = 'min')
-bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
-                      models.chosen = get_built_models(myBiomodModelOut)[3],
-                      fixed.var = 'median',
-                      do.bivariate = TRUE)
+                      fixed.var = 'min') # non-focal var are fixed at minimum values, which represents an extreme condition of the non-focal variables (lowest observed values)
+# bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
+#                      models.chosen = get_built_models(myBiomodModelOut)[3],
+#                      fixed.var = 'median',
+#                      do.bivariate = TRUE)
 
 # Get evaluation scores for individual models
 eval_scores <- get_evaluations(myBiomodModelOut)
 print(eval_scores)
 
+# Filter evaluation scores for TSS
+tss_scores <- eval_scores[eval_scores$metric.eval == "TSS", ]
+print(tss_scores)
+
 # Model ensemble models
 myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
                                       models.chosen = 'all',
-                                      em.by = 'PA+run', # Allow merging of datasets; #'all'
+                                      em.by = 'PA+run', #'PA+run' Allow merging of datasets; #'all'
                                       em.algo = c('EMmean', 'EMcv', 'EMci', 'EMmedian', 'EMca', 'EMwmean'),
                                       metric.select = c('TSS'),
                                       metric.select.thresh = c(0.4), # no model passed the threshold of 0.7 (suggested by main function)
@@ -329,7 +359,7 @@ plot(myBiomodEMProj)
 #data("bioclim_future")
 #myExplFuture = rast(bioclim_future)
 
-predictionLandscapes
+plot(predictionLandscapes)
 # rast(predictionLandscape)
 
 # crop the predictionLandscapes to the extent of the biome 
