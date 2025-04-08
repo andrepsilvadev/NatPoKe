@@ -64,6 +64,7 @@ formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
 # Crop the landscapes to the extent of the biome
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
 biome_name <- "Boreal Forests/Taiga"
+biome_name # run test with SE
 
 # Function to load and select the biome shapefile
 load_select_biome <- function(biome_name) {
@@ -80,6 +81,22 @@ crop_mask_raster <- function(raster, biome_sp) {
 # Crop and mask trainingLandscapes to biome extent
 trainingLandscapes <- crop_mask_raster(trainingLandscapes, biome_sp)
 plot(trainingLandscapes)
+
+#### Test with Sweden ####
+# Load Sweden's shapefile using rnaturalearth
+library(rnaturalearth)
+library(rnaturalearthdata)
+sweden_sf <- ne_countries(scale = "medium", country = "Sweden", returnclass = "sf")
+sweden_sp <- vect(sweden_sf)  # Convert to SpatVector for terra compatibility
+# Function to crop and mask rasters to Sweden
+crop_mask_raster <- function(raster, sweden_sp) {
+  mask(crop(raster, sweden_sp), sweden_sp)
+}
+# Crop and mask trainingLandscapes to Sweden's extent
+trainingLandscapes <- crop_mask_raster(trainingLandscapes, sweden_sp)
+plot(trainingLandscapes)
+
+####### 
 
 # Select the name of the studied species
 targetSpecies <- c("Alces alces", "Canis lupus")
@@ -102,6 +119,8 @@ myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
 
 # Get corresponding XY coordinates
 myRespXY <- speciesData[, c('x', 'y')]
+
+
 
 # Prepare data & Parameters -----------------------------------------------------------------
 
@@ -132,7 +151,7 @@ myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
                                         expl.var = trainingLandscapes, # myExpl
                                         resp.xy = myRespXY,
                                         resp.name = targetSpecies[[1]], # myRespNames
-                                        PA.nb.rep = 4, # Number of pseudo-absences
+                                        PA.nb.rep = 2, # Number of pseudo-absences 4
                                         PA.nb.absences = 1000, # Number of pseudo-absences per set
                                         PA.strategy = 'random') # Random pseudo-absence generation
  
@@ -160,7 +179,7 @@ plot(myBiomodData.PA)
 
 # Cross-validation dataset -----------------------------------------------------------------
 # k-fold selection
-cv.k <- bm_CrossValidation(bm.format = myBiomodData.PA, # failed I got only NAs
+#cv.k <- bm_CrossValidation(bm.format = myBiomodData.PA, # failed I got only NAs
                           strategy = "kfold",
                           nb.rep = 2,
                           k = 3)
@@ -191,41 +210,21 @@ head(cv.k) # NAs as result
 
 # Run modeling -----------------------------------------------------------------
 # Register a parallel backend using the doParallel package
-cl <- makeCluster(detectCores() - 1)  # Use all but one core
-registerDoParallel(cl)
+#cl <- makeCluster(detectCores() - 1)  # Use all but one core
+#registerDoParallel(cl)
 
-## Test the MAXENT model ##
-myBiomodModelOut <- BIOMOD_Modeling(
-  bm.format = myBiomodData.PA,
-  modeling.id = 'MaxEntTest',
-  models = c('MAXENT'),  # Use MaxEnt
-  CV.strategy = 'random',
-  CV.nb.rep = 1,
-  CV.perc = 0.8,
-  var.import = 1,
-  metric.eval = c('TSS', 'ROC')
-)
+# Check the structure of the formatted data
+print(myBiomodData.PA)
+summary(myBiomodData.PA)
 
-# Check the output
-print(myBiomodModelOut)
-eval_scores <- get_evaluations(myBiomodModelOut)
-print(eval_scores)
-
-# Inspect Input files
-sp_data <- read.csv("./Alces.alces/models/MaxEntTest/Alces.alces_allData_allRun_MAXENT_outputs/Sp_swd.csv")
-back_data <- read.csv("./Alces.alces/models/MaxEntTest/Alces.alces_allData_allRun_MAXENT_outputs/Back_swd.csv")
-pred_data <- read.csv("./Alces.alces/models/MaxEntTest/Alces.alces_allData_allRun_MAXENT_outputs/Predictions/Pred_swd.csv")
-
-head(sp_data)
-head(back_data)
-head(pred_data)
-
-####
+# Check the training landscapes
+print(trainingLandscapes)
+summary(trainingLandscapes)
 
 # Model single models
 myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
                                     modeling.id = 'AllModelsExMAXENT',
-                                    models = c('GLM', 'RF', 'GAM', 'GBM', 'ANN', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT'
+                                    models = c('GLM', 'RF', 'GAM', 'GBM', 'ANN', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT','GAM', 'ANN', 'CTA', 'FDA', 'MARS', 'XGBOOST'
                                     CV.strategy = 'random',
                                     CV.nb.rep = 2,
                                     CV.perc = 0.8,
@@ -236,7 +235,7 @@ myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
 # nb.cpu = 8)
 
 # When done, stop the cluster
-stopCluster(cl)
+#stopCluster(cl)
 
 myBiomodModelOut
 
@@ -281,13 +280,28 @@ bm_PlotResponseCurves(bm.out = myBiomodModelOut,
 #                      fixed.var = 'median',
 #                      do.bivariate = TRUE)
 
-# Get evaluation scores for individual models
-eval_scores <- get_evaluations(myBiomodModelOut)
-print(eval_scores)
 
-# Filter evaluation scores for TSS
+# Check which/if evaluations scores are below threshold
+eval_scores <- get_evaluations(myBiomodModelOut)
 tss_scores <- eval_scores[eval_scores$metric.eval == "TSS", ]
-print(tss_scores)
+threshold <- 0.4
+low_tss_models <- tss_scores[tss_scores$calibration < threshold, ]
+print(low_tss_models)
+
+# Check which models are included in the ensemble
+included_models <- get_built_models(myBiomodModelOut)
+print(included_models)
+
+# Inspect evaluation scores for all models
+# Get evaluation scores for all models
+grouped_scores <- tss_scores %>%
+  group_by(PA, run) %>%
+  summarize(mean_tss = mean(calibration, na.rm = TRUE))
+print(grouped_scores)
+
+# Register a parallel backend using the doParallel package
+#cl <- makeCluster(detectCores() - 1)  # Use all but one core
+#registerDoParallel(cl)
 
 # Model ensemble models
 myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
@@ -301,17 +315,23 @@ myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
                                       EMci.alpha = 0.05,
                                       EMwmean.decay = 'proportional')
 myBiomodEM
+# Retrieve models included in the ensemble
+ensemble_models <- get_built_models(myBiomodEM)
+print(ensemble_models)
+
+# When done, stop the cluster
+#stopCluster(cl)
 
 # Get evaluation scores & variables importance
 get_evaluations(myBiomodEM)
 get_variables_importance(myBiomodEM)
 
 # Represent evaluation scores & variables importance
-bm_PlotEvalMean(bm.out = myBiomodEM, group.by = 'full.name')
+#bm_PlotEvalMean(bm.out = myBiomodEM, group.by = 'full.name')
 bm_PlotEvalBoxplot(bm.out = myBiomodEM, group.by = c('full.name', 'full.name'))
-bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'full.name', 'full.name'))
+#bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'full.name', 'full.name'))
 bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'algo', 'merged.by.run'))
-bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('algo', 'expl.var', 'merged.by.run'))
+#bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('algo', 'expl.var', 'merged.by.run'))
 
 # Represent response curves
 bm_PlotResponseCurves(bm.out = myBiomodEM, 
@@ -320,16 +340,25 @@ bm_PlotResponseCurves(bm.out = myBiomodEM,
 bm_PlotResponseCurves(bm.out = myBiomodEM, 
                       models.chosen = get_built_models(myBiomodEM)[c(1, 6, 7)],
                       fixed.var = 'min')
-bm_PlotResponseCurves(bm.out = myBiomodEM, 
-                      models.chosen = get_built_models(myBiomodEM)[7],
-                      fixed.var = 'median',
-                      do.bivariate = TRUE)
+#bm_PlotResponseCurves(bm.out = myBiomodEM, 
+#                      models.chosen = get_built_models(myBiomodEM)[7],
+#                      fixed.var = 'median',
+#                      do.bivariate = TRUE)
 
 # Project models -----------------------------------------------------------------
+
+# Check the names of the environmental variables in trainingLandscapes
+print(names(trainingLandscapes))
+
+
+# Register a parallel backend using the doParallel package
+cl <- makeCluster(detectCores() - 1)  # Use all but one core
+registerDoParallel(cl)
+
 # Project single models
 myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
                                   proj.name = 'Current',
-                                  new.env = myExpl,
+                                  new.env = trainingLandscapes, #myExpl
                                   models.chosen = 'all',
                                   metric.binary = 'all',
                                   metric.filter = 'all',
@@ -337,6 +366,20 @@ myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
 myBiomodProj
 plot(myBiomodProj)
 
+# Inspect the structure of the projection object
+str(myBiomodProj)
+# Retrieve predictions from the projection object
+predictions <- get_predictions(myBiomodProj)
+print(predictions)
+
+# Find missing models
+ensemble_models <- get_built_models(myBiomodEM)
+single_models <- names(get_predictions(myBiomodProj))
+missing_models <- setdiff(ensemble_models, single_models)
+print(missing_models)
+
+
+# what is the difference between the projection options?
 # Project ensemble models (from single projections)
 myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM, 
                                              bm.proj = myBiomodProj,
@@ -347,10 +390,13 @@ myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
 # Project ensemble models (building single projections)
 myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
                                              proj.name = 'CurrentEM',
-                                             new.env = myExpl,
+                                             new.env = trainingLandscapes,
                                              models.chosen = 'all',
                                              metric.binary = 'all',
                                              metric.filter = 'all')
+# When done, stop the cluster
+stopCluster(cl)
+
 myBiomodEMProj
 plot(myBiomodEMProj)
 
