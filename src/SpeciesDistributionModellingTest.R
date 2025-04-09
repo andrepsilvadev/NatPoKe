@@ -143,9 +143,6 @@ plot(myBiomodData)
 dev.off()
 
 # Prseudo-absence extraction -----------------------------------------------------------------
-# # Transform true absences into potential pseudo-absences
-#myResp.PA <- ifelse(myResp == 1, 1, NA)
- 
 # Format Data with pseudo-absences : random method
 myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
                                         expl.var = trainingLandscapes, # myExpl
@@ -238,7 +235,7 @@ myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
                                     CV.strategy = 'random',
                                     #CV.user.table = cv.r.r,
                                     CV.nb.rep = 2, # 10
-                                    #DataSplit = 70,
+                                    #DataSplit = 70, # add the data split - check function name
                                     CV.perc = 0.8,
                                     OPT.strategy = 'bigboss',
                                     #OPT.user = myOpt,
@@ -262,11 +259,8 @@ bm_PlotEvalBoxplot(bm.out = myBiomodModelOut, group.by = c('algo', 'algo'))
 bm_PlotVarImpBoxplot(bm.out = myBiomodModelOut, group.by = c('expl.var', 'algo', 'run'))
 
 # Create a plot for variable importance for all runs
-# Extract the data from bm_PlotVarImpBoxplot
 varImpData <- bm_PlotVarImpBoxplot(bm.out = myBiomodModelOut, group.by = c('expl.var', 'algo', 'run'))$tab
-# Filter the data to include only 'allRun'
 filteredData <- varImpData[varImpData$run == "allRun", ]
-# Create a custom boxplot for 'allRun'
 ggplot(filteredData, aes(x = expl.var, y = var.imp, fill = algo)) +
   geom_boxplot() +
   labs(
@@ -312,11 +306,8 @@ get_evaluations(myBiomodEM)
 get_variables_importance(myBiomodEM)
 
 # Represent evaluation scores & variables importance
-#bm_PlotEvalMean(bm.out = myBiomodEM, group.by = 'full.name')
 bm_PlotEvalBoxplot(bm.out = myBiomodEM, group.by = c('full.name', 'full.name'))
-#bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'full.name', 'full.name'))
 bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'algo', 'merged.by.run'))
-#bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('algo', 'expl.var', 'merged.by.run'))
 
 # Represent response curves
 bm_PlotResponseCurves(bm.out = myBiomodEM, 
@@ -331,7 +322,6 @@ bm_PlotResponseCurves(bm.out = myBiomodEM,
 #                      do.bivariate = TRUE)
 
 # Project models -----------------------------------------------------------------
-
 # Project single models
 myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
                                   proj.name = 'Current',
@@ -353,10 +343,8 @@ myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
 myBiomodEMProj
 plot(myBiomodEMProj)
 
-# Compare range sizes -----------------------------------------------------------------
-# Load environmental variables extracted from BIOCLIM (bio_3, bio_4, bio_7, bio_11 & bio_12)
-#data("bioclim_future")
-#myExplFuture = rast(bioclim_future)
+# Future Projections -----------------------------------------------------------------
+# Load environmental variables
 
 # Loop through each raster in the list and mask and crop to biome (test extent)
 for (i in seq_along(predictionLandscapes)) {
@@ -369,17 +357,6 @@ plot(predictionLandscapes[["ssp126_2071-2100"]])
 
 # Project onto future conditions
 futureProjections <- list()
-for (i in seq_along(predictionLandscapes)) {
-myBiomodProjectionFuture <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
-                                              proj.name = names(predictionLandscapes)[i], 
-                                              new.env = predictionLandscapes[[i]], # myExplFuture #it needs the same variable names as the calibration variables!
-                                              models.chosen = 'all',
-                                              metric.binary = 'TSS',
-                                              build.clamping.mask = TRUE)}
-
-# Create an empty list to store future projections
-futureProjections <- list()
-
 # Loop through each prediction landscape and project onto future conditions
 for (i in seq_along(predictionLandscapes)) {
   # Ensure variable names match the calibration variables
@@ -399,15 +376,17 @@ for (i in seq_along(predictionLandscapes)) {
 print(futureProjections)
 
 # Make ensemble-models projections on current variable
-#myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM, 
-                                             bm.proj = myBiomodProjectionFuture,
+myBiomodEMProjFuture <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM, 
+                                             bm.proj = futureProjections[["ssp126_2011-2040"]],
                                              models.chosen = 'all',
                                              metric.binary = 'all',
                                              metric.filter = 'all')
 
 
+plot(myBiomodEMProjFuture)
 
-# Load current and future binary projections
+# Compare range sizes -----------------------------------------------------------------
+ # Load current and future binary projections
 CurrentProj <- get_predictions(myBiomodProj, metric.binary = "TSS")
 print(CurrentProj)
 
