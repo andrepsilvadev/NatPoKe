@@ -117,7 +117,7 @@ myResp <- as.numeric(speciesData[, targetSpecies[[1]]])
 myResp <- as.matrix(speciesData[, targetSpecies[[1]]])  # Convert to a matrix
 myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
 
-# Get corresponding XY coordinates
+myResp# Get corresponding XY coordinates
 myRespXY <- speciesData[, c('x', 'y')]
 
 
@@ -134,7 +134,7 @@ plot(myBiomodData)
 
 # Save the plot as a PNG file with higher resolution
 png(
-  filename = paste0("PresencePoints_", targetSpecies[[1]], ".png"),
+  filename = paste0("PresencePoints_", targetSpecies[[1]], "_", biome_name, ".png"),
   width = 2000,  # Width in pixels
   height = 1500, # Height in pixels
   res = 300      # Resolution in DPI
@@ -144,8 +144,8 @@ dev.off()
 
 # Prseudo-absence extraction -----------------------------------------------------------------
 # # Transform true absences into potential pseudo-absences
-# myResp.PA <- ifelse(myResp == 1, 1, NA)
-# 
+#myResp.PA <- ifelse(myResp == 1, 1, NA)
+ 
 # Format Data with pseudo-absences : random method
 myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
                                         expl.var = trainingLandscapes, # myExpl
@@ -153,7 +153,7 @@ myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
                                         resp.name = targetSpecies[[1]], # myRespNames
                                         PA.nb.rep = 2, # Number of pseudo-absences 4
                                         PA.nb.absences = 1000, # Number of pseudo-absences per set
-                                        PA.strategy = 'random') # Random pseudo-absence generation
+                                        PA.strategy = 'random') # Random pseudo-absence
  
 myBiomodData.PA
 print(myBiomodData.PA)
@@ -180,9 +180,9 @@ plot(myBiomodData.PA)
 # Cross-validation dataset -----------------------------------------------------------------
 # k-fold selection
 #cv.k <- bm_CrossValidation(bm.format = myBiomodData.PA, # failed I got only NAs
-                          strategy = "kfold",
-                          nb.rep = 2,
-                          k = 3)
+#                          strategy = "kfold",
+#                         nb.rep = 2,
+#                          k = 3)
 
 # stratified selection (geographic)
 # cv.s <- bm_CrossValidation(bm.format = myBiomodData,
@@ -190,10 +190,32 @@ plot(myBiomodData.PA)
 #                            k = 2,
 #                            balance = "presences",
 #                            strat = "x")
-head(cv.k) # NAs as result
+#head(cv.k) # NAs as result
 # head(cv.s)
 
+# random selection + random pseudo-absences
+#cv.r.r <- bm_CrossValidation(bm.form = myBiomodData.PA,
+                                    strategy = 'random',
+                                    nb.rep = 3,
+                                    perc = 0.7)
+print(cv.r.r)
+summary(myBiomodData.PA, calib.lines = cv.r.r)
+pp <- plot(myBiomodData.PA, calib.lines = cv.r.r, plot.type = 'raster') # distribution of different combinations
+
 # Retrieve modeling options -----------------------------------------------------------------
+# default paratmeters
+#opt.d <- bm_ModelingOptions(data.type = 'binary',
+                            models = c('GLM', 'RF', 'XGBOOST'),
+                            strategy = 'default')
+opt.d
+
+# bigboss parameters + formated data +randeom cross validation
+#myOpt <- bm_ModelingOptions(data.type = 'binary',
+                              models = c('GLM', 'RF', 'XGBOOST'),
+                              strategy = 'bigboss',
+                              bm.format = myBiomodData.PA,
+                              calib.lines = cv.r.r)
+#print(myOpt)
 # bigboss parameters
 # opt.b <- bm_ModelingOptions(data.type = 'binary',
 #                             models = c('SRE', 'XGBOOST'),
@@ -209,26 +231,17 @@ head(cv.k) # NAs as result
 # opt.t
 
 # Run modeling -----------------------------------------------------------------
-# Register a parallel backend using the doParallel package
-#cl <- makeCluster(detectCores() - 1)  # Use all but one core
-#registerDoParallel(cl)
-
-# Check the structure of the formatted data
-print(myBiomodData.PA)
-summary(myBiomodData.PA)
-
-# Check the training landscapes
-print(trainingLandscapes)
-summary(trainingLandscapes)
-
 # Model single models
 myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
-                                    modeling.id = 'AllModelsExMAXENT',
-                                    models = c('GLM', 'RF', 'GAM', 'GBM', 'ANN', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT','GAM', 'ANN', 'CTA', 'FDA', 'MARS', 'XGBOOST'
+                                    modeling.id = 'ModelExampels',
+                                    models = c('GLM', 'RF', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM'; 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
                                     CV.strategy = 'random',
-                                    CV.nb.rep = 2,
+                                    #CV.user.table = cv.r.r,
+                                    CV.nb.rep = 2, # 10
+                                    #DataSplit = 70,
                                     CV.perc = 0.8,
                                     OPT.strategy = 'bigboss',
+                                    #OPT.user = myOpt,
                                     var.import = 3,
                                     metric.eval = c('TSS','ROC'))
 # seed.val = 123)
@@ -281,32 +294,10 @@ bm_PlotResponseCurves(bm.out = myBiomodModelOut,
 #                      do.bivariate = TRUE)
 
 
-# Check which/if evaluations scores are below threshold
-eval_scores <- get_evaluations(myBiomodModelOut)
-tss_scores <- eval_scores[eval_scores$metric.eval == "TSS", ]
-threshold <- 0.4
-low_tss_models <- tss_scores[tss_scores$calibration < threshold, ]
-print(low_tss_models)
-
-# Check which models are included in the ensemble
-included_models <- get_built_models(myBiomodModelOut)
-print(included_models)
-
-# Inspect evaluation scores for all models
-# Get evaluation scores for all models
-grouped_scores <- tss_scores %>%
-  group_by(PA, run) %>%
-  summarize(mean_tss = mean(calibration, na.rm = TRUE))
-print(grouped_scores)
-
-# Register a parallel backend using the doParallel package
-#cl <- makeCluster(detectCores() - 1)  # Use all but one core
-#registerDoParallel(cl)
-
 # Model ensemble models
 myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
                                       models.chosen = 'all',
-                                      em.by = 'PA+run', #'PA+run' Allow merging of datasets; #'all'
+                                      em.by = 'all', #'PA+run' Allow merging of datasets;
                                       em.algo = c('EMmean', 'EMcv', 'EMci', 'EMmedian', 'EMca', 'EMwmean'),
                                       metric.select = c('TSS'),
                                       metric.select.thresh = c(0.4), # no model passed the threshold of 0.7 (suggested by main function)
@@ -315,12 +306,6 @@ myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
                                       EMci.alpha = 0.05,
                                       EMwmean.decay = 'proportional')
 myBiomodEM
-# Retrieve models included in the ensemble
-ensemble_models <- get_built_models(myBiomodEM)
-print(ensemble_models)
-
-# When done, stop the cluster
-#stopCluster(cl)
 
 # Get evaluation scores & variables importance
 get_evaluations(myBiomodEM)
@@ -347,14 +332,6 @@ bm_PlotResponseCurves(bm.out = myBiomodEM,
 
 # Project models -----------------------------------------------------------------
 
-# Check the names of the environmental variables in trainingLandscapes
-print(names(trainingLandscapes))
-
-
-# Register a parallel backend using the doParallel package
-cl <- makeCluster(detectCores() - 1)  # Use all but one core
-registerDoParallel(cl)
-
 # Project single models
 myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
                                   proj.name = 'Current',
@@ -366,36 +343,12 @@ myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
 myBiomodProj
 plot(myBiomodProj)
 
-# Inspect the structure of the projection object
-str(myBiomodProj)
-# Retrieve predictions from the projection object
-predictions <- get_predictions(myBiomodProj)
-print(predictions)
-
-# Find missing models
-ensemble_models <- get_built_models(myBiomodEM)
-single_models <- names(get_predictions(myBiomodProj))
-missing_models <- setdiff(ensemble_models, single_models)
-print(missing_models)
-
-
-# what is the difference between the projection options?
 # Project ensemble models (from single projections)
 myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM, 
-                                             bm.proj = myBiomodProj,
+                                             bm.proj = myBiomodProj, # uses precomputed single model projections
                                              models.chosen = 'all',
                                              metric.binary = 'all',
                                              metric.filter = 'all')
-
-# Project ensemble models (building single projections)
-myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
-                                             proj.name = 'CurrentEM',
-                                             new.env = trainingLandscapes,
-                                             models.chosen = 'all',
-                                             metric.binary = 'all',
-                                             metric.filter = 'all')
-# When done, stop the cluster
-stopCluster(cl)
 
 myBiomodEMProj
 plot(myBiomodEMProj)
@@ -405,33 +358,83 @@ plot(myBiomodEMProj)
 #data("bioclim_future")
 #myExplFuture = rast(bioclim_future)
 
-plot(predictionLandscapes)
-# rast(predictionLandscape)
+# Loop through each raster in the list and mask and crop to biome (test extent)
+for (i in seq_along(predictionLandscapes)) {
+  # Crop and mask the raster
+  predictionLandscapes[[i]] <- mask(crop(predictionLandscapes[[i]], sweden_sp), sweden_sp)
+}
 
-# crop the predictionLandscapes to the extent of the biome 
-predictionLandscapes <- crop_mask_raster(predictionLandscapes, biome_sp)
+print(predictionLandscapes)
+plot(predictionLandscapes[["ssp126_2071-2100"]])
 
 # Project onto future conditions
+futureProjections <- list()
+for (i in seq_along(predictionLandscapes)) {
 myBiomodProjectionFuture <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
-                                              proj.name = 'Future',
-                                              new.env = predictionLandscapes, # myExplFuture
+                                              proj.name = names(predictionLandscapes)[i], 
+                                              new.env = predictionLandscapes[[i]], # myExplFuture #it needs the same variable names as the calibration variables!
                                               models.chosen = 'all',
                                               metric.binary = 'TSS',
-                                              build.clamping.mask = TRUE)
+                                              build.clamping.mask = TRUE)}
+
+# Create an empty list to store future projections
+futureProjections <- list()
+
+# Loop through each prediction landscape and project onto future conditions
+for (i in seq_along(predictionLandscapes)) {
+  # Ensure variable names match the calibration variables
+  names(predictionLandscapes[[i]]) <- names(trainingLandscapes)
+  
+  # Perform the projection for the current prediction landscape
+  futureProjections[[names(predictionLandscapes)[i]]] <- BIOMOD_Projection(
+    bm.mod = myBiomodModelOut,
+    proj.name = names(predictionLandscapes)[i],  # Use the name of the current prediction landscape
+    new.env = predictionLandscapes[[i]],        # Use the current prediction landscape
+    models.chosen = 'all',
+    metric.binary = 'TSS',
+    build.clamping.mask = TRUE
+  )
+}
+
+print(futureProjections)
+
+# Make ensemble-models projections on current variable
+#myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM, 
+                                             bm.proj = myBiomodProjectionFuture,
+                                             models.chosen = 'all',
+                                             metric.binary = 'all',
+                                             metric.filter = 'all')
+
+
 
 # Load current and future binary projections
 CurrentProj <- get_predictions(myBiomodProj, metric.binary = "TSS")
-FutureProj <- get_predictions(myBiomodProjectionFuture, metric.binary = "TSS")
+print(CurrentProj)
+
+# Create an empty list to store range size differences
+rangeSizeDifferences <- list()
+# Loop through each future projection and compute differences
+for (scenario in names(futureProjections)) {
+  # Load future binary projections for the current scenario
+  FutureProj <- get_predictions(futureProjections[[scenario]], metric.binary = "TSS")
 
 # Compute differences
-myBiomodRangeSize <- BIOMOD_RangeSize(proj.current = CurrentProj, 
+rangeSizeDifferences[[scenario]] <- BIOMOD_RangeSize(proj.current = CurrentProj, 
                                       proj.future = FutureProj)
+}
 
-myBiomodRangeSize$Compt.By.Models
-plot(myBiomodRangeSize$Diff.By.Pixel)
+rangeSizeDifferences[["ssp126_2011-2040"]]$Compt.By.Models
+plot(rangeSizeDifferences[["ssp126_2011-2040"]]$Diff.By.Pixel)
+
+
+# Loop through each scenario and plot the differences
+for (scenario in names(rangeSizeDifferences)) {
+  print(paste("Scenario:", scenario))
+  plot(rangeSizeDifferences[[scenario]]$Diff.By.Pixel, main = scenario)
+}
 
 # Represent main results 
-gg = bm_PlotRangeSize(bm.range = myBiomodRangeSize, 
+gg = bm_PlotRangeSize(bm.range = rangeSizeDifferences[["ssp126_2011-2040"]], 
                       do.count = TRUE,
                       do.perc = TRUE,
                       do.maps = TRUE,
