@@ -1,7 +1,7 @@
 ## Name: SpeciesDistributionModellingTest ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: test SDM main function with true species occurence in R ##
-## Date: April 4th 2025 ##
+## Date: April 10th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
 library(easypackages)
@@ -62,7 +62,7 @@ formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
 
 # SDMensemble Function -----------------------------------------------------------------
 
-SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predictionLandscapes, biome_name){
+SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscapes, predictionLandscapes, biome_name){
   # Create output folder
   output_folder <- "~/data/output/SDMensemble"
   if(!dir.exists(output_folder)){
@@ -82,10 +82,14 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
   biomodDataPAList <- list()
   biomodModelOutList <- list()
   biomodEMList <- list()
-  biomodProjList <- list()
   futureProjectionsList <- list()
   biomodEFList <- list()
-  rangeSizeDifferencesList <- list()
+  evaluationScores <- data.frame()
+  variableImportance <- data.frame()
+  responseCurvesData <- list()
+  combinedPlots <- list()
+  projectionMetadata <- data.frame()
+  
   
   # Loop through each species
   for (species in targetSpecies){
@@ -94,7 +98,6 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
     # Format species occurence data
     myResp <- as.matrix(speciesData[, species])  # Convert to a matrix
     myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
-    #myResp <- as.numeric(speciesData[, species])  # Presence/absence data for the species
     myRespXY <- speciesData[, c('x', 'y')]        # Coordinates for the species
     
     # Format Data with only true presences
@@ -139,8 +142,7 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
     # Run single models
     myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
                                         modeling.id = paste0("Model_", species),
-                                        models = c('RF', 'GLM', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM'; 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
-                                        #OPT.user = biomodOptions,
+                                        models = c('ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
                                         CV.strategy = 'random',
                                         CV.nb.rep = 2, # 10
                                         CV.perc = 0.8, # data split, percentage that will be kept for calibaration
@@ -152,7 +154,12 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
     
     # Get evaluation scores & variable importance
     eval_scores <- get_evaluations(myBiomodModelOut)
+    eval_scores$species <- species  # Add species column
+    evaluationScores <- rbind(evaluationScores, eval_scores)  # Combine scores across species
+    
     var_importance <- get_variables_importance(myBiomodModelOut)
+    var_importance$species <- species  # Add species column
+    variableImportance <- rbind(variableImportance, var_importance)  # Combine importance across species
     
     # Save evaluation scores and variable importance to files
     write.csv(eval_scores, file = file.path(output_folder, paste0("EvalScores_", species, ".csv")), row.names = FALSE)
@@ -163,8 +170,7 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
       filename = file.path(output_folder, paste0("EvalBoxplot_", species, ".png")),
       width = 2000,
       height = 1500,
-      res = 300
-    )
+      res = 300)
     bm_PlotEvalBoxplot(bm.out = myBiomodModelOut, group.by = c('algo', 'algo'))
     dev.off()
     
@@ -182,6 +188,24 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
       theme_minimal()
     ggsave(file.path(output_folder, paste0("VarImpBoxplot_AllRun_", species, ".png")), width = 10, height = 6, dpi = 300)
     
+    # Generate response curves and save data for individual models
+    responseCurves <- bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
+                                            models.chosen = get_built_models(myBiomodModelOut),
+                                            fixed.var = 'median') # 'min'
+    responseCurvesData[[species]] <- responseCurves  # Store response curve data
+    
+    # Save response curve plots
+    png(
+      filename = file.path(output_folder, paste0("ResponseCurves_", species, ".png")),
+      width = 2000,
+      height = 1500,
+      res = 300)
+    plot(responseCurves)
+    dev.off()
+    
+    # Store response curve plot objects for later combination
+    combinedPlots[[species]] <- responseCurves
+    
     # Building ensemble-models
     myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
                                           models.chosen = 'all',
@@ -195,38 +219,53 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
                                           EMwmean.decay = 'proportional')
     biomodEMList <- myBiomodEM
     
-    # Save ensemble model evaluation plots
+    # Get evaluation scores & variable importance for ensemble models
+    eval_scoresEM <- get_evaluations(myBiomodEM)
+    eval_scoresEM$species <- species  # Add species column
+    evaluationScoresEM <- rbind(evaluationScoresEM, eval_scoresEM)  # Combine scores across species
+    
+    var_importanceEM <- get_variables_importance(myBiomodEM)
+    var_importanceEM$species <- species  # Add species column
+    variableImportanceEM <- rbind(variableImportanceEM, var_importanceEM)  # Combine importance across species
+    
+    # Save evaluation scores and variable importance to files
+    write.csv(eval_scoresEM, file = file.path(output_folder, paste0("EvalScoresEM_", species, ".csv")), row.names = FALSE)
+    write.csv(var_importanceEM, file = file.path(output_folder, paste0("VarImportanceEM_", species, ".csv")), row.names = FALSE)
+    
+    # Save evaluation score boxplots and variables importance
     png(
-      filename = file.path(output_folder, paste0("EnsembleEvalBoxplot_", species, ".png")),
+      filename = file.path(output_folder, paste0("EvalBoxplotEM_", species, ".png")),
       width = 2000,
       height = 1500,
-      res = 300
-    )
+      res = 300)
     bm_PlotEvalBoxplot(bm.out = myBiomodEM, group.by = c('full.name', 'full.name'))
     dev.off()
     
-    # Save ensemble model evaluation plots
     png(
-      filename = file.path(output_folder, paste0("EnsembleVarImpBoxplot_", species, ".png")),
+      filename = file.path(output_folder, paste0("VarImpBoxplotEM_", species, ".png")),
       width = 2000,
       height = 1500,
-      res = 300
-    )
+      res = 300)
     bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'algo', 'merged.by.run'))
     dev.off()
     
-   
-    # Project onto current conditions
-    myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
-                                      proj.name = paste0("Current_", species),
-                                      new.env = trainingLandscapes,
-                                      models.chosen = 'all',
-                                      metric.binary = 'all',
-                                      metric.filter = 'all',
-                                      build.clamping.mask = TRUE)
+    # Generate response curves and save data for individual models
+    responseCurvesEM <- bm_PlotResponseCurves(bm.out = myBiomodEM, 
+                                            models.chosen = get_built_models(myBiomodEM),
+                                            fixed.var = 'median') # 'min'
+    responseCurvesDataEM[[species]] <- responseCurvesEM  # Store response curve data
     
-    # Store the projection
-    biomodProjList[[species]] <- myBiomodProj
+    # Save response curve plots
+    png(
+      filename = file.path(output_folder, paste0("ResponseCurvesEM_", species, ".png")),
+      width = 2000,
+      height = 1500,
+      res = 300)
+    plot(responseCurvesEM)
+    dev.off()
+    
+    # Store response curve plot objects for later combination
+    combinedPlotsEM[[species]] <- responseCurvesEM
     
     # Project onto future conditions
     futureProjections <- list()
@@ -253,6 +292,11 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
       
       biomodEFList[[species]][[scenario]] <- myBiomodEF
       
+      # Save ensemble forecast as raster files
+      ensembleRaster <- get_predictions(myBiomodEF)
+      rasterFilename <- file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, ".tif"))
+      terra::writeRaster(ensembleRaster, rasterFilename, overwrite = TRUE)
+      
       # Save ensemble forecast plots
       png(
         filename = file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, ".png")),
@@ -262,46 +306,47 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
       )
       plot(myBiomodEF)
       dev.off()
-    }
-    
-    # Compute range size differences for each future scenario
-    rangeSizeDifferences <- list()
-    CurrentProj <- get_predictions(myBiomodProj, metric.binary = "TSS")
-    for (scenario in names(futureProjections)) {
-      FutureProj <- get_predictions(futureProjections[[scenario]], metric.binary = "TSS")
-      rangeSizeDifferences[[scenario]] <- BIOMOD_RangeSize(
-        proj.current = CurrentProj,
-        proj.future = FutureProj
+      
+      # Collect metadata for the projection
+      projectionMetadata <- rbind(
+        projectionMetadata,
+        data.frame(
+          species = species,
+          scenario = scenario,
+          rasterFile = rasterFilename,
+          evaluationMetrics = paste(get_evaluations(myBiomodEF), collapse = ";")
+        )
       )
-    }
-    
-    # Store the range size differences
-    rangeSizeDifferencesList[[species]] <- rangeSizeDifferences
-    
-    # Save range size difference plots
-    for (scenario in names(rangeSizeDifferences)) {
-      png(
-        filename = file.path(output_folder, paste0("RangeSizeDiff_", species, "_", scenario, ".png")),
-        width = 2000,
-        height = 1500,
-        res = 300
-      )
-      plot(rangeSizeDifferences[[scenario]]$Diff.By.Pixel, main = paste(species, scenario))
-      dev.off()
     }
     
     cat("\n", species, "modeling finished.")
   }
+  
+  # Save combined evaluation scores and variable importance
+  # single Models
+  write.csv(evaluationScores, file = file.path(output_folder, "Combined_EvalScores.csv"), row.names = FALSE)
+  write.csv(variableImportance, file = file.path(output_folder, "Combined_VarImportance.csv"), row.names = FALSE)
+  
+  # ensemble Models
+  write.csv(evaluationScoresEM, file = file.path(output_folder, "Combined_EvalScoresEM.csv"), row.names = FALSE)
+  write.csv(variableImportanceEM, file = file.path(output_folder, "Combined_VarImportanceEM.csv"), row.names = FALSE)
+  
+  # Save metadata as a CSV file
+  write.csv(projectionMetadata, file = file.path(output_folder, paste0("ProjectionMetadata_", species, ".csv")), row.names = FALSE)
+  
   # Return all results as a list
   return(list(
     biomodData = biomodDataList,
     biomodDataPA = biomodDataPAList,
     biomodModelOut = biomodModelOutList,
     biomodEM = biomodEMList,
-    biomodProj = biomodProjList,
     futureProjections = futureProjectionsList,
     biomodEF = biomodEFList,
-    rangeSizeDifferences = rangeSizeDifferencesList
+    evaluationScores = evaluationScores,
+    variableImportance = variableImportance,
+    responseCurvesData = responseCurvesData,
+    combinedPlots = combinedPlots,
+    projectionMetadata = projectionMetadata
   ))
 }
 
@@ -365,13 +410,12 @@ speciesData <- formatInputDataFrame(
 head(speciesData)
 
 # Run the SEMensemble function
-results <- SDMensembleMultiSpecies(
-  targetSpecies = targetSpecies,
-  speciesData = speciesData,
-  trainingLandscapes = trainingLandscapes,
-  predictionLandscapes = predictionLandscapes,
-  biome_name = biome_name)
+results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
+                                    speciesData = speciesData,
+                                    trainingLandscapes = trainingLandscapes,
+                                    predictionLandscapes = predictionLandscapes,
+                                    biome_name = biome_name)
 
 # Access results
 results$biomodData[["Alces alces"]]
-results$rangeSizeDifferences[["Canis lupus"]][["ssp126_2011-2040"]]
+
