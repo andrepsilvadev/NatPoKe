@@ -68,6 +68,15 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
   if(!dir.exists(output_folder)){
     dir.create(output_folder, recursive = TRUE)
   }
+  
+  #Test the function
+  targetSpecies = c("Alces alces", "Canis lupus")
+  species = "Alces alces"
+  speciesData = speciesData
+  trainingLandscapes = trainingLandscapes
+  predictionLandscapes = predictionLandscapes
+  biome_name = "SwedenTest"
+  
   # Initialize lists to store results for each species
   biomodDataList <- list()
   biomodDataPAList <- list()
@@ -75,7 +84,7 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
   biomodEMList <- list()
   biomodProjList <- list()
   futureProjectionsList <- list()
-  biomodEFList
+  biomodEFList <- list()
   rangeSizeDifferencesList <- list()
   
   # Loop through each species
@@ -83,9 +92,9 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
     cat("\n", species, "modeling started...")
     
     # Format species occurence data
-    #myResp <- as.matrix(speciesData[, species])  # Convert to a matrix
-    #myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
-    myResp <- as.numeric(speciesData[, species])  # Presence/absence data for the species
+    myResp <- as.matrix(speciesData[, species])  # Convert to a matrix
+    myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
+    #myResp <- as.numeric(speciesData[, species])  # Presence/absence data for the species
     myRespXY <- speciesData[, c('x', 'y')]        # Coordinates for the species
     
     # Format Data with only true presences
@@ -103,7 +112,7 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
       height = 1500,
       res = 300
     )
-    plot(myBiomodData.PA)
+    plot(myBiomodData)
     dev.off()
     
     # Format Data with true presences and pseudo-absences
@@ -193,35 +202,31 @@ SDMensemble <- function(targetSpecies, speciesData, trainingLandscapes, predicti
       height = 1500,
       res = 300
     )
-    bm_PlotEvalBoxplot(bm.out = myBiomodEM, group.by = c('algo', 'algo'))
+    bm_PlotEvalBoxplot(bm.out = myBiomodEM, group.by = c('full.name', 'full.name'))
     dev.off()
     
-    # Create and save a custom variable importance plot for all runs
-    varImpData <- bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'algo', 'run'))$tab
-    filteredData <- varImpData[varImpData$run == "allRun", ]
-    ggplot(filteredData, aes(x = expl.var, y = var.imp, fill = algo)) +
-      geom_boxplot() +
-      labs(
-        title = paste("Variable Importance for All Runs -", species),
-        x = "Explanatory Variable",
-        y = "Variable Importance",
-        fill = "Model"
-      ) +
-      theme_minimal()
-    ggsave(file.path(output_folder, paste0("EnsambleVarImpBoxplot_AllRun_", species, ".png")), width = 10, height = 6, dpi = 300)
+    # Save ensemble model evaluation plots
+    png(
+      filename = file.path(output_folder, paste0("EnsembleVarImpBoxplot_", species, ".png")),
+      width = 2000,
+      height = 1500,
+      res = 300
+    )
+    bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'algo', 'merged.by.run'))
+    dev.off()
     
-    
+   
     # Project onto current conditions
-#    myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
-#                                      proj.name = paste0("Current_", species),
-#                                      new.env = trainingLandscapes,
-#                                     models.chosen = 'all',
-#                                      metric.binary = 'all',
-#                                      metric.filter = 'all',
-#                                      build.clamping.mask = TRUE)
+    myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
+                                      proj.name = paste0("Current_", species),
+                                      new.env = trainingLandscapes,
+                                      models.chosen = 'all',
+                                      metric.binary = 'all',
+                                      metric.filter = 'all',
+                                      build.clamping.mask = TRUE)
     
     # Store the projection
-#    biomodProjList[[species]] <- myBiomodProj
+    biomodProjList[[species]] <- myBiomodProj
     
     # Project onto future conditions
     futureProjections <- list()
@@ -370,328 +375,3 @@ results <- SDMensembleMultiSpecies(
 # Access results
 results$biomodData[["Alces alces"]]
 results$rangeSizeDifferences[["Canis lupus"]][["ssp126_2011-2040"]]
-
-
-
-
-
-
-
-########
-
-# Get corresponding presence/absence data (for one specie)
-myResp <- as.numeric(speciesData[, targetSpecies[[1]]])
-
-# Get corresponding presence/absence data
-myResp <- as.matrix(speciesData[, targetSpecies[[1]]])  # Convert to a matrix
-myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
-
-myResp# Get corresponding XY coordinates
-myRespXY <- speciesData[, c('x', 'y')]
-
-
-
-# Prepare data & Parameters -----------------------------------------------------------------
-
-# Format Data with true presences
-myBiomodData <- BIOMOD_FormatingData(resp.var = myResp, # myResp
-                                     expl.var = trainingLandscapes, # myExpl
-                                     resp.xy = myRespXY, 
-                                     resp.name = targetSpecies[[1]]) # myRespNames
-myBiomodData
-plot(myBiomodData)
-
-# Save the plot as a PNG file with higher resolution
-png(
-  filename = paste0("PresencePoints_", targetSpecies[[1]], "_", biome_name, ".png"),
-  width = 2000,  # Width in pixels
-  height = 1500, # Height in pixels
-  res = 300      # Resolution in DPI
-)
-plot(myBiomodData)
-dev.off()
-
-# Prseudo-absence extraction -----------------------------------------------------------------
-# Format Data with pseudo-absences : random method
-myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
-                                        expl.var = trainingLandscapes, # myExpl
-                                        resp.xy = myRespXY,
-                                        resp.name = targetSpecies[[1]], # myRespNames
-                                        PA.nb.rep = 2, # Number of pseudo-absences 4
-                                        PA.nb.absences = 1000, # Number of pseudo-absences per set
-                                        PA.strategy = 'random') # Random pseudo-absence
- 
-myBiomodData.PA
-print(myBiomodData.PA)
-summary(myBiomodData.PA)
-plot(myBiomodData.PA)
-
-# # Select multiple sets of pseudo-absences
-#
-# # Transform true absences into potential pseudo-absences
-# myResp.PA <- ifelse(myResp == 1, 1, NA)
-# 
-# # Format Data with pseudo-absences : random method
-# myBiomodData.multi <- BIOMOD_FormatingData(resp.var = myResp.PA,
-#                                            expl.var = myExpl,
-#                                            resp.xy = myRespXY,
-#                                            resp.name = myRespName,
-#                                            PA.nb.rep = 4,
-#                                            PA.nb.absences = c(1000, 500, 500, 200),
-#                                            PA.strategy = 'random')
-# myBiomodData.multi
-# summary(myBiomodData.multi)
-# plot(myBiomodData.multi)
-
-# Cross-validation dataset -----------------------------------------------------------------
-# k-fold selection
-#cv.k <- bm_CrossValidation(bm.format = myBiomodData.PA, # failed I got only NAs
-#                          strategy = "kfold",
-#                         nb.rep = 2,
-#                          k = 3)
-
-# stratified selection (geographic)
-# cv.s <- bm_CrossValidation(bm.format = myBiomodData,
-#                            strategy = "strat",
-#                            k = 2,
-#                            balance = "presences",
-#                            strat = "x")
-#head(cv.k) # NAs as result
-# head(cv.s)
-
-# random selection + random pseudo-absences
-#cv.r.r <- bm_CrossValidation(bm.form = myBiomodData.PA,
-                                    strategy = 'random',
-                                    nb.rep = 3,
-                                    perc = 0.7)
-print(cv.r.r)
-summary(myBiomodData.PA, calib.lines = cv.r.r)
-pp <- plot(myBiomodData.PA, calib.lines = cv.r.r, plot.type = 'raster') # distribution of different combinations
-
-# Retrieve modeling options -----------------------------------------------------------------
-# default paratmeters
-#opt.d <- bm_ModelingOptions(data.type = 'binary',
-                            models = c('GLM', 'RF', 'XGBOOST'),
-                            strategy = 'default')
-opt.d
-
-# bigboss parameters + formated data +randeom cross validation
-#myOpt <- bm_ModelingOptions(data.type = 'binary',
-                              models = c('GLM', 'RF', 'XGBOOST'),
-                              strategy = 'bigboss',
-                              bm.format = myBiomodData.PA,
-                              calib.lines = cv.r.r)
-#print(myOpt)
-# bigboss parameters
-# opt.b <- bm_ModelingOptions(data.type = 'binary',
-#                             models = c('SRE', 'XGBOOST'),
-#                             strategy = 'bigboss')
-# 
-# # tuned parameters with formated data
-# opt.t <- bm_ModelingOptions(data.type = 'binary',
-#                             models = c('SRE', 'XGBOOST'),
-#                             strategy = 'tuned',
-#                             bm.format = myBiomodData)
-# 
-# opt.b
-# opt.t
-
-library(dismo)
-
-# Set the path to maxent.jar
-maxent_path <- "~/data/data/maxent.jar"  # Update this to the actual location of maxent.jar
-options(dismo.java = maxent_path)
-options(dismo.noGUI = TRUE)
-
-
-# Run modeling -----------------------------------------------------------------
-# Model single models
-myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
-                                    modeling.id = 'ModelExampels',
-                                    models = c('SRE', 'ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM'; 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
-                                    #OPT.user = biomodOptions,
-                                    CV.strategy = 'random',
-                                    CV.nb.rep = 2, # 10
-                                    CV.perc = 0.8, # data split, percentage that will be kept for calibaration
-                                    OPT.strategy = 'bigboss',
-                                    var.import = 3,
-                                    metric.eval = c('TSS','ROC'))
-# seed.val = 123)
-# nb.cpu = 8)
-
-# When done, stop the cluster
-#stopCluster(cl)
-
-myBiomodModelOut
-
-
-# Get evaluation scores & variables importance
-get_evaluations(myBiomodModelOut)
-get_variables_importance(myBiomodModelOut)
-
-# Represent evaluation scores & variables importance
-bm_PlotEvalBoxplot(bm.out = myBiomodModelOut, group.by = c('algo', 'algo'))
-bm_PlotVarImpBoxplot(bm.out = myBiomodModelOut, group.by = c('expl.var', 'algo', 'run'))
-
-# Create a plot for variable importance for all runs
-varImpData <- bm_PlotVarImpBoxplot(bm.out = myBiomodModelOut, group.by = c('expl.var', 'algo', 'run'))$tab
-filteredData <- varImpData[varImpData$run == "allRun", ]
-ggplot(filteredData, aes(x = expl.var, y = var.imp, fill = algo)) +
-  geom_boxplot() +
-  labs(
-    title = "Variable Importance for All Runs",
-    x = "Explanatory Variable",
-    y = "Variable Importance",
-    fill = "Model"
-  ) +
-  theme_minimal()
-ggsave("VarImpBoxplot_AllRun.png", width = 10, height = 6, dpi = 300)
-
-
-# Represent response curves
-
-# Check differnece between median, min output
-bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
-                      models.chosen = get_built_models(myBiomodModelOut)[c(1:3, 12:14)],
-                      fixed.var = 'median') # non-focal var are fixed at median values which represents a "typical" condition for the non-focal var
-bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
-                      models.chosen = get_built_models(myBiomodModelOut)[c(1:3, 12:14)],
-                      fixed.var = 'min') # non-focal var are fixed at minimum values, which represents an extreme condition of the non-focal variables (lowest observed values)
-# bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
-#                      models.chosen = get_built_models(myBiomodModelOut)[3],
-#                      fixed.var = 'median',
-#                      do.bivariate = TRUE)
-
-
-# Model ensemble models
-myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
-                                      models.chosen = 'all',
-                                      em.by = 'all', #'PA+run' Allow merging of datasets;
-                                      em.algo = c('EMmean', 'EMcv', 'EMci', 'EMmedian', 'EMca', 'EMwmean'),
-                                      metric.select = c('TSS'),
-                                      metric.select.thresh = c(0.4), # no model passed the threshold of 0.7 (suggested by main function)
-                                      metric.eval = c('TSS', 'ROC'),
-                                      var.import = 3,
-                                      EMci.alpha = 0.05,
-                                      EMwmean.decay = 'proportional')
-myBiomodEM
-
-# Get evaluation scores & variables importance
-get_evaluations(myBiomodEM)
-get_variables_importance(myBiomodEM)
-
-# Represent evaluation scores & variables importance
-bm_PlotEvalBoxplot(bm.out = myBiomodEM, group.by = c('full.name', 'full.name'))
-bm_PlotVarImpBoxplot(bm.out = myBiomodEM, group.by = c('expl.var', 'algo', 'merged.by.run'))
-
-# Represent response curves
-bm_PlotResponseCurves(bm.out = myBiomodEM, 
-                      models.chosen = get_built_models(myBiomodEM)[c(1, 6, 7)],
-                      fixed.var = 'median')
-bm_PlotResponseCurves(bm.out = myBiomodEM, 
-                      models.chosen = get_built_models(myBiomodEM)[c(1, 6, 7)],
-                      fixed.var = 'min')
-#bm_PlotResponseCurves(bm.out = myBiomodEM, 
-#                      models.chosen = get_built_models(myBiomodEM)[7],
-#                      fixed.var = 'median',
-#                      do.bivariate = TRUE)
-
-# Project models -----------------------------------------------------------------
-# Project single models
-myBiomodProj <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
-                                  proj.name = 'Current',
-                                  new.env = trainingLandscapes, #myExpl
-                                  models.chosen = 'all',
-                                  metric.binary = 'all',
-                                  metric.filter = 'all',
-                                  build.clamping.mask = TRUE)
-myBiomodProj
-plot(myBiomodProj)
-
-# Project ensemble models (from single projections)
-myBiomodEMProj <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM, 
-                                             bm.proj = myBiomodProj, # uses precomputed single model projections
-                                             models.chosen = 'all',
-                                             metric.binary = 'all',
-                                             metric.filter = 'all')
-
-myBiomodEMProj
-plot(myBiomodEMProj)
-
-# Future Projections -----------------------------------------------------------------
-# Load environmental variables
-
-# Loop through each raster in the list and mask and crop to biome (test extent)
-for (i in seq_along(predictionLandscapes)) {
-  # Crop and mask the raster
-  predictionLandscapes[[i]] <- mask(crop(predictionLandscapes[[i]], sweden_sp), sweden_sp)
-}
-
-print(predictionLandscapes)
-plot(predictionLandscapes[["ssp126_2071-2100"]])
-
-# Project onto future conditions
-futureProjections <- list()
-# Loop through each prediction landscape and project onto future conditions
-for (i in seq_along(predictionLandscapes)) {
-  # Ensure variable names match the calibration variables
-  names(predictionLandscapes[[i]]) <- names(trainingLandscapes)
-  
-  # Perform the projection for the current prediction landscape
-  futureProjections[[names(predictionLandscapes)[i]]] <- BIOMOD_Projection(
-    bm.mod = myBiomodModelOut,
-    proj.name = names(predictionLandscapes)[i],  # Use the name of the current prediction landscape
-    new.env = predictionLandscapes[[i]],        # Use the current prediction landscape
-    models.chosen = 'all',
-    metric.binary = 'TSS',
-    build.clamping.mask = TRUE
-  )
-}
-
-print(futureProjections)
-
-# Make ensemble-models projections on current variable
-myBiomodEMProjFuture <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM, 
-                                             bm.proj = futureProjections[["ssp126_2011-2040"]],
-                                             models.chosen = 'all',
-                                             metric.binary = 'all',
-                                             metric.filter = 'all')
-
-
-plot(myBiomodEMProjFuture)
-
-# Compare range sizes -----------------------------------------------------------------
- # Load current and future binary projections
-CurrentProj <- get_predictions(myBiomodProj, metric.binary = "TSS")
-print(CurrentProj)
-
-# Create an empty list to store range size differences
-rangeSizeDifferences <- list()
-# Loop through each future projection and compute differences
-for (scenario in names(futureProjections)) {
-  # Load future binary projections for the current scenario
-  FutureProj <- get_predictions(futureProjections[[scenario]], metric.binary = "TSS")
-
-# Compute differences
-rangeSizeDifferences[[scenario]] <- BIOMOD_RangeSize(proj.current = CurrentProj, 
-                                      proj.future = FutureProj)
-}
-
-rangeSizeDifferences[["ssp126_2011-2040"]]$Compt.By.Models
-plot(rangeSizeDifferences[["ssp126_2011-2040"]]$Diff.By.Pixel)
-
-
-# Loop through each scenario and plot the differences
-for (scenario in names(rangeSizeDifferences)) {
-  print(paste("Scenario:", scenario))
-  plot(rangeSizeDifferences[[scenario]]$Diff.By.Pixel, main = scenario)
-}
-
-# Represent main results 
-gg = bm_PlotRangeSize(bm.range = rangeSizeDifferences[["ssp126_2011-2040"]], 
-                      do.count = TRUE,
-                      do.perc = TRUE,
-                      do.maps = TRUE,
-                      do.mean = TRUE,
-                      do.plot = TRUE,
-                      row.names = c("Species", "Dataset", "Run", "Algo"))
