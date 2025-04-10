@@ -227,18 +227,24 @@ opt.d
 # opt.b
 # opt.t
 
+library(dismo)
+
+# Set the path to maxent.jar
+maxent_path <- "~/data/data/maxent.jar"  # Update this to the actual location of maxent.jar
+options(dismo.java = maxent_path)
+options(dismo.noGUI = TRUE)
+
+
 # Run modeling -----------------------------------------------------------------
 # Model single models
 myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
                                     modeling.id = 'ModelExampels',
-                                    models = c('GLM', 'RF', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM'; 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
+                                    models = c('SRE', 'ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM'; 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
+                                    #OPT.user = biomodOptions,
                                     CV.strategy = 'random',
-                                    #CV.user.table = cv.r.r,
                                     CV.nb.rep = 2, # 10
-                                    #DataSplit = 70, # add the data split - check function name
-                                    CV.perc = 0.8,
+                                    CV.perc = 0.8, # data split, percentage that will be kept for calibaration
                                     OPT.strategy = 'bigboss',
-                                    #OPT.user = myOpt,
                                     var.import = 3,
                                     metric.eval = c('TSS','ROC'))
 # seed.val = 123)
