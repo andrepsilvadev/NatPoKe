@@ -196,7 +196,7 @@ mammals_dispChange <- ggplot() +
 mammals_dispChange
 ```
 
-# Multispecies model validation
+# Model validation (Multispecies)
 
 Model validation here relies on a previously set user defined function that compares estimated values from our model simulation with an external data source, which in this case came from Santini et al. 2022.
 
@@ -213,7 +213,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   # Compares mean density estimated by model per cell with
   # predicted density from independent model extract predicted abundance
   # and join with observed abundance
-  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE TO WORK THROUGH MULTIPLE DIRECTORIES (dirouts).
+  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE
   
   ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
   independentDensity <- independentDensity %>%
@@ -312,13 +312,16 @@ santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/A
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # (4) spData
-spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+spData <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/traits/all_mammals_available_before_trait_formatting.xlsx", 
+    sheet = "formatted_trait_data") %>% 
+  dplyr::filter(Species %in% target_species)
+
 
 
 # applying the function
 validation_lists <- validateModel1.2(targetspecies = target_species,
                        independentDensity = santini2022,
-                       dirouts = dirout,
+                       dirouts = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs",
                        spData = spData,
                        validationYear = 101)
 # plotting the results
