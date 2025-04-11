@@ -1,4 +1,39 @@
-# NatPoKe src rationale
+# NatPoKe — Nature Policy Effects on Keystone Species  
+<br>
+> Pipeline to explore how nature policy impacts keystone species in Boreal and Tropical forests using process-based modelling approaches and analysis of resilience metrics and biodiversity indicators.
+
+---
+
+## 🚀 Project Structure  
+
+| Purpose | Key Files |
+|---------|-----------|
+| Main source code | `run.R` (master script) |
+| Environment setup | `generalSettings.R`, `libraries.R`, `customFunctions.R` |
+| Data preparation | `metaRangeSpeciesDataframe.R`, `inputFiles.R` |
+| Species modelling | `OLDmammalModel.R` |
+| Results storage | `savingSimulationOutputs.R` |
+| Visualizations | `speciesResilienceMetrics.R`, `communityMetricsFigures.R`, `spatiallyExplicitMaps.R` |
+| Validation & Sensitivity | `modelValidation.R`, `sensitivityAnalysis.R` |
+
+---
+
+## 🧭 Quick Navigation  
+
+[![Source Code](https://img.shields.io/badge/src-source-blue)](./src)  
+[![Input Data](https://img.shields.io/badge/input-data-green)](./src/input)  
+[![Models](https://img.shields.io/badge/models-model-yellow)](./src/models)  
+[![Figures & Maps](https://img.shields.io/badge/visualizations-figures-orange)](./src/figures_maps)  
+[![Evaluation](https://img.shields.io/badge/evaluation-validation-red)](./src/model_evaluation)
+
+---
+
+## 📖 How to Run  
+
+```r
+# Run the master script from R
+source("src/run.R")
+
 
 >[!WARNING]
 >This is still under construction.
