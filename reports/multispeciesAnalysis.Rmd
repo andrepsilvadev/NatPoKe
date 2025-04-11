@@ -14,7 +14,7 @@ pkgdown:
 
 ```{r setup, include=FALSE}
 ## Global options
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
 library(here)
 source(here("src", "libraries.R"))
 ```
@@ -196,7 +196,7 @@ mammals_dispChange <- ggplot() +
 mammals_dispChange
 ```
 
-# Multispecies model validation
+# Model validation (Multispecies)
 
 Model validation here relies on a previously set user defined function that compares estimated values from our model simulation with an external data source, which in this case came from Santini et al. 2022.
 
@@ -208,13 +208,12 @@ The `validateModel1.2()` function evaluates the performance of our model abundan
 
 3.  subsequently, the function calculates the mean predicted abundance for each cell, effectively summarizing the model's output. This information is then joined with the species-specific modeling resolution data, allowing for the calculation of estimated densities. Finally, the function returns a list containing both the processed independent density estimates and the calculated model-predicted densities, facilitating the comparison and validation of the model's performance.
 
-
 ```{r model validation function, warning=FALSE, message=FALSE}
 validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
   # Compares mean density estimated by model per cell with
   # predicted density from independent model extract predicted abundance
   # and join with observed abundance
-  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE TO WORK THROUGH MULTIPLE DIRECTORIES (dirouts).
+  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE
   
   ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
   independentDensity <- independentDensity %>%
@@ -313,13 +312,16 @@ santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/A
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # (4) spData
-spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+spData <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/traits/all_mammals_available_before_trait_formatting.xlsx", 
+    sheet = "formatted_trait_data") %>% 
+  dplyr::filter(Species %in% target_species)
+
 
 
 # applying the function
 validation_lists <- validateModel1.2(targetspecies = target_species,
                        independentDensity = santini2022,
-                       dirouts = dirout,
+                       dirouts = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs",
                        spData = spData,
                        validationYear = 101)
 # plotting the results

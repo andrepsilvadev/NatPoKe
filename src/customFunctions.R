@@ -107,3 +107,100 @@ validateModel_1sps <- function(
   names(list) <- c("independentDensity", "estimatedDensity")
   return(list)
 }
+
+#########################################
+# Model validation for multiple species #
+#########################################
+
+validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
+  # Compares mean density estimated by model per cell with
+  # predicted density from independent model extract predicted abundance
+  # and join with observed abundance
+  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE TO WORK THROUGH MULTIPLE DIRECTORIES (dirouts).
+  
+  ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
+  independentDensity <- independentDensity %>%
+    dplyr::filter(Species %in% targetspecies) %>%
+    dplyr::select(Species, lw95, lw75, PredMd, up75, up95) %>%
+    mutate(
+      lw95 = as.numeric(lw95),
+      lw75 = as.numeric(lw75),
+      PredMd = as.numeric(PredMd), # Predicted population density (individuals/km2)
+      up75 = as.numeric(up75),
+      up95 = as.numeric(up95)
+    ) %>%
+    rename(
+      species = Species,
+      meanDensity = PredMd
+    )
+  
+  ## Species density estimated by METARANGE from multiple directories
+  abundance_files <- list()
+  for (target_sps in targetspecies) {
+    all_files <- character()
+    for (dirout in dirouts) { #Iterate through each directory
+      files <- list.files(
+        path = dirout,
+        pattern = paste0(validationYear, "_", target_sps, "_abundance\\.tif$"),
+        full.names = TRUE
+      )
+      all_files <- c(all_files, files)
+    }
+    abundance_files[[target_sps]] <- all_files
+    if(length(all_files) > 0){
+      message(paste("Used rasters for", target_sps, ":", paste(basename(all_files), collapse = ", ")))
+    } else {
+      warning(paste("No rasters found for", target_sps, "in the given directories."))
+    }
+  }
+  
+  abundance_rasters <- lapply(abundance_files, function(files) {
+    lapply(files, terra::rast)
+  })
+  
+  abundance_stack_list <- lapply(abundance_rasters, function(raster_list){
+    if(length(raster_list) > 0){
+      terra::rast(unlist(raster_list))
+    } else {
+      NULL
+    }
+  })
+  
+  # convert raster stack to df
+  species_df <- lapply(names(abundance_stack_list), function(sps_name){
+    stack <- abundance_stack_list[[sps_name]]
+    if(!is.null(stack)){
+      lapply(1:terra::nlyr(stack), function(i){
+        as.data.frame(stack[[i]], xy = TRUE) %>%
+          mutate(species = sps_name) %>%
+          rename(abundance = 3)
+      }) %>% bind_rows()
+    } else {
+      NULL
+    }
+  }) %>% bind_rows()
+  
+  # format raster's dataframe for validation
+  predicted <- species_df %>%
+    dplyr::filter(species %in% targetspecies) %>%
+    dplyr::group_by(species, x, y) %>%
+    dplyr::summarise(
+      meanNInd = mean(abundance, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    as.data.frame()
+  
+  spData2 <- spData %>%
+    dplyr::select(Species, ModellingRes) %>%
+    rename(species = Species) %>%
+    mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
+    as.data.frame()
+  
+  estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
+    mutate(estimatedDensity = meanNInd / ModellingRes)
+  
+  ## compare observed with predicted density
+  result_list <- list(independentDensity, estimatedDensityJoin)
+  names(result_list) <- c("independentDensity", "estimatedDensity")
+  return(result_list)
+}

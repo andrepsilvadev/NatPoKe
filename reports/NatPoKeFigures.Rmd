@@ -15,7 +15,7 @@ pkgdown:
 
 ```{r setup, include=FALSE}
 ## Global options
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
 ```
 
 # Introduction
@@ -456,7 +456,7 @@ It can also be helpful to visualize changes in these diversity indexes spatially
 directories <- c(europe, asia, africa, southAmerica, northAmerica)
 
 # get every species that was modeled for the outputs
-target_species <- c("Alcesalces", "Lynxlynx", "Canislupus", "Susscrofa", "Rangifertarandus", "Odocoileusvirginianus", "Cervuselaphus", "Damadama", "Lynxrufus", "Crocutacrocuta", "Pantheraleo", "Pantheratigris", "Pumaconcolor", "Callithrix jacchus", "Nasua nasua")
+target_species <- c("Alcesalces", "Lynxlynx", "Canislupus", "Susscrofa", "Rangifertarandus", "Odocoileusvirginianus", "Cervuselaphus", "Damadama", "Lynxrufus", "Crocutacrocuta", "Pantheraleo", "Pantheratigris", "Pumaconcolor", "Callithrixjacchus", "Nasuanasua")
 ```
 
 2.  Next, resort to a for loop to import all rasters for timesteps 101 and 125 from all directories and for all target species, transform them into a dataframe format for later plotting and store them per directory (this needs to happens because one species can have a broader distribution, meaning that teh same species could be modeled in multiple continents and when this happens extents of rasters from different areas do not match and the for loop will throw an error)
@@ -610,7 +610,7 @@ europe_Shannon <- europe_shannon + inset_element(europe_plot, 0.6, 0.7, 1, 1)
 europe_Shannon
 ```
 
-### Shannons' DIversity Index Chnage in all forests:
+### Shannons' Diversity Index Chnage in all forests:
 
 ```{r, echo=FALSE, fig.dim=c(8,6), warning=FALSE, message=FALSE}
 boreal_forests
@@ -687,7 +687,11 @@ europe_funct + inset_element(europe_plot, 0.6, 0.7, 1, 1)
 #tropical_forests_functional
 ```
 
-## 
+## Species richness
+
+
+
+
 
 # Annex
 
@@ -701,5 +705,3 @@ europe_funct + inset_element(europe_plot, 0.6, 0.7, 1, 1)
 | Africa        | EPSG:27701            | metrics estimates and math |
 | Asia          | EPSG:10594            | metrics estimates and math |
 | All           | ESRI:54030 (Robinson) | better looking maps        |
-
-## 
