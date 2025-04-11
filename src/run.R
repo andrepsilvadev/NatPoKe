@@ -8,7 +8,7 @@
 source("./src/libraries.R")            # Load necessary packages
 source("./src/customFunctions.R")      # Load customized functions
 
-runname <- "28Mar2025_NorthAmericaRobinson"   # Unique identifier for the run
+runname <- "10April_Europe_abund1.05"   # Unique identifier for the run
 source("./src/generalSettings.R")      # Load paths and spatial settings
 
 
@@ -18,20 +18,27 @@ target_biome <- "Boreal Forests/Taiga"
 # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
 
 ## Select Target Region (choose one)
-target_region <- "North America" 
+target_region <- "Europe" 
 # Options: "North America", "South America", "Europe", "Asia", "Africa"
 
 ## Select Target Species (multiple allowed)
 target_species <- c(
-                    "Lynx rufus",      
-                    "Odocoileus virginianus"
+                    "Alces alces",      
+                    "Canis lupus",
+                    "Cervus elaphus",
+                    "Dama dama",
+                    "Lynx lynx",
+                    "Rangifer tarandus",
+                    "Sus scrofa"
                     )
 # Simply modify or add species names in the list above
 # Options: see https://ulisboa-my.sharepoint.com/:x:/g/personal/misilva_fc_ul_pt/EVOf6YCgWLVBnAWRzyFahPMBWcKv-2TRGKud35fyjf3Kig?e=zraW2t
 
 # Load Species Data ------------------------------------------------------------
 source("./src/mammalMetaRangeSpeciesDataframe.R")
-
+species_traits$initialAbundance <- species_traits$initialAbundance*1.05
+# write table to .csv file
+write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 ## load global suitability raster files & crop 
 source("./src/inputFiles.R") 
