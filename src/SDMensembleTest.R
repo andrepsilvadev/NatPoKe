@@ -1,7 +1,7 @@
-## Name: SpeciesDistributionModellingTest ##
+## Name: SDMensembleTest ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: test SDM main function with true species occurence in R ##
-## Date: April 10th 2025 ##
+## Date: April 11th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
 library(easypackages)
@@ -86,8 +86,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
   biomodEFList <- list()
   evaluationScores <- data.frame()
   variableImportance <- data.frame()
+  evaluationScoresEM <- data.frame()
+  variableImportanceEM <- data.frame()
   responseCurvesData <- list()
   combinedPlots <- list()
+  responseCurvesDataEM <- list()
+  combinedPlotsEM <- list()
   projectionMetadata <- data.frame()
   
   
@@ -142,7 +146,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     # Run single models
     myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
                                         modeling.id = paste0("Model_", species),
-                                        models = c('ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
+                                        models = c('GLM', 'RF', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
                                         CV.strategy = 'random',
                                         CV.nb.rep = 2, # 10
                                         CV.perc = 0.8, # data split, percentage that will be kept for calibaration
@@ -190,7 +194,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Generate response curves and save data for individual models
     responseCurves <- bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
-                                            models.chosen = get_built_models(myBiomodModelOut),
+                                            models.chosen = get_built_models(myBiomodModelOut) [c(1:3, 12:14)],
                                             fixed.var = 'median') # 'min'
     responseCurvesData[[species]] <- responseCurves  # Store response curve data
     
@@ -200,7 +204,9 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
       width = 2000,
       height = 1500,
       res = 300)
-    plot(responseCurves)
+    bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
+                               models.chosen = get_built_models(myBiomodModelOut)[c(1:3, 12:14)],
+                               fixed.var = 'median')
     dev.off()
     
     # Store response curve plot objects for later combination
@@ -251,7 +257,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Generate response curves and save data for individual models
     responseCurvesEM <- bm_PlotResponseCurves(bm.out = myBiomodEM, 
-                                            models.chosen = get_built_models(myBiomodEM),
+                                            models.chosen = get_built_models(myBiomodEM)[c(1, 6, 7)],
                                             fixed.var = 'median') # 'min'
     responseCurvesDataEM[[species]] <- responseCurvesEM  # Store response curve data
     
@@ -261,7 +267,9 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
       width = 2000,
       height = 1500,
       res = 300)
-    plot(responseCurvesEM)
+    bm_PlotResponseCurves(bm.out = myBiomodEM, 
+                          models.chosen = get_built_models(myBiomodEM)[c(1, 6, 7)],
+                          fixed.var = 'median')
     dev.off()
     
     # Store response curve plot objects for later combination
@@ -307,14 +315,14 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
       plot(myBiomodEF)
       dev.off()
       
-      # Collect metadata for the projection
+      # Collect metadata for the projection, why does it not work with myBiomodEF?
       projectionMetadata <- rbind(
         projectionMetadata,
         data.frame(
           species = species,
           scenario = scenario,
           rasterFile = rasterFilename,
-          evaluationMetrics = paste(get_evaluations(myBiomodEF), collapse = ";")
+          evaluationMetrics = paste(get_evaluations(myBiomodEM), collapse = ";") # Use myBiomodEM here
         )
       )
     }
@@ -344,8 +352,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     biomodEF = biomodEFList,
     evaluationScores = evaluationScores,
     variableImportance = variableImportance,
+    evaluationScoresEM = evaluationScoresEM,
+    variableImportanceEM = variableImportanceEM,
     responseCurvesData = responseCurvesData,
     combinedPlots = combinedPlots,
+    responseCurvesDataEM = responseCurvesDataEM,
+    combinedPlotsEM = combinedPlotsEM,
     projectionMetadata = projectionMetadata
   ))
 }
