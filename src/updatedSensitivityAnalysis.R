@@ -7,86 +7,163 @@
 ## !!!!!!!! CAREFULL !!!!!!!! need to have acolumn in the data for replicate
 ## then summarize across replicates
 
-
-# select target year 101
-# then summarise across replicate (WE STILL DONT HAVE)
-# get baseline data for that year per cell
-# get sensitivity data for that year per cell
-# combine sensitivity runs and baseline data (make sure baseline TNIND values are a single column)
-# calculate proportions
-# make plot
-
-target_sps <- c("Alcesalces", "Lynxlynx", "Cervuselaphus", "Rangifertarandus", "Susscrofa", "Damadama", "Canislupus")
-
 ##########
-# Step 1 # Select data from folders and convert raster to dfs
+# Step 1 # Specify which scenario, biome and species the sensitivity analysis is being done
 ##########
 
-for
+target_scenario <- "BAU"
+target_biome <- "Boreal Forest/Taiga"
+target_region <- "Europe"
+target_species <- c("Alcesalces", "Lynxlynx",
+                    "Cervuselaphus", "Rangifertarandus",
+                    "Susscrofa", "Damadama",
+                    "Canislupus")
 
-# find raster for timestep to validate
-abund101 <- rast(list.files("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs",
-                            pattern = paste0("101_", target_sps, "_abundance\\.tif"), full.names = TRUE))
-  abundance101_df <- as.data.frame(abund101, xy = TRUE)
+# directories with data
+baseline_dir <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs"
+sens095_dir <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/10April_Europe_abund0.95/Outputs"
+sens105_dir <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/10April_Europe_abund1.05/Outputs"
 
 ##########
-# Step 2 # Combine all datasets
+# Step 2 # Select data from folders and convert raster to dfs
 ##########
 
-# baseline data ----------------------------------------------------------------
+# baseline ---------------------------------------------------------------------
 
-TNIND_europe <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
-  mutate(scenario = "BAU",
-         taxa = "Mammals",
-         simulation = "baseline")
-colnames(TNIND_europe) <- c("TNIND_baseline", "biome", "region", "species", "timestep", "scenario", "taxa", "simulation_baseline")
-TNIND_europe$region <- case_when(
-  TNIND_europe$region == "Sweden" ~ "Europe",
-  TRUE ~ TNIND_europe$region
-)
-TNIND_europe$biome <- gsub(" ", "", TNIND_europe$biome)
+# create an empty list
+abundance_list <- list()
 
-# sensitivity data -------------------------------------------------------------
+for (target_sps in target_species) {
+  # find raster for timestep 101
+  abund101 <- rast(list.files(baseline_dir,
+                              pattern = paste0("101_", target_sps, "_abundance\\.tif"), full.names = TRUE))
+  
+  abundance101_df <- as.data.frame(abund101, xy = TRUE) %>% 
+    mutate(species = target_sps,
+           scenario = target_scenario,
+           biome = target_biome,
+           region = target_region,
+           simulation = "baseline")
+  
+  # add each df to a list
+  abundance_list[[target_sps]] <- abundance101_df
+}
 
-TNIND_europe0.95 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/10April_Europe_abund0.95/Outputs/TNIND_yr_10April_Europe_abund0.95.csv") %>% 
-  mutate(scenario = "BAU",
-         taxa = "Mammals",
-         simulation = "abund095") 
-head(TNIND_europe0.95)
+# combine all dfs together
+abundance101_all <- bind_rows(abundance_list) %>% 
+  rename(TNIND_per_cell = lyr1) # ATENTION HERE for baseline scenario the TNIND col name is different
+invisible(gc())
 
-TNIND_europe1.05 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/10April_Europe_abund1.05/Outputs/TNIND_yr_10April_Europe_abund1.05.csv") %>% 
-  mutate(scenario = "BAU",
-         taxa = "Mammals", 
-         simulation = "abund105") 
+# sensitivity run 095 ----------------------------------------------------------
 
+# create an empty list
+abundance_list <- list()
 
+for (target_sps in target_species) {
+  # find raster for timestep 101
+  abund101 <- rast(list.files(path = sens095_dir,
+                              pattern = paste0("101_", target_sps, "_abundance\\.tif"), full.names = TRUE))
+  
+  abundance101_df <- as.data.frame(abund101, xy = TRUE) %>% 
+    mutate(species = target_sps,
+           scenario = target_scenario,
+           biome = target_biome,
+           region = target_region, 
+           simulation = "abund095")
+  
+  # add each df to a list
+  abundance_list[[target_sps]] <- abundance101_df
+}
 
-# then join with baseline
+# combine all dfs together
+abundance101_095 <- bind_rows(abundance_list) %>% 
+  rename(TNIND_per_cell = lyr1)
+invisible(gc())
 
-TNIND_yr_sensitivity <- TNIND_europe0.95 %>% 
-  left_join(TNIND_europe1.05, by = c("species", "scenario", "biome", "region", "timestep", "taxa", "simulation","TNIND")) %>% 
-  left_join(TNIND_europe, by = c("species", "scenario", "biome", "region", "timestep", "taxa")) %>% 
-  mutate(prop_abund = TNIND/TNIND_baseline)
+# sensitivity run 105 ----------------------------------------------------------
 
+# create an empty list
+abundance_list <- list()
 
+for (target_sps in target_species) {
+  # find raster for timestep 101
+  abund101 <- rast(list.files(path = sens105_dir,
+                              pattern = paste0("101_", target_sps, "_abundance\\.tif"), full.names = TRUE))
+  
+  abundance101_df <- as.data.frame(abund101, xy = TRUE) %>% 
+    mutate(species = target_sps,
+           scenario = target_scenario,
+           biome = target_biome,
+           region = target_region, 
+           simulation = "abund105")
+  
+  # add each df to a list
+  abundance_list[[target_sps]] <- abundance101_df
+}
 
+# combine all dfs together
+abundance101_105 <- bind_rows(abundance_list) %>% 
+  rename(TNIND_per_cell = lyr1)
+
+# remove unecessary objects
+rm(abundance101_df, abund101, abundance_list)
+invisible(gc())
+
+##########
+# Step 3 # Combine all datasets
+##########
+
+all_runs <- abundance101_all %>% 
+  bind_rows(abundance101_095) %>% 
+  bind_rows(abundance101_105) %>% 
+  group_by(scenario, species, biome, region, simulation) %>% 
+  summarise(sum_TNIND = sum(TNIND_per_cell), # Total number of individuals in the landscape
+            mean_TNIND_per_cell = mean(TNIND_per_cell)) # Mean number of indiivduals per cell
+invisible(gc())
+
+##########
+# Step 4 # Calculate the proportions
+##########
+
+baseline_data <- all_runs %>% 
+  filter(simulation %in% "baseline") %>% 
+  rename(simulation_baseline = simulation,
+         sum_TNIND_baseline = sum_TNIND,
+         mean_TNIND_per_cell_baseline = mean_TNIND_per_cell)
+
+sensitivity_data <- all_runs %>% 
+  filter(simulation %in% c("abund095", "abund105")) %>% 
+  right_join(baseline_data, by = c("scenario", "species", "biome", "region")) %>% 
+  mutate(prop_TNIND = sum_TNIND/sum_TNIND_baseline,
+         prop_TNIND_per_cell = mean_TNIND_per_cell/mean_TNIND_per_cell_baseline)
+colnames(sensitivity_data)
 #write.csv(TNIND_yr_sensitivity, file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/sensitivityData.csv")
 
-sensitivity_plotData <- TNIND_yr_sensitivity %>% 
-  dplyr::select(!c("TNIND", "TNIND_baseline", "simulation_baseline", "timestep")) %>% 
-  pivot_longer(cols = !c("biome", "region", "species", "scenario", "taxa", "simulation")) 
+##########
+# Step 5 # Build sensitivity plot
+##########
 
+# format data for boxplot
+sensitivity_plotData <- sensitivity_data %>% 
+  dplyr::select(!c("sum_TNIND", "mean_TNIND_per_cell", "sum_TNIND_baseline", "mean_TNIND_per_cell", "mean_TNIND_per_cell_baseline","simulation_baseline")) %>% 
+  pivot_longer(cols = !c("biome", "region", "species", "scenario", "simulation")) 
 
-ggplot(sensitivity_plotData, aes(x=simulation, y=value)) + 
-  geom_boxplot() +
-  geom_hline(yintercept=1.20, linetype="dashed", color = "red") +
-  geom_hline(yintercept=0.80, linetype="dashed", color = "red") +
-  stat_summary(fun = mean, geom = "point", aes(group = interaction(species, simulation), color = species), shape = 16, size = 1.5, position = position_jitter(width = 0.5, height = 0)) +
-  #geom_jitter(shape=16, position=position_jitter(0.2), aes(colour = species)) +
+# prep labels
+plot_labels <- c("prop_TNIND" = "Total Number of Individuals",
+                 "prop_TNIND_per_cell" = "Mean Number of Individuals")
+
+# plot data per metric
+ggplot(sensitivity_plotData, aes(x = simulation, y = value)) + 
+  geom_boxplot(outlier.shape = NA) +
+  #geom_hline(yintercept=1.20, linetype="dashed", color = "red") +
+  #geom_hline(yintercept=0.80, linetype="dashed", color = "red") +
+  facet_wrap(~name, labeller = as_labeller(plot_labels)) +
+  geom_jitter(shape = 16, position = position_jitter(0.2), aes(colour = species)) +
   scale_colour_viridis(discrete = TRUE) +
-  facet_wrap(~biome, ncol=3) +
+  labs(y = "Simulation", color = "Species") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        legend.position = "bottom")
 
 
  
