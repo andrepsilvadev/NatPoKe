@@ -7,6 +7,9 @@
 ## !!!!!!!! CAREFULL !!!!!!!! need to have acolumn in the data for replicate
 ## then summarize across replicates
 
+# THIS SCRIPT NEED TO HAVE DATA FROM EACH REGION IMPORTED SEPARETLY!!
+# Data comes from the rasters
+
 ##########
 # Step 1 # Specify which scenario, biome and species the sensitivity analysis is being done
 ##########
@@ -136,7 +139,7 @@ sensitivity_data <- all_runs %>%
   right_join(baseline_data, by = c("scenario", "species", "biome", "region")) %>% 
   mutate(prop_TNIND = sum_TNIND/sum_TNIND_baseline,
          prop_TNIND_per_cell = mean_TNIND_per_cell/mean_TNIND_per_cell_baseline)
-colnames(sensitivity_data)
+
 #write.csv(TNIND_yr_sensitivity, file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/sensitivityData.csv")
 
 ##########
@@ -164,6 +167,71 @@ ggplot(sensitivity_plotData, aes(x = simulation, y = value)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         legend.position = "bottom")
+
+
+
+################################################################################
+
+# OPTION USING THE .CSV FILE FROM THE MODEL INSTEAD OF THE RASTERS
+## COMPUTATIONALLY LESS INTENSE
+
+# # directories with data
+# baseline_dir <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs"
+# sens095_dir <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/10April_Europe_abund0.95/Outputs"
+# sens105_dir <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/10April_Europe_abund1.05/Outputs"
+# 
+# # baseline
+# baseline_pops <- read_csv(file = file.path(baseline_dir, "TNIND_yr_26Mar2025_Europe.csv")) %>% 
+#   filter(Timestep %in% "101") %>% 
+#   mutate(Region = "Europe",
+#          Biome = "BorealForestsTaiga",
+#          simulation_baseline = "baseline") %>% # fixing a mistake deleteLater
+#   rename(TNIND_baseline = TNIND,
+#          timestep = Timestep,
+#          biome = Biome,
+#          region = Region,
+#          species = Species)
+# 
+# # sensitivity 095
+# sens095_pops <- read_csv(file = file.path(sens095_dir, "TNIND_yr_10April_Europe_abund0.95.csv")) %>% 
+#   filter(timestep %in% "101") %>% 
+#   mutate(simulation = "abund095")
+# 
+# # sensitivity 105
+# sens105_pops <- read_csv(file = file.path(sens105_dir, "TNIND_yr_10April_Europe_abund1.05.csv")) %>% 
+#   filter(timestep %in% "101") %>% 
+#   mutate(simulation = "abund105")
+# 
+# 
+# all_data <- sens095_pops %>% 
+#   bind_rows(sens105_pops) %>% 
+#   select(!timestep) %>% 
+#   right_join(baseline_pops, by = c("biome", "region", "species")) %>% 
+#   select(!timestep) %>%  # yes remove it again!
+#   mutate(prop_TNIND = TNIND/TNIND_baseline)
+# 
+# 
+# # format data for boxplot
+# sensitivity_plotData <- all_data %>% 
+#   dplyr::select(!c("TNIND", "TNIND_baseline", "simulation_baseline")) %>% 
+#   pivot_longer(cols = !c("biome", "region", "species", "simulation")) 
+# 
+# # prep labels
+# plot_labels <- c("prop_TNIND" = "Total Number of Individuals")
+# 
+# # plot data per metric
+# ggplot(sensitivity_plotData, aes(x = simulation, y = value)) + 
+#   geom_boxplot(outlier.shape = NA) +
+#   #geom_hline(yintercept=1.20, linetype="dashed", color = "red") +
+#   #geom_hline(yintercept=0.80, linetype="dashed", color = "red") +
+#   facet_wrap(~name, labeller = as_labeller(plot_labels)) +
+#   geom_jitter(shape = 16, position = position_jitter(0.2), aes(colour = species)) +
+#   scale_colour_viridis(discrete = TRUE) +
+#   labs(y = "Simulation", color = "Species") +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+#         legend.position = "bottom")
+# 
 
 
  
