@@ -1,6 +1,6 @@
 # Src folder - NatPoKe
 
-[![Source Code](https://img.shields.io/badge/src-source-blue){alt="Source Code"}](#0) [![Input Data](https://img.shields.io/badge/input-data-green){alt="Input Data"}](#0) [![Models: Mammals](https://img.shields.io/badge/_Models-🦣_Mammals-yellow?style=flat&labelColor=grey)](#mammals-model) [![Figures & Maps](https://img.shields.io/badge/visualizations-figures-orange){alt="Figures & Maps"}](#0) [![Evaluation](https://img.shields.io/badge/evaluation-validation-red){alt="Evaluation"}](#0)
+[![Master Script](https://img.shields.io/badge/src-source-blue)](https://github.com/andrepsilvadev/NatPoKe/blob/8cb276119a3c2ad5cd751932f9ee613dd05304fc/src/run.R) [![Input Data](https://img.shields.io/badge/input-data-green)](#0) [![Models: Mammals](https://img.shields.io/badge/_Models-🦣_Mammals-yellow?style=flat&labelColor=grey)](https://github.com/andrepsilvadev/NatPoKe/blob/8cb276119a3c2ad5cd751932f9ee613dd05304fc/src/mammalModel.R) [![Figures & Maps](https://img.shields.io/badge/visualizations-figures-orange)](#0) [![Validation](https://img.shields.io/badge/validation-modelValidation-red)](https://github.com/andrepsilvadev/NatPoKe/blob/8cb276119a3c2ad5cd751932f9ee613dd05304fc/src/modelValidation.R)
 
 ------------------------------------------------------------------------
 
