@@ -21,13 +21,13 @@
 
 `run.R` - this is the master script that runs the entire pipeline (from loading packages up to building plots and maps
 
-`generalSettings.R` - create file directories to save runs inputs and outputs libraries.R \<- install & load all necessary packages to run this pipeline customFunctions.R \<- load custom functions created
+`generalSettings.R` - create file directories to save runs inputs and outputs
 
-`libraries.R` - loads necessary packages
+`libraries.R` - install & load all necessary packages
 
-`customFunctions.R` - loads created function necessary throughout the pipeline
+`customFunctions.R` - loads created functions necessary throughout the pipeline
 
-`mammalMetaRangeSpeciesDataframe.R` - format species traits, stored in .csv file in the [data folder](./data/mammalTraits_2025-03-17.csv), into an input dataframe ready to use with the metaRange model.
+`mammalMetaRangeSpeciesDataframe.R` - format species traits, stored in .csv file in the [data folder](https://github.com/andrepsilvadev/NatPoKe/blob/6bca303d6b0c17e94915c44f5e6323e978c0763e/data/mammalTraits_2025-03-17.csv), into an input dataframe ready to use with the metaRange model.
 
 `inputFiles.R` - download and crops global suitability raster files for multiple species in a designated biome and region, from SRIT Database google drive
 
