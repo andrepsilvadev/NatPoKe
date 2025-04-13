@@ -1,16 +1,26 @@
-# NatPoKe 
-Nature policy effects on keystone species in boreal and tropical forests
+# NatPoKe — Nature Policy Effects on Keystone Species
 
-Folder structure:
+> A research pipeline to explore how nature policy interventions affect **keystone species** in **Boreal and Tropical forests**.\
+> \
+> The project leverages **process-based modeling** (via [metaRange](https://metarange.github.io/metaRange/#)) and **resilience metrics** to evaluate ecological responses under various policy scenarios.
 
-data - This directory contains the raw data used for the code.
+[![DOI](https://img.shields.io/badge/DOI-coming_soon-blue?logo=doi&logoColor=white)](https://doi.org/10.0000/placeholder) [![Project Page](https://img.shields.io/badge/Project_Website-MISTRAFinBio-green?logo=leaflet&logoColor=white)](https://finbio.org/)
 
-input - This directory holds any intermediate files or data transformations that are generated during the analysis process.
+## Repository Overview
 
-output - This directory stores the final results of the analysis, such as saved models, figures, and tables.
+This repository contains all scripts and supporting materials used in the modeling and analysis pipeline.
 
-src - This directory contains the R scripts that perform the data analysis and modeling. Organize the scripts into subdirectories based on their purpose or function. For example, you might have subdirectories for data preparation, model training, and evaluation.
+🚧 **Under active development** 🚧
 
-reports - This directory holds R Markdown documents that generate reports, presentations, or other documentation. R Markdown combines R code, text, and other elements to create dynamic documents.
-
-README.md - This file provides a brief overview of the project, including the purpose, data sources, and analysis steps. It serves as a starting point for anyone new to the project
+**data**\
+Raw data, including trait data for XX mammal species, sourced from multiple sources.\
+**input**\
+Intermediate files and data transformations used during pre-processing. ⚠️*Currently not in use.*\
+**output**\
+Generated results: figures, tables, and model outputs. *Currently with dummy figure only.*\
+**src**\
+All R scripts used in data analysis, modeling, and visualization.\
+➡️ For full details, see the [`src/README.md`](src/README.md).\
+**reports**\
+R Markdown files producing reports from model runs (single and multispecies).\
+Includes main and supplementary project figures.
