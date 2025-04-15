@@ -180,7 +180,18 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
     }
   }) %>% bind_rows()
 
-  species_df_sampled <-  species_df[sample(nrow(species_df), 300), ]
+  species_df_sampled <- species_df %>%
+    group_by(species) %>%
+    group_modify(~ {
+      df <- .x
+      if (nrow(df) >= 300) {
+        df[sample(nrow(df), 300), ]
+      } else {
+        df  # keep all if fewer than 300
+      }
+    }) %>%
+    ungroup()
+  
   
   # format raster's dataframe for validation
   predicted <- species_df_sampled %>%
