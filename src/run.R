@@ -8,7 +8,7 @@
 source("./src/libraries.R")            # Load necessary packages
 source("./src/customFunctions.R")      # Load customized functions
 
-runname <- "10April_Europe_abund1.05"   # Unique identifier for the run
+runname <- "13April_Europe"   # Unique identifier for the run
 source("./src/generalSettings.R")      # Load paths and spatial settings
 
 
@@ -23,22 +23,17 @@ target_region <- "Europe"
 
 ## Select Target Species (multiple allowed)
 target_species <- c(
-                    "Alces alces",      
-                    "Canis lupus",
-                    "Cervus elaphus",
-                    "Dama dama",
-                    "Lynx lynx",
-                    "Rangifer tarandus",
-                    "Sus scrofa"
-                    )
+  "Alces alces",      
+  "Cervus elaphus"
+)
 # Simply modify or add species names in the list above
 # Options: see https://ulisboa-my.sharepoint.com/:x:/g/personal/misilva_fc_ul_pt/EVOf6YCgWLVBnAWRzyFahPMBWcKv-2TRGKud35fyjf3Kig?e=zraW2t
 
 # Load Species Data ------------------------------------------------------------
 source("./src/mammalMetaRangeSpeciesDataframe.R")
-species_traits$initialAbundance <- species_traits$initialAbundance*1.05
+#species_traits$initialAbundance <- species_traits$initialAbundance*1.05
 # write table to .csv file
-write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
+#write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
 ## load global suitability raster files & crop 
 source("./src/inputFiles.R") 
