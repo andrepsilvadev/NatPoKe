@@ -179,9 +179,11 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
       NULL
     }
   }) %>% bind_rows()
+
+  species_df_sampled <-  species_df[sample(nrow(species_df), 300), ]
   
   # format raster's dataframe for validation
-  predicted <- species_df %>%
+  predicted <- species_df_sampled %>%
     dplyr::filter(species %in% targetspecies) %>%
     dplyr::group_by(species, x, y) %>%
     dplyr::summarise(
@@ -193,7 +195,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   spData2 <- spData %>%
     dplyr::select(Species, ModellingRes) %>%
     rename(species = Species) %>%
-    mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
+    #mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
     as.data.frame()
   
   estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
