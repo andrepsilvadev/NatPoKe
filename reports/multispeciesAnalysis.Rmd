@@ -24,8 +24,8 @@ source(here("src", "libraries.R"))
 The metaRange model can be run with for multiple species at the same time. Here we demonstrate how to produce multispecies outputs from this model's outputs.
 
 ```{r dirinput, echo=FALSE}
-dirinput <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
-dirout <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
+dirinput <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
+dirout <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
 runname <- "26Mar2025_tutorial"
 ```
 
@@ -306,13 +306,13 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
 ```{r multi-species validation, fig.dim=c(8,6), warning=FALSE, message=FALSE}
 #load external data
 # (2) independentDensity
-santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
+santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
   # santini's dataframe has species names with spaces but metaRange does not like spaces
   # remove spaces again
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # (4) spData
-spData <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/traits/all_mammals_available_before_trait_formatting.xlsx", 
+spData <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/traits/all_mammals_available_before_trait_formatting.xlsx", 
     sheet = "formatted_trait_data") %>% 
   dplyr::filter(Species %in% target_species)
 
@@ -321,7 +321,7 @@ spData <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/
 # applying the function
 validation_lists <- validateModel1.2(targetspecies = target_species,
                        independentDensity = santini2022,
-                       dirouts = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs",
+                       dirouts = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs",
                        spData = spData,
                        validationYear = 101)
 # plotting the results

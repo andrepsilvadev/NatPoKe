@@ -26,8 +26,8 @@ This tutorial explains how to run the metaRange model framework for mammal speci
 > To run our approach, input directories (dirinput) and output directories (dirout) were previously created to save the input files and respective model output raster files and plots.
 
 ```{r dirinput, echo=FALSE}
-dirinput <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
-dirout <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
+dirinput <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
+dirout <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
 ```
 
 First tings first! In order to use metaRange to model mammal species populations we need to decide:
@@ -938,7 +938,7 @@ names_replace <- c("Alcesalces" = "Alces alces",
                    "Canislupus" = "Canis lupus")
 
 # import external data for model validation
-santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
+santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
   mutate(Species = str_replace_all(Species, " ", ""))
 
 # import species traits df for model validation
