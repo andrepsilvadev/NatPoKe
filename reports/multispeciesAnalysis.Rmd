@@ -215,7 +215,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   # Compares mean density estimated by model per cell with
   # predicted density from independent model extract predicted abundance
   # and join with observed abundance
-  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE
+  # 1. Loads rasters - 2. Sample ~300 random cells per species - 3. Calculate predicted densities - 4. Returns a comparison-ready list
   
   ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
   independentDensity <- independentDensity %>%
@@ -279,8 +279,22 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
     }
   }) %>% bind_rows()
   
+  # sample 300 abundance values for each species
+  species_df_sampled <- species_df %>%
+    group_by(species) %>%
+    group_modify(~ {
+      df <- .x
+      if (nrow(df) >= 300) {
+        df[sample(nrow(df), 300), ]
+      } else {
+        df  # keep all if there are fewer values than 300
+      }
+    }) %>%
+    ungroup()
+  
+  
   # format raster's dataframe for validation
-  predicted <- species_df %>%
+  predicted <- species_df_sampled %>%
     dplyr::filter(species %in% targetspecies) %>%
     dplyr::group_by(species, x, y) %>%
     dplyr::summarise(
@@ -292,7 +306,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   spData2 <- spData %>%
     dplyr::select(Species, ModellingRes) %>%
     rename(species = Species) %>%
-    mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
+    #mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
     as.data.frame()
   
   estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%

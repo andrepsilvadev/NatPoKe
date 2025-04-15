@@ -116,7 +116,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   # Compares mean density estimated by model per cell with
   # predicted density from independent model extract predicted abundance
   # and join with observed abundance
-  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE TO WORK THROUGH MULTIPLE DIRECTORIES (dirouts).
+  # 1. Loads rasters - 2. Sample ~300 random cells per species - 3. Calculate predicted densities - 4. Returns a comparison-ready list
   
   ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
   independentDensity <- independentDensity %>%
@@ -179,7 +179,8 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
       NULL
     }
   }) %>% bind_rows()
-
+  
+  # sample 300 abundance values for each species
   species_df_sampled <- species_df %>%
     group_by(species) %>%
     group_modify(~ {
@@ -187,7 +188,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
       if (nrow(df) >= 300) {
         df[sample(nrow(df), 300), ]
       } else {
-        df  # keep all if fewer than 300
+        df  # keep all if there are fewer values than 300
       }
     }) %>%
     ungroup()
