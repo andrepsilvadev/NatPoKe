@@ -204,9 +204,11 @@ The `validateModel1.2()` function evaluates the performance of our model abundan
 
 1.  prepares the independent density data, filtering it to match the target species and formatting it
 
-2.  then it goes through user-specified directories, searching for and reading raster files for species abundance for the specified year. These rasters are then stacked and transformed into a data frame, enabling cell-by-cell analysis. (it also prints a message saying which raster was used for which species) and warns if some are missing.
+2.  then earches the given dirout for .tif files matching the pattern for each targetspecies and the given validationYear (it also prints a message saying which raster was used for which species, and warns if some are missing). Loads and stacks the rasters and then converts the created stack into a dataframe with species as a column, enabling cell-by-cell analysis.
 
-3.  subsequently, the function calculates the mean predicted abundance for each cell, effectively summarizing the model's output. This information is then joined with the species-specific modeling resolution data, allowing for the calculation of estimated densities. Finally, the function returns a list containing both the processed independent density estimates and the calculated model-predicted densities, facilitating the comparison and validation of the model's performance.
+3.  Since datasets are expected to be pretty big (continental range), the function now randomly samples 300 rows per species from the abundance dataset using `sample()`.   
+
+3.  subsequently, the function calculates the mean predicted abundance for each cell, effectively summarizing the model's output. Converts predicted abundance to predicted density (individuals per km²). This information is then joined with the species-specific modeling resolution data, allowing for the calculation of estimated densities. Finally, the function returns a list containing both the processed independent density estimates and the calculated model-predicted densities, facilitating the comparison and validation of the model's performance.
 
 ```{r model validation function, warning=FALSE, message=FALSE}
 validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
