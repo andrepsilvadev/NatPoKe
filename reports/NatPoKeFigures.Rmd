@@ -33,7 +33,7 @@ Using the metaRange simulations' outputs for mammal species we can produce multi
 Here we modeled a total of `r length(unique(TNIND_yr$species))` species, including:
 
 | Biome | Region | Species |
-|----------------------------------|-------------------|-------------------|
+|----|----|----|
 | **Boreal Forests/ Taiga** | North America | Lynx rufus |
 |  |  | Odocoileus virginianus |
 |  | Europe | Alces alces |
@@ -704,7 +704,7 @@ To determine whether the model accurately represents the behavior of the system 
 
 > This analysis needs to be done per region, or else errors will appear due to different extent rasters and the same species occurring in more than one region at a time.
 >
-> **Suggestion:** Save each model run per biome and region in a different folder feed each one separately to the function. plot each results and then, if it is necessary to visualize all plots together use the [patchwork package](<https://patchwork.data-imaginist.com/articles/patchwork.html>) to do that.
+> **Suggestion:** Save each model run per biome and region in a different folder feed each one separately to the function. plot each results and then, if it is necessary to visualize all plots together use the [patchwork package](https://patchwork.data-imaginist.com/articles/patchwork.html) to do that.
 
 ```{r, eval=FALSE}
 validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
