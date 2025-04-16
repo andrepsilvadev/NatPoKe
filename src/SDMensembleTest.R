@@ -418,8 +418,6 @@ plot(trainingLandscapes)
 
 biome_name <- "Sweden"
 # Load Sweden's shapefile using rnaturalearth
-library(rnaturalearth)
-library(rnaturalearthdata)
 sweden_sf <- ne_countries(scale = "medium", country = "Sweden", returnclass = "sf")
 sweden_sp <- vect(sweden_sf)  # Convert to SpatVector for terra compatibility
 # Function to crop and mask rasters to Sweden
@@ -466,114 +464,6 @@ results$combinedPlots
 results$biomodEM
 
 
-# Plot Presence Points for multiple species ------------------------------------------------
-
-# Initialize a list to store ggplot objects for each species
-presencePlots <- list()
-
-# Loop through each species to create presence point plots
-for (species in names(results$biomodData)) {
-  # Extract the myBiomodData object for the current species
-  biomod_data <- results$biomodData[[species]]
-  
-  # Extract the presence points (coordinates where response variable is 1)
-  presence_points <- biomod_data@coord[biomod_data@data.species == 1, ]
-  
-  # Convert the presence points to a data frame
-  presence_df <- as.data.frame(presence_points)
-  colnames(presence_df) <- c("Longitude", "Latitude")
-  
-  # Create a ggplot object for the species
-  p <- ggplot() +
-    geom_point(data = presence_df, aes(x = Longitude, y = Latitude), color = "blue", size = 1) +
-    labs(
-      title = paste("Presence Points -", species),
-      x = "Longitude",
-      y = "Latitude"
-    ) +
-    theme_minimal() +
-    theme(
-      plot.title = element_text(hjust = 0.5, size = 14),
-      axis.text = element_text(size = 8),
-      axis.title = element_text(size = 10)
-    )
-  
-  # Add the plot to the list
-  presencePlots[[species]] <- p
-}
-
-# Arrange the plots in a grid
-combined_presence_plot <- grid.arrange(
-  grobs = presencePlots,
-  ncol = length(presencePlots),  # Number of columns corresponds to the number of species
-  top = textGrob("Presence Points for Multiple Species", gp = gpar(fontsize = 16))
-)
-
-# Save the combined plot
-ggsave(filename = file.path(output_folder, "PresencePoints_MultipleSpecies.png"),
-       plot = combined_presence_plot,
-       width = 12, height = 6, dpi = 300)
-
-
-# Initialize a list to store ggplot objects for each species
-presencePlots <- list()
-
-# Loop through each species to create presence point plots
-for (species in names(results$biomodData)) {
-  # Extract the myBiomodData object for the current species
-  biomod_data <- results$biomodData[[species]]
-  
-  # Extract the presence points (coordinates where response variable is 1)
-  presence_points <- biomod_data@coord[biomod_data@data.species == 1, ]
-  presence_df <- as.data.frame(presence_points)
-  colnames(presence_df) <- c("Longitude", "Latitude")
-  
-  # Remove rows with missing values
-  presence_df <- na.omit(presence_df)
-  
-  # Convert the training landscape to a data frame for ggplot
-  training_landscape_df <- as.data.frame(trainingLandscapes, xy = TRUE, na.rm = TRUE)
-  colnames(training_landscape_df) <- c("Longitude", "Latitude", "Value")
-  
-  # Create a ggplot object for the species
-  p <- ggplot() +
-    geom_raster(data = training_landscape_df, aes(x = Longitude, y = Latitude, fill = Value), alpha = 0.5) +
-    geom_point(data = presence_df, aes(x = Longitude, y = Latitude), color = "blue", size = 1) +
-    scale_fill_terrain_c(name = "Background") +
-    labs(
-      title = paste("Presence Points -", species),
-      x = "Longitude",
-      y = "Latitude"
-    ) +
-    coord_fixed() +  # Preserve aspect ratio
-    theme_minimal() +
-    theme(
-      plot.title = element_text(hjust = 0.5, size = 14),
-      axis.text = element_text(size = 8),
-      axis.title = element_text(size = 10),
-      legend.position = "right"
-    )
-  
-  # Add the plot to the list
-  presencePlots[[species]] <- p
-}
-
-# Check if there are valid plots
-if (length(presencePlots) == 0) {
-  stop("No valid plots were created.")
-}
-
-# Arrange the plots in a grid
-combined_presence_plot <- grid.arrange(
-  grobs = presencePlots,
-  ncol = length(presencePlots),  # Number of columns corresponds to the number of species
-  top = textGrob("Presence Points with Training Landscape for Multiple Species", gp = gpar(fontsize = 16))
-)
-
-# Save the combined plot
-ggsave(filename = file.path(output_folder, "PresencePoints_WithTrainingLandscape.png"),
-       plot = combined_presence_plot,
-       width = 12, height = 6, dpi = 300)
 
 # SDM evaluation metrics ------------------------------------------------
 # Plot Evaluation Metrics for single models
@@ -596,19 +486,19 @@ ggsave(file.path(output_folder, "EvaluationMetrics_TSS.png"), plot = eval_plot, 
 
 
 # Plot evaluation metrics for ensemble models
-eval_plot_em <- ggplot(results$evaluationScoresEM, aes(x = species, y = validation, fill = metric.eval)) +
-  geom_boxplot() +
-  labs(
-    title = "Evaluation Metrics for Ensemble Models (EM)",
-    x = "Species",
-    y = "Value",
-    fill = "Metric"
-  ) +
-  scale_fill_viridis_d(name = "Metric") +  
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-print(eval_plot_em)
-ggsave(file.path(output_folder, "EvaluationMetrics_EnsembleModels.png"), plot = eval_plot_em, width = 10, height = 6, dpi = 300)
+#eval_plot_em <- ggplot(results$evaluationScoresEM, aes(x = species, y = validation, fill = metric.eval)) +
+#  geom_boxplot() +
+#  labs(
+#    title = "Evaluation Metrics for Ensemble Models (EM)",
+#    x = "Species",
+#    y = "Value",
+#    fill = "Metric"
+#  ) +
+#  scale_fill_viridis_d(name = "Metric") +  
+#  theme_minimal() +
+#  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+#print(eval_plot_em)
+#ggsave(file.path(output_folder, "EvaluationMetrics_EnsembleModels.png"), plot = eval_plot_em, width = 10, height = 6, dpi = 300)
 
 
 
@@ -699,32 +589,188 @@ write_xlsx(importance_table, path = file.path(output_folder, "VariableImportance
 
 
 # Current Landscapes ------------------------------------------------
-
-
-
-# Predicted Landscapes ------------------------------------------------
-# Define the scenario to plot
-scenario <- "ssp126_2071-2100"
-
-# Loop through each species and plot the ensemble forecast (EMmean)
-for (species in names(results$biomodEF)) {
-  # Extract the BIOMOD_EnsembleForecasting object for the given scenario
-  ensemble_forecast <- results$biomodEF[[species]][[scenario]]
+# Loop through each species and plot the current ensemble forecast (EMmean)
+for (species in names(results$biomodEC)) {
+  # Extract the BIOMOD_EnsembleForecasting object for the current conditions
+  ensemble_current <- results$biomodEC[[species]]
   
   # Extract the SpatRaster for the `EMmean` ensemble model
-  raster <- get_predictions(ensemble_forecast)
+  raster <- get_predictions(ensemble_current)
   
   # Ensure only the `EMmean` layer is selected
   emmean_layer <- raster[[grep("EMmean", names(raster))]]
   
   # Plot the raster with a title
   plot(emmean_layer,
-       main = paste(species, "- EMmean -", scenario),
+       main = paste(species, "- EMmean - Current Conditions"),
        col = terrain.colors(100))
-  }
+  
+  # Optionally save the plot as a PNG file
+  png(
+    filename = file.path(output_folder, paste0("CurrentSuitability_", species, ".png")),
+    width = 2000,
+    height = 1500,
+    res = 300
+  )
+  plot(emmean_layer,
+       main = paste(species, "- EMmean - Current Conditions"),
+       col = terrain.colors(100))
+  dev.off()
+}
 
+# Initialize a list to store plots for each species
+current_plots <- list()
 
+# Loop through each species to create current suitability plots
+for (species in names(results$biomodEC)) {
+  # Extract the BIOMOD_EnsembleForecasting object for the current conditions
+  ensemble_current <- results$biomodEC[[species]]
+  
+  # Extract the SpatRaster for the `EMmean` ensemble model
+  raster <- get_predictions(ensemble_current)
+  emmean_layer <- raster[[grep("EMmean", names(raster))]]
+  
+  # Convert the raster to a data frame for ggplot
+  raster_df <- as.data.frame(emmean_layer, xy = TRUE, na.rm = TRUE)
+  colnames(raster_df)[3] <- "value"  # Rename the value column
+  
+  # Create a ggplot object for current suitability
+  current_plot <- ggplot(raster_df, aes(x = x, y = y, fill = value)) +
+    geom_raster() +
+    scale_fill_terrain_c(name = "Prediction") +
+    labs(
+      title = paste(species, "- Current Conditions"),
+      x = "Longitude",
+      y = "Latitude"
+    ) +
+    coord_fixed() +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 14),
+      axis.text = element_text(size = 8),
+      axis.title = element_text(size = 10),
+      legend.position = "right"
+    )
+  
+  # Add the plot to the list
+  current_plots[[species]] <- current_plot
+}
 
+# Combine all current plots into a single grid
+combined_current_plot <- grid.arrange(grobs = current_plots, ncol = 2)
+
+# Save the combined plot
+ggsave(
+  filename = file.path(output_folder, "CurrentSuitability_AllSpecies.png"),
+  plot = combined_current_plot,
+  width = 16,
+  height = 8,
+  dpi = 300
+)
+
+# Plot Presence Points for multiple species ------------------------------------------------
+# Initialize a list to store ggplot objects for each species
+presencePlots <- list()
+
+# Loop through each species to create presence point plots
+for (species in names(results$biomodData)) {
+  # Extract the myBiomodData object for the current species
+  biomod_data <- results$biomodData[[species]]
+  
+  # Extract the presence points (coordinates where response variable is 1)
+  presence_points <- biomod_data@coord[biomod_data@data.species == 1, ]
+  presence_df <- as.data.frame(presence_points)
+  colnames(presence_df) <- c("Longitude", "Latitude")
+  
+  # Add a column to indicate presence points for the legend
+  presence_df$Type <- "Presence Points"
+  
+  # Remove rows with missing values
+  presence_df <- na.omit(presence_df)
+  
+  # Extract the current suitability raster for the species
+  ensemble_current <- results$biomodEC[[species]]
+  raster <- get_predictions(ensemble_current)
+  emmean_layer <- raster[[grep("EMmean", names(raster))]]
+  
+  # Convert the current suitability raster to a data frame for ggplot
+  current_landscape_df <- as.data.frame(emmean_layer, xy = TRUE, na.rm = TRUE)
+  colnames(current_landscape_df) <- c("Longitude", "Latitude", "Value")
+  
+  # Create a ggplot object for the species
+  p <- ggplot() +
+    geom_raster(data = current_landscape_df, aes(x = Longitude, y = Latitude, fill = Value), alpha = 0.8) +
+    geom_point(data = presence_df, aes(x = Longitude, y = Latitude, color = Type),size = 0.5) +
+    scale_color_manual(name = "Legend", values = c("Presence Points" = "blue")) +
+    scale_fill_terrain_c(name = "Suitability") +
+    labs(
+      title = paste(species),
+      x = "Longitude",
+      y = "Latitude"
+    ) +
+    coord_fixed() +  # Preserve aspect ratio
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 14),
+      axis.text = element_text(size = 8),
+      axis.title = element_text(size = 10),
+      legend.position = "none"  # Remove individual legends
+    )
+  
+  # Add the plot to the list
+  presencePlots[[species]] <- p
+}
+
+# Extract the legend from one of the plots
+example_plot <- ggplot() +
+  geom_raster(data = current_landscape_df, aes(x = Longitude, y = Latitude, fill = Value), alpha = 0.8) +
+  geom_point(data = presence_df, aes(x = Longitude, y = Latitude, color = Type), size = 0.5) +
+  scale_color_manual(name = "Legend", values = c("Presence Points" = "blue")) +
+  scale_fill_terrain_c(name = "Suitability") +
+  guides(
+    fill = guide_colorbar(order = 2),  # Suitability color scale comes second
+    color = guide_legend(order = 1)   # Presence points legend comes first
+  ) +
+  labs(
+    title = paste(species),
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  coord_fixed() +  # Preserve aspect ratio
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    axis.text = element_text(size = 8),
+    axis.title = element_text(size = 10),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+shared_legend <- cowplot::get_legend(example_plot)
+
+# Arrange the plots in a grid
+combined_presence_plot <- grid.arrange(
+  grobs = presencePlots,
+  ncol = length(presencePlots)  # Number of columns corresponds to the number of species
+)
+
+# Combine the plot and legend side by side
+final_plot <- grid.arrange(
+  combined_presence_plot,
+  arrangeGrob(
+    grobs = list(shared_legend),
+    ncol = 1
+  ),
+  ncol = 2,  # Two columns: one for the plot and one for the legend
+  widths = unit(c(15, 3), "null"),
+  top = textGrob("Presence of Multiple Species in Current Suitability Landscape", gp = gpar(fontsize = 16))
+)
+
+# Save the combined plot
+ggsave(filename = file.path(output_folder, "PresencePoints_WithCurrentSuitability.png"),
+       plot = final_plot,
+       width = 12, height = 6, dpi = 300)
+
+# Current and Predicted Landscapes ------------------------------------------------
 
 # Define the scenarios and species to plot
 scenarios <- c("ssp126_2071-2100", "ssp585_2071-2100")
@@ -745,8 +791,48 @@ scenario_names <- function(scenario) {
     return(scenario)  # Default to the original name if no match
   }
 }
+
+# Initialize a list to store current plots for each species
+current_plots <- list()
+
+# Loop through each species to create current suitability plots
+for (species in species_list) {
+  # Extract the BIOMOD_EnsembleForecasting object for the current conditions
+  ensemble_current <- results$biomodEC[[species]]
+  
+  # Extract the SpatRaster for the `EMmean` ensemble model
+  raster <- get_predictions(ensemble_current)
+  emmean_layer <- raster[[grep("EMmean", names(raster))]]
+  
+  # Convert the raster to a data frame for ggplot
+  raster_df <- as.data.frame(emmean_layer, xy = TRUE, na.rm = TRUE)
+  colnames(raster_df)[3] <- "value"  # Rename the value column
+  
+  # Create a ggplot object for current suitability
+  currentPlot <- ggplot(raster_df, aes(x = x, y = y, fill = value)) +
+    geom_raster() +
+    scale_fill_terrain_c(name = "Prediction") +
+    labs(
+      title = NULL,  # Remove individual titles
+      x = "Longitude",
+      y = "Latitude"
+    ) +
+    coord_sf(expand = FALSE) +  # Ensure correct aspect ratio
+    theme_bw() +  # Use a theme with grid lines
+    theme(
+      axis.text = element_text(),
+      axis.ticks = element_line(),
+      panel.grid.major = element_line(color = "gray"),
+      panel.grid.minor = element_blank(),
+      legend.position = "none"  # Remove individual legends
+    )
+  
+  # Add the plot to the list
+  current_plots[[species]] <- currentPlot
+}
+
 # Initialize a list to store plots for each species and scenario
-plots_spatial <- list()
+future_plots <- list()
 
 # Loop through each scenario and species to create plots
 for (scenario in scenarios) {
@@ -765,9 +851,9 @@ for (scenario in scenarios) {
       colnames(raster_df)[3] <- "value"  # Rename the value column
       
       # Create a ggplot object
-      plot <- ggplot(raster_df, aes(x = x, y = y, fill = value)) +
+      futurePlot <- ggplot(raster_df, aes(x = x, y = y, fill = value)) +
         geom_raster() +
-        scale_fill_terrain_c(name = "Prediction") +
+        scale_fill_terrain_c(name = "Suitability") +
         labs(
           title = NULL,  # Remove individual titles
           x = "Longitude",
@@ -784,14 +870,14 @@ for (scenario in scenarios) {
         )
       
       # Add the plot to the list
-      plots_spatial[[paste0(scenario, "_", species)]] <- plot
+      future_plots[[paste0(scenario, "_", species)]] <- futurePlot
   }
 }
 
 # Extract the legend from one of the plots
 example_plot <- ggplot(raster_df, aes(x = x, y = y, fill = value)) +
   geom_raster() +
-  scale_fill_terrain_c(name = "Prediction") +
+  scale_fill_terrain_c(name = "Suitability") +
   theme_bw() +
   theme(
     legend.position = "right",
@@ -800,8 +886,9 @@ example_plot <- ggplot(raster_df, aes(x = x, y = y, fill = value)) +
   )
 shared_legend <- cowplot::get_legend(example_plot)
 
-# Combine the plots into a grid layout
+# Combine the current and future plots into a grid layout
 combined_plot_spatial <- grid.arrange(
+  # Add species names as the top row
   arrangeGrob(
     grobs = lapply(species_list, function(species) {
       textGrob(species, gp = gpar(fontsize = 14))
@@ -809,27 +896,44 @@ combined_plot_spatial <- grid.arrange(
     ncol = length(species_list),
     heights = unit(c(0.5), "null")
   ),
+  # Add the current conditions plots with a vertical label
   arrangeGrob(
     grobs = c(
-      list(textGrob(scenario_names(scenarios[1]), rot = 90, gp = gpar(fontsize = 14))),
+      list(textGrob("Current Conditions", rot = 90, gp = gpar(fontsize = 14))),  # Vertical label
       lapply(species_list, function(species) {
-        plots_spatial[[paste0(scenarios[1], "_", species)]]
+        current_plots[[species]]
       })
     ),
-    ncol = length(species_list) + 1,
+    ncol = length(species_list) + 1,  # Add an extra column for the label
     widths = unit(c(0.5, rep(5, length(species_list))), "null")
   ),
+  # Add the "Future Projections" title horizontally
+  textGrob(paste("Future Projections (", extract_years(scenarios[1]), ")", sep = ""), 
+           gp = gpar(fontsize = 16)),
+  # Add the first future scenario plots with a vertical label
   arrangeGrob(
     grobs = c(
-      list(textGrob(scenario_names(scenarios[2]), rot = 90, gp = gpar(fontsize = 14))),
+      list(textGrob(scenario_names(scenarios[1]), rot = 90, gp = gpar(fontsize = 14))),  # Vertical label
       lapply(species_list, function(species) {
-        plots_spatial[[paste0(scenarios[2], "_", species)]]
+        future_plots[[paste0(scenarios[1], "_", species)]]
       })
     ),
-    ncol = length(species_list) + 1,
+    ncol = length(species_list) + 1,  # Add an extra column for the label
     widths = unit(c(0.5, rep(5, length(species_list))), "null")
   ),
-  heights = unit(c(0.5, 5, 5), "null")
+  # Add the second future scenario plots with a vertical label
+  arrangeGrob(
+    grobs = c(
+      list(textGrob(scenario_names(scenarios[2]), rot = 90, gp = gpar(fontsize = 14))),  # Vertical label
+      lapply(species_list, function(species) {
+        future_plots[[paste0(scenarios[2], "_", species)]]
+      })
+    ),
+    ncol = length(species_list) + 1,  # Add an extra column for the label
+    widths = unit(c(0.5, rep(5, length(species_list))), "null")
+  ),
+  # Adjust the heights to stack the elements properly
+  heights = unit(c(0.5, 5, 0.5, 5, 5), "null")
 )
 
 # Combine the plot and legend side by side
@@ -841,10 +945,11 @@ final_plot <- grid.arrange(
   ),
   ncol = 2,  # Two columns: one for the plot and one for the legend
   widths = unit(c(15, 3), "null"),
-  top = textGrob(paste0("Future Projections for ", extract_years(scenario[1])), gp = gpar(fontsize = 16))
+  top = textGrob("Current and Future Suitability Landscapes", gp = gpar(fontsize = 16))
 )
 
 # Save the combined plot
-ggsave(filename = file.path(output_folder, paste0("FutureProjections_", extract_years(scenario[1]), ".png")), 
+ggsave(filename = file.path(output_folder, "Current_and_Future_Projections.png"), 
        plot = final_plot, 
-       width = 24, height = 10, dpi = 300)
+       width = 24, height = 15, dpi = 300)
+
