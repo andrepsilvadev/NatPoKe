@@ -61,6 +61,7 @@ sim_name <- "example_01"# simulation parameters
 ###########
 # Step 2  # Add landscape for all target species 
 ###########
+# replace line 69 with 65-67 if modelling just one species 
 # r <- rast(list.files(dirinput,
 #            pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
 # sim_env <- sds(r)
