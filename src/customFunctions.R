@@ -197,7 +197,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   # format raster's dataframe for validation
   predicted <- species_df_sampled %>%
     dplyr::filter(species %in% targetspecies) %>%
-    dplyr::group_by(species, x, y) %>%
+    dplyr::group_by(species, x, y) %>% # if there are ever replicates involved
     dplyr::summarise(
       meanNInd = mean(abundance, na.rm = TRUE),
       .groups = "drop"
@@ -217,4 +217,65 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   result_list <- list(independentDensity, estimatedDensityJoin)
   names(result_list) <- c("independentDensity", "estimatedDensity")
   return(result_list)
+}
+
+####################################
+# Formatting Sensitivity Runs Data #
+####################################
+
+sensitivityRuns <- function(dir_path, species, scenario, biome, region) {
+  # This function creates a dataframe for each directory provided with TNIND per
+  # cell for target species
+  abundance_list <- list()
+  
+  for (target_sps in species) {
+    # find Yeat 101 rasters for each target species
+    abund101 <- rast(list.files(path = dir_path,
+                                pattern = paste0("101_", target_sps, "_abundance\\.tif"), 
+                                full.names = TRUE))
+    # convert to dataframe
+    abundance101_df <- as.data.frame(abund101, xy = TRUE) %>% 
+      # add extra columns
+      mutate(species = target_sps,
+             scenario = scenario,
+             biome = biome,
+             region = region,
+             simulation = basename(dirname(dir_path)))
+    
+    abundance_list[[target_sps]] <- abundance101_df
+  }
+  
+  bind_rows(abundance_list) %>%
+    rename(TNIND_per_cell = lyr1)
+}
+
+
+##############################################
+# Fixing species names for prettier plotting #
+##############################################
+
+# This function transforms names WITHOUT spaces into the correct form based on
+# the trait dataframe tha exists in the data folder of this repo
+
+pretty_species_names <- function(x) {
+  library(here)
+  # import trait dataframe 
+  mammalTraits_2025_03_17 <- read_csv(here("data", "mammalTraits_2025-03-17.csv"))
+  
+  # pull the species names **WITH SPACES** column 
+  with_spaces <- unique(mammalTraits_2025_03_17$sci_name)
+  
+  # get corresponding names **WITHOUT** spaces
+  no_spaces <- gsub(" ", "", with_spaces)
+  
+  # match and replace names
+  matched <- match(x, no_spaces)
+  
+  # show warninng if any names are not found
+  if (any(is.na(matched))) {
+    unmatched <- x[is.na(matched)]
+    warning(paste(unmatched, collapse = ", "), "was/were not matched")
+  }
+  
+  return(with_spaces[matched])
 }
