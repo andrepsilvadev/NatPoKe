@@ -44,7 +44,7 @@ target_region <- gsub("[/& ]", "", target_region)
 
 # select target species (multiple sps are allowed)
 target_species <- species_traits$Species
-target_species <- c("Alcesalces", "Cervuselaphus")
+#target_species <- c("Alcesalces", "Cervuselaphus")
 
 # select a number of replicates
 n_replicates <- 3
