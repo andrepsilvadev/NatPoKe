@@ -60,8 +60,8 @@ species_traits <- tibble(
   CellResolution = 3.076948*3.076948,
   # modelling resolution based on the sps mean HomeRange (km)
   ##ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))), # ANDRE'S MODELLING RES
-  #ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
-  ModellingRes = 10,
+  ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
+  #ModellingRes = 10,
   #ProjRes = ModellingRes*1000,
   # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
   initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd)*(ModellingRes^2)), 
