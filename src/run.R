@@ -14,17 +14,20 @@ source("./src/generalSettings.R")      # Load paths and spatial settings
 
 # Input Selection --------------------------------------------------------------
 ## Select Target Biome (choose one)
-target_biome <- "Boreal Forests/Taiga" 
-# Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
+target_biome <- "Boreal Forests/Taiga" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
 
 ## Select Target Region (choose one)
-target_region <- "Europe" 
-# Options: "North America", "South America", "Europe", "Asia", "Africa"
+target_region <- "Europe" # Options: "North America", "South America", "Europe", "Asia", "Africa"
 
-## Select Target Species (multiple allowed)
+## Select Target Species (multiple allowed with spaces)
 target_species <- c(
   "Alces alces",      
-  "Cervus elaphus"
+  "Cervus elaphus",
+  "Canis lupus",
+  "Dama dama",
+  "Lynx lynx",
+  "Rangifer tarandus",
+  "Sus scrofa"
 )
 # Simply modify or add species names in the list above
 # Options: see https://ulisboa-my.sharepoint.com/:x:/g/personal/misilva_fc_ul_pt/EVOf6YCgWLVBnAWRzyFahPMBWcKv-2TRGKud35fyjf3Kig?e=zraW2t
@@ -40,24 +43,23 @@ source("./src/inputFiles.R")
 # if a species modelling resolution is 1 this will throw a warning. It's ok!
 
 # models -----------------------------------------------------------------------
-source("./src/mammalModel.R") # run metaRange model for mammals species
-
-
-# saving simulation outputs ----------------------------------------------------
-#source("./src/savingSimulationOutputs.R") # DEPRECATED
+#source("./src/mammalModel.R") # run metaRange model for mammals species
+source("./src/mammalModelSpeciesSpecific.R") # run metaRange model for mammals with species specific resolution
 
 # outputs ----------------------------------------------------------------------
 source("./mammalSpeciesSpecificPlots.R") # produce multiple maps (abund, repRate and prop abund change) and model validation plot per species
 
 # next scripts can take multiple directories to produce figures and maps
-source("./speciesResilienceMetricsFigures.R") # calculate and plot stability metrics for all taxa
-source("./communityMetricsFigures.R") # calculate community metrics and build plots over time
+source("./speciesResilienceMetrics.R") # calculate and plot stability metrics for all taxa
+source("./communityMetrics.R") # calculate community metrics and build plots over time
 source("./updatedSpatiallyExplicitMaps.R") # produces Shannon's index change maps for each continent
 
 # other analysis ---------------------------------------------------------------
 source("./src/modelValidation.R")
-source("./sensitivityAnalysis.R")
+source("./updatedsensitivityAnalysis.R")
 
 
 #source("./spatiallyExplicitMaps.R") # DEPRECATED
 
+# saving simulation outputs ----------------------------------------------------
+#source("./src/savingSimulationOutputs.R") # DEPRECATED
