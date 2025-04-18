@@ -11,7 +11,7 @@
 | Run complete pipeline | `run.R` |
 | Environment setup | `generalSettings.R`, `libraries.R`, `customFunctions.R` |
 | Input data preparation | `mammalMetaRangeSpeciesDataframe.R`, `inputFiles.R` |
-| Species modelling | `mammalModel.R` `mammalModelSpecificRes.R` |
+| Species modelling | `mammalModelSpecificRes.R` `mammalModel.R`  |
 | Visualizations | `mammalSpeciesSpecificPlots.R`, `speciesResilienceMetrics.R`, `communityMetrics.R`, `updatedSpatiallyExplicitMaps.R` |
 | Validation & Sensitivity Analysis | `modelValidation.R`, `updatedSensitivityAnalysis.R` |
 
@@ -19,32 +19,31 @@
 
 ## 📖 Quick guide
 
-`run.R` - this is the master script that runs the entire pipeline (from loading packages up to building plots and maps
+`run.R` - this is a master script that runs the entire pipeline (from loading packages up to building plots and maps); here you can specify which biome, region and species to model
 
 `generalSettings.R` - create file directories to save runs inputs and outputs
 
 `libraries.R` - install & load all necessary packages
 
-`customFunctions.R` - loads created functions necessary throughout the pipeline
+`customFunctions.R` - load created functions necessary throughout the pipeline
 
-`mammalMetaRangeSpeciesDataframe.R` - format species traits, stored in .csv file in the [data folder](https://github.com/andrepsilvadev/NatPoKe/blob/6bca303d6b0c17e94915c44f5e6323e978c0763e/data/mammalTraits_2025-03-17.csv), into an input dataframe ready to use with the metaRange model.
+`mammalMetaRangeSpeciesDataframe.R` - format traget species traits, from a .csv file in the [data folder](https://github.com/andrepsilvadev/NatPoKe/blob/6bca303d6b0c17e94915c44f5e6323e978c0763e/data/mammalTraits_2025-03-17.csv), into an input dataframe ready to use within the metaRange model.
 
-`inputFiles.R` - download and crops global suitability raster files for multiple species in a designated biome and region, from SRIT Database google drive
+`inputFiles.R` - download and crop global suitability raster files for multiple species in a designated biome and region, from the SRIT Database google drive
 
-`mammalModel.R` - runs the metaRange model for mammals with all species at the same resolution
+`mammalModel.R` - runs the metaRange model for mammals with all species at the same resolution ⚠️*Currently not in use.*
+`mammalModelSpecificRes.R` - runs the metaRange model for mammals with species specific resolution (which is based on species Mean Home Range)
 
-`mammalModelSpecificRes.R` - runs the metaRange model for mammals with species specific resolution
-
-`mammalSpeciesSpecificPlots.R` - creates figures for each mammal species suitability over time, abundance in the last time step, model validation, average abundance over time, proportion of abundance change, average dispersal change and produces a model overview figure, combining all, per species
+`mammalSpeciesSpecificPlots.R` - creates figures for each mammal species suitability over time, abundance in the last time step, model validation, average abundance over time, proportion of abundance change, average dispersal change and produces a model overview figure, combining all maps/plots per species. See here an [example]().
 
 `speciesResilienceMetrics.R` - calculates stability metrics, such as impact, recovery, time to impact and time to recovery, and builds figures per taxa and scenario
 
-`communityMetrics.R` - calculates community metrics, such as species richness, Shannon diversity and Functional diversity indexes, and builds figures over time
+`communityMetrics.R` - calculates community metrics, such as species richness, Shannon diversity and Functional diversity indexes, and build a figure for each over time
 
-`updatedSpatiallyExplicitMaps.R` - takes metrics calulated in the communityMetricsFigures.R and builds maps showing the change in these indexes per taxa
+`updatedSpatiallyExplicitMaps.R` - takes metrics calulated in the communityMetricsFigures.R and builds maps showing the change in these indexes per taxa in a spatially-explicit manner
 
 `modelValidation.R` - performs model validation by comparing mean species densities estimated from two sources (metaRange model & santini et al. 2022)
 
-`updatedSensitivityAnalysis.R` -
+`updatedSensitivityAnalysis.R` - performs a sensitivity analysis from additional runs where model parameter are changed by x% to see if response variables (e.g. abundance) are affected
 
 [![Models: Mammals](https://img.shields.io/badge/_Models-🦣_Mammals-yellow?style=flat&labelColor=grey)](#mammals-model) [![🕊 Birds](https://img.shields.io/badge/🐦_Birds-blue?style=flat)](#birds-model) [![🌳 Trees](https://img.shields.io/badge/🌳_Trees-green?style=flat)](#trees-model) \# extra button for the future
