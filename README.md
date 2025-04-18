@@ -19,5 +19,5 @@ This repository contains all scripts and supporting materials used in the modeli
 | **data** | Raw data, including trait data for XX mammal species, sourced from multiple sources.                                                                                      |
 | **input** | Intermediate files and data transformations used during pre-processing. ⚠️*Currently not in use.* |
 | **output** | Generated results: figures, tables, and model outputs. *Currently with dummy figure only.* |
-| **src** | All R scripts used in data analysis, modeling, and visualization.<br>➡️ For full details, see the [`src/README.md`](src/src/README.md).                                   |
-| **reports**| R Markdown files producing reports from model runs (single and multispecies).<br>Includes main and supplementary project figures.                                       |
+| **src** | All R scripts used in data analysis, modeling, and visualization.<br>➡️ For full details, see the [`src/README.md`](https://github.com/andrepsilvadev/NatPoKe/tree/4295ecc339433ef3d49ab62a288edb9beb6d765f/src#readme).                                   |
+| **reports**| R Markdown files producing reports from model runs (single and multispecies), and main and supplementary project figures.                                       |
