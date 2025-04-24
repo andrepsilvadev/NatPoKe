@@ -250,32 +250,7 @@ for (species in target_species) {
     },
     execution_priority = 6
   )
-  # setting a simulation name
-  sim_name <- paste0(str_replace_all(target_biome, " ", ""), "_", target_region, "_Mammals_")
   
-  # saving results of one random run (when current replicate number is the same as the random number defined in the beggining)
-  sim$add_process(
-    process_name = "saving_traits",
-    process_fun = function() {
-      if (as.integer(replicateN) == as.integer(sim$ID)){
-        for (species in species_names) {
-          results_paths <- save_species(
-                   # pass the species object
-                   self[[species]],
-                   # specify traits we want to save
-                   traits = c("abundance", "reproductionRate", "dispersal_change"),
-                   # a prefix for each time step
-                   prefix = paste0(sim_name, sprintf("%03d", self$get_current_time_step()), "_"),
-                   # where should it be saved
-                   path = dirout,
-                   overwrite = TRUE
-                 )
-          self$globals$results_paths <- c(self$globals$results_paths, results_paths)
-               }
-      }
-    },
-    execution_priority = 7
-  )
   
   # # Saving results
   # sim$add_process(
