@@ -1,10 +1,9 @@
-########################
-# MODEL VALIDATION FIG #
-######### MIS ##########
-# 24 Jan 2025
+####################
+# MODEL VALIDATION #
+######### MIS ######
+# 24 Jan 2025 + Apr 2025
 
 # GOAL: Compare mean species densities estimated from two sources.
-
 
 # WHAT IS MODEL VALIDATION?
 # Model validation is the process of determining whether the model accurately
@@ -12,30 +11,66 @@
 # evaluated both operationally (i.e., by determining if model output agrees with
 # observed data) and conceptually (i.e., by determining whether the theory and
 # assumptions underlying the model are justifiable; Sargent, 1984; Rykiel, 1996).
-
 # Kerr LA, Goethel DR. Simulation Modeling as a Tool for Synthesis of Stock Identification Information. In: Stock Identification Methods, 2014, 501-533
-
-start.time <- Sys.time() # start the clock
-# packages
-library(readxl)
-library(stringr)
-library(tidyr)
-library(dplyr)
-library(ggplot2)
-library(terra)
-library(data.table)
 
 ###################
 # DATASETS NEEDED #
 ###################
 
 # To validate the metaRange model we need:
-  # (1) targetspecies: Vector of species names for which the validation will be performed
-  # (2) independentDensity: dataframe containing species density estimates from an Santini 2022
-  # (3) estimatedDensity: dataframe containing species abundance data derived from the model output
-  # (4) spData: dataframe with species traits (with ModellingRes) to calculate density from abundance
-        # for now, 20250130, ModellingRes will be the pixel size of one of the rasters BUT THIS WILL CHANGE WHENEVER SOMEONE THINKS OF THIS
-  # (5) validationYear: The specific year (or time step) used for validation
+# (1) targetspecies: Vector of species names for which the validation will be performed
+# (2) independentDensity: dataframe containing species density estimates from an Santini 2022
+# (3) estimatedDensity: dataframe containing species abundance data derived from the model output
+# (4) spData: dataframe with species traits (with ModellingRes) to calculate density from abundance
+# (5) validationYear: The specific year (or time step) used for validation
+
+
+###############################
+# VALIDATING MULTIPLE SPECIES #
+###############################
+
+# input sirectory (to search for sps traits)
+dirinput <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Inputs"
+# output directory
+dirout <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_tutorial/Outputs"
+
+
+# (1) targetspecies
+species_names <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
+  dplyr::pull(Species)
+
+# (2) independentDensity
+santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
+  # santini's dataframe has species names with spaces but metaRange does not like spaces
+  # remove spaces again
+  mutate(Species = str_replace_all(Species, " ", ""))
+
+# (4) spData
+spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) 
+
+
+aa <- validateModel1.2(targetspecies = c("Alcesalces", "Cervuselaphus"),
+                       independentDensity = santini2022,
+                       dirouts = dirout,
+                       spData = spData,
+                       validationYear = 101)
+
+# plotting the results
+ggplot(aa$independentDensity, aes(x = "", y = meanDensity)) +
+  geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+  geom_point(data = aa$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+  facet_wrap(~ species, scales = "free_y") + 
+  ylab("Independent density estimate (individuals/km2)") +
+  xlab(" ") +
+  ggtitle("Model validation - estimated densities in red") + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+
+##########################
+# VALIDATING ONE SPECIES #
+##########################
 
 # (1) targetspecies
 species_names <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
