@@ -1,5 +1,5 @@
 ## Name: libraries ##
-## Authors: Andre P. Silva ##
+## Authors: Andre P. Silva  & Inês Silva ##
 ## Description: Includes all libraries needed to run the repository ##
 
 library(easypackages)

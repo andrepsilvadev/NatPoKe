@@ -36,9 +36,6 @@
 # 1. Import species traits df
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
-# 2. Define the scenario you are running
-scenario <- "SSP5"
-
 # 2. Clean target biome and region names (removes special characters like /, &, and space)
 target_biome <- gsub("[/& ]", "", target_biome)
 target_region <- gsub("[/& ]", "", target_region)
@@ -397,34 +394,34 @@ sim$add_globals("alive_species" = species_names)
 #   execution_priority = 7
 # )
 
-
-# Saving results
-sim$add_process(
-  process_name = "save_results",
-  process_fun = function() {
-    
-    timesteps_to_save <- c(101, 125)
-    current_timestep <- self$get_current_time_step()
-    
-    if (current_timestep %in% timesteps_to_save) {
-      for (species in species_names) {
-        suffix <- paste0(str_replace_all(target_biome, " ", ""), "_", target_region, "_")
-        save_species(
-          # pass the species object
-          self[[species]],
-          # specify traits we want to save
-          traits = c("abundance"),
-          # a prefix for each time step
-          prefix = paste0(suffix, sprintf("%03d", current_timestep), "_"),
-          # where should it be saved
-          path = dirout,
-          overwrite = TRUE
-        )
-      }
-    }
-  },
-  execution_priority = 7
-)
+# 
+# # Saving results
+# sim$add_process(
+#   process_name = "save_results",
+#   process_fun = function() {
+#     
+#     timesteps_to_save <- c(101, 125)
+#     current_timestep <- self$get_current_time_step()
+#     
+#     if (current_timestep %in% timesteps_to_save) {
+#       for (species in species_names) {
+#         suffix <- paste0(str_replace_all(target_biome, " ", ""), "_", target_region, "_")
+#         save_species(
+#           # pass the species object
+#           self[[species]],
+#           # specify traits we want to save
+#           traits = c("abundance"),
+#           # a prefix for each time step
+#           prefix = paste0(suffix, sprintf("%03d", current_timestep), "_"),
+#           # where should it be saved
+#           path = dirout,
+#           overwrite = TRUE
+#         )
+#       }
+#     }
+#   },
+#   execution_priority = 7
+# )
 
 
 

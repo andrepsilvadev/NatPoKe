@@ -244,7 +244,7 @@ res(species1) # checking initial resolution
 ## at this stage all species shoudl still have the same landscape resolution
 
 ## checking reprojection & conversion to km
-species1_reprojected <- rast(file.path(dirinput, paste0(target_species[2], "_suitability_cropped_modified_reprojectedKm.tif")))
+species1_reprojected <- rast(file.path(dirinput, paste0(target_species[1], "_suitability_cropped_modified_reprojectedKm.tif")))
 plot(species1_reprojected) 
 res(species1_reprojected) # checking new resolution
 

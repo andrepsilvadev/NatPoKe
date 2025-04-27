@@ -8,43 +8,40 @@
 source("./src/libraries.R")            # Load necessary packages
 source("./src/customFunctions.R")      # Load customized functions
 
-runname <- "13April_Europe"   # Unique identifier for the run
+runname <- "23April_Africa"   # Unique identifier for the run
 source("./src/generalSettings.R")      # Load paths and spatial settings
 
 
 # Input Selection --------------------------------------------------------------
+
 ## Select Target Biome (choose one)
-target_biome <- "Boreal Forests/Taiga" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
+target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
 
 ## Select Target Region (choose one)
-target_region <- "Europe" # Options: "North America", "South America", "Europe", "Asia", "Africa"
+target_region <- "Africa" # Options: "North America", "South America", "Europe", "Asia", "Africa"
+
+## Select scenario
+scenario <- "SSP1"
 
 ## Select Target Species (multiple allowed with spaces)
 target_species <- c(
-  "Alces alces",      
-  "Cervus elaphus",
-  "Canis lupus",
-  "Dama dama",
-  "Lynx lynx",
-  "Rangifer tarandus",
-  "Sus scrofa"
+  "Crocuta crocuta",      
+  "Panthera leo"
 )
-# Simply modify or add species names in the list above
-# Options: see https://ulisboa-my.sharepoint.com/:x:/g/personal/misilva_fc_ul_pt/EVOf6YCgWLVBnAWRzyFahPMBWcKv-2TRGKud35fyjf3Kig?e=zraW2t
+# See here possible species options: https://ulisboa-my.sharepoint.com/:x:/g/personal/misilva_fc_ul_pt/EVOf6YCgWLVBnAWRzyFahPMBWcKv-2TRGKud35fyjf3Kig?e=zraW2t
 
-# Load Species Data ------------------------------------------------------------
+# Prepare & Load Species Data --------------------------------------------------
+
 source("./src/mammalMetaRangeSpeciesDataframe.R")
 #species_traits$initialAbundance <- species_traits$initialAbundance*1.05
 # write table to .csv file
 #write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
 
-## load global suitability raster files & crop 
-source("./src/inputFiles.R") 
-# if a species modelling resolution is 1 this will throw a warning. It's ok!
+source("./src/inputFiles.R")
 
-# models -----------------------------------------------------------------------
-#source("./src/mammalModel.R") # run metaRange model for mammals species
-source("./src/mammalModelSpeciesSpecific.R") # run metaRange model for mammals with species specific resolution
+source("./src/mammalModel.R")
+
+#source("./src/mammalModelSpeciesSpecific.R") # run metaRange model for mammals with species specific resolution
 
 # outputs ----------------------------------------------------------------------
 source("./mammalSpeciesSpecificPlots.R") # produce multiple maps (abund, repRate and prop abund change) and model validation plot per species

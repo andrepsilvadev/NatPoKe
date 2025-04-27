@@ -4,13 +4,8 @@
 # Ines Silva
 # 04 Feb 2025
 
-
 ##########
-# Step 1 # Define area and species to model
-##########
-
-##########
-# Step 2 # Import Trait Dataframe 
+# Step 1 # Import Trait Dataframe 
 ##########
 
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
@@ -36,7 +31,7 @@ combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>
   )
 
 ##########
-# STEP 3 # Format dataframe for metaRange
+# Step 2 # Format dataframe for metaRange
 ##########
 
 species_traits <- tibble(
@@ -60,8 +55,8 @@ species_traits <- tibble(
   CellResolution = 3.076948*3.076948,
   # modelling resolution based on the sps mean HomeRange (km)
   ##ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))), # ANDRE'S MODELLING RES
-  ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
-  #ModellingRes = 10,
+  #ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
+  ModellingRes = 10,
   #ProjRes = ModellingRes*1000,
   # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
   initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd)*(ModellingRes^2)), 
