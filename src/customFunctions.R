@@ -1,5 +1,5 @@
 ## Name: Custom functions ##
-## Authors: Andre P. Silva & Jorinde-M. Rieger ##
+## Authors: Andre P. Silva & Jorinde-M. Rieger & Inês Silva ##
 ## Description: Loads all developed customised functions ##
 
 # Function to map ESA LULC values to the 7 LULC types

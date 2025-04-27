@@ -4,6 +4,9 @@
 # Inês Silva
 # 24 April 2025
 
+source("./src/libraries.R")
+source("./src/customFunctions.R")
+
 ##########
 # Step 1 # Import data
 ##########
@@ -14,25 +17,23 @@ TNIND_yr <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoK
 
 # count number of unique species per biome and trophic level
 species_count <- TNIND_yr[, .(n_species = uniqueN(species)), by = .(biome, trophic_level)]
-# now build the caption
-caption_list <- species_count[, {
-  biome_caption <- paste0(n_species, " ", trophic_level, " species")
-  list(biome_text = biome_caption)
-}, by = biome]
 
-# collapse it: one biome, then its trophic levels underneath
+caption_list <- species_count[, {biome_caption <- paste0(n_species, " ", trophic_level, " species")
+                                 list(biome_text = biome_caption)
+                                }, by = biome]
+
+# collapse it: one biome, then trophic levels 
 caption_final <- paste("Boreal Forests/ Taiga - ", caption_list[1,2], ";", caption_list[2,2], ";", caption_list[3,2], ";\n",
                        "Tropical & Subtropical Moist Broadleaf Forests - ", caption_list[4,2], ";", caption_list[5,2])
 
 
 ##########
-# Step 2 # Define burn-in and scenario start + other cosmestic arguments
+# Step 2 # Define burn-in and scenario start + other cosmetic arguments
 ##########
 
 t_burnin <- 100
 t_policy <- 110
 
-#img <- pick_phylopic(name = "Cervus elaphus", n = 10)
 
 # get icons for each taxonomic group plot
 uuid_carnivores <- get_uuid(name = "Panthera leo", n = 5)[[5]]
