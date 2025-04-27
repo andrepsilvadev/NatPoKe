@@ -4,7 +4,7 @@
 
 ------------------------------------------------------------------------
 
-## 🚀 Structure
+## Structure
 
 | Purpose | Key Files |
 |---------------------------------|---------------------------------------|
@@ -17,7 +17,7 @@
 
 ------------------------------------------------------------------------
 
-## 📖 Quick guide
+## Quick guide
 
 `run.R` - this is a master script that runs the entire pipeline (from loading packages up to building plots and maps); here you can specify which biome, region and species to model
 
