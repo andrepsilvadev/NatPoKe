@@ -5,8 +5,8 @@
 ## Date: March 27th 2025 ##
 
 # Settings & libraries -------------------------------------------
-source("./src/libraries.R") # libraries
-source("./src/customFunctions.R") # functions
+source("~/NatPoKe9/src/libraries.R") # libraries
+source("~/NatPoKe9/src/customFunctions.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
@@ -125,7 +125,7 @@ map_values_to_landUse <- function(x) {
     "40" = 4, "50" = 4, "60" = 4, "61" = 4, "62" = 4, "70" = 4, "71" = 4, "72" = 4, "80" = 4, "81" = 4, "82" = 4, "90" = 4, "100" = 4,  # Forest
     "110" = 5, "120" = 5, "121" = 5, "122" = 5, "140" = 5,  # Non-forest vegetation
     "210" = 6,  # Water
-    "150" = 7, "151" = 7, "152" = 7, "153" = 7, "160" = 7, "170" = 7, "180" = 7, "200" = 7, "201" = 7, "202" = 7, "210" = 7, "220" = 7  # Barren or Other
+    "150" = 7, "151" = 7, "152" = 7, "153" = 7, "160" = 7, "170" = 7, "180" = 7, "200" = 7, "201" = 7, "202" = 7, "210" = 7, "220" = 7  # Barren or Other # 210 is also Water should it still be here?
   )
   sapply(x, function(val) {
     if (val %in% names(value_to_landUse)) {
