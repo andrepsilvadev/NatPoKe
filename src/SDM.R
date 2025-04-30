@@ -3,13 +3,7 @@
 ## Description: SDM main function with true species occurence in R ##
 ## Date: April 30th 2025 ##
 
-# Settings & libraries -----------------------------------------------------------------
-source("~/NatPoKe9/src/libraries.R") # libraries
-source("~/NatPoKe9/src/customFunctions.R") # functions
-source("~/NatPoKe9/src/inputClimate.R") # format and reads input raster landscapes
-source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data
-
-# customFunctions.R -----------------------------------------------------------------
+# Functions to format Data and SDM -----------------------------------------------------------------
 
 formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
   # speciesData = species record coordinates with the following format c("species", "latitude", "longitude")
@@ -52,9 +46,6 @@ formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
   write.csv(inputDataFrame,"~/data/data/inputDataFrame.csv", row.names = FALSE)
   return(inputDataFrame)
 }
-
-
-# SDMensembleMultiSpecies Function -----------------------------------------------------------------
 
 SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscapes, predictionLandscapes, biome_name){
   # Create output folder
@@ -380,72 +371,3 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     projectionMetadata = projectionMetadata
   ))
 }
-
-# Load dataset and format species occurence -----------------------------------------------------------------
-# Crop the landscapes to the extent of the biome
-biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
-biome_name <- "Boreal Forests/Taiga"
-
-# Function to load and select the biome shapefile
-load_select_biome <- function(biome_name) {
-  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
-  biome_sf[biome_sf$BIOME_NAME == biome_name, ]}
-
-biome_sf <- load_select_biome(biome_name)
-biome_sp <- vect(biome_sf)
-
-# Function to crop and mask rasters to biome
-crop_mask_raster <- function(raster, biome_sp) {
-  mask(crop(raster, biome_sp), biome_sp)}
-
-# Crop and mask trainingLandscapes to biome extent
-trainingLandscapes <- crop_mask_raster(trainingLandscapes, biome_sp)
-plot(trainingLandscapes)
-
-#### Test with Sweden ####
-
-biome_name <- "Sweden"
-# Load Sweden's shapefile using rnaturalearth
-sweden_sf <- ne_countries(scale = "medium", country = "Sweden", returnclass = "sf")
-sweden_sp <- vect(sweden_sf)  # Convert to SpatVector for terra compatibility
-# Function to crop and mask rasters to Sweden
-crop_mask_raster <- function(raster, sweden_sp) {
-  mask(crop(raster, sweden_sp), sweden_sp)
-}
-# Crop and mask trainingLandscapes to Sweden's extent
-trainingLandscapes <- crop_mask_raster(trainingLandscapes, sweden_sp)
-plot(trainingLandscapes)
-
-# Loop through each predictionLandscapes raster in the list and mask and crop to biome (test extent)
-for (i in seq_along(predictionLandscapes)) {
-  # Crop and mask the raster
-  predictionLandscapes[[i]] <- mask(crop(predictionLandscapes[[i]], sweden_sp), sweden_sp)
-}
-
-print(predictionLandscapes)
-plot(predictionLandscapes[["ssp126_2071-2100"]])
-
-####### 
-
-# Select the name of the studied species
-targetSpecies <- c("Alces alces", "Canis lupus")
-
-# Format species occurence to true presence and NAs with corresponding coordinates
-# test with trainingLandscape
-speciesData <- formatInputDataFrame(
-  speciesData = speciesDataOcc,
-  targetSpecies = targetSpecies, 
-  landscape = trainingLandscapes)
-head(speciesData)
-
-# Run the SDMensembleMultiSpecies function -----------------------------------------------------------------
-
-results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
-                                    speciesData = speciesData,
-                                    trainingLandscapes = trainingLandscapes,
-                                    predictionLandscapes = predictionLandscapes,
-                                    biome_name = biome_name)
-
-# Example of accessing the results
-results$biomodData[["Alces alces"]]
-
