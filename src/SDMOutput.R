@@ -1,26 +1,14 @@
 ## Name: SDMOutput.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: Creates output of SDM results in R ##
-## Date: April 23th 2025 ##
+## Date: April 30th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
-library(easypackages)
-packages("readr","RColorBrewer",
-         "raster", "sp", "sf", "terra", "tidyterra", #geospatial data packages
-         "rworldmap", 
-         "biomod2", "gam","mda", "earth", "maxnet", "ggtext","xgboost","MAXENT", "randomForest", # models
-         "rgbif",  "doParallel", 
-         "rnaturalearth", "rnaturalearthdata", #background global maps
-         "ggpubr",
-         "ggplot2", "gridExtra", "dplyr", "patchwork", # plotting
-         "writexl",
-         prompt = FALSE)
-
-source("./src/libraries.R") # libraries
-source("./src/customFunctions.R") # functions
-source("./scripts/inputClimate.R") # format and reads input raster landscapes
-source("./scripts/inputSpeciesData.R") # format and reads input data
-source("./scripts/SDM.R") # creats SDM results
+source("~/NatPoKe9/src/libraries.R") # libraries
+source("~/NatPoKe9/src/customFunctions.R") # functions
+source("~/NatPoKe9/src/inputClimate.R") # format and reads input raster landscapes
+source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data
+source("~/NatPoKe9/src/SDM.R") # creats SDM results
 
 # SDM evaluation metrics ------------------------------------------------
 # Plot Evaluation Metrics for single models
