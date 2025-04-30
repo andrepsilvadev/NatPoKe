@@ -1,21 +1,9 @@
-## Name: SpeciesDistributionModellingTest ##
+## Name: SDM.R ##
 ## Author: Jorinde-M. Rieger ##
-## Description: test SDM main function with true species occurence in R ##
-## Date: April 10th 2025 ##
+## Description: SDM main function with true species occurence in R ##
+## Date: April 30th 2025 ##
 
-# Settings & libraries -----------------------------------------------------------------
-library(easypackages)
-packages("readr","ggplot2","RColorBrewer",
-         "rworldmap","sp","raster", "gam","mda", "earth", "maxnet", "ggtext","xgboost",
-         "rgbif","biomod2", "dplyr", "doParallel", "MAXENT",
-         "sf", "rnaturalearth", "rnaturalearthdata","terra", "tidyterra", "ggpubr", "randomForest", prompt = FALSE)
-
-source("./src/libraries.R") # libraries
-source("./src/customFunctions.R") # functions
-source("./scripts/inputClimate.R") # format and reads input raster landscapes
-source("./scripts/inputSpeciesData.R") # format and reads input data
-
-# customFunctions.R -----------------------------------------------------------------
+# Functions to format Data and SDM -----------------------------------------------------------------
 
 formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
   # speciesData = species record coordinates with the following format c("species", "latitude", "longitude")
@@ -59,9 +47,6 @@ formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
   return(inputDataFrame)
 }
 
-
-# SDMensemble Function -----------------------------------------------------------------
-
 SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscapes, predictionLandscapes, biome_name){
   # Create output folder
   output_folder <- "~/data/output/SDMensemble"
@@ -70,24 +55,30 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
   }
   
   #Test the function
-  targetSpecies = c("Alces alces", "Canis lupus")
-  species = "Alces alces"
-  speciesData = speciesData
-  trainingLandscapes = trainingLandscapes
-  predictionLandscapes = predictionLandscapes
-  biome_name = "SwedenTest"
+#  targetSpecies = c("Alces alces", "Canis lupus")
+#  species = "Alces alces"
+#  speciesData = speciesData
+#  trainingLandscapes = trainingLandscapes
+#  predictionLandscapes = predictionLandscapes
+#  biome_name = "SwedenTest"
   
   # Initialize lists to store results for each species
   biomodDataList <- list()
   biomodDataPAList <- list()
   biomodModelOutList <- list()
   biomodEMList <- list()
+  currentProjectionsList <- list()
+  biomodECList <- list()
   futureProjectionsList <- list()
   biomodEFList <- list()
   evaluationScores <- data.frame()
   variableImportance <- data.frame()
+  evaluationScoresEM <- data.frame()
+  variableImportanceEM <- data.frame()
   responseCurvesData <- list()
   combinedPlots <- list()
+  responseCurvesDataEM <- list()
+  combinedPlotsEM <- list()
   projectionMetadata <- data.frame()
   
   
@@ -144,8 +135,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
                                         modeling.id = paste0("Model_", species),
                                         models = c('ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
                                         CV.strategy = 'random',
-                                        CV.nb.rep = 2, # 10
-                                        CV.perc = 0.8, # data split, percentage that will be kept for calibaration
+                                        CV.nb.rep = 5, # 10
+                                        CV.perc = 0.7, # data split, percentage that will be kept for calibaration
                                         OPT.strategy = 'bigboss',
                                         var.import = 3,
                                         metric.eval = c('TSS','ROC'))
@@ -190,7 +181,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Generate response curves and save data for individual models
     responseCurves <- bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
-                                            models.chosen = get_built_models(myBiomodModelOut),
+                                            models.chosen = get_built_models(myBiomodModelOut) [c(1:3, 12:14)],
                                             fixed.var = 'median') # 'min'
     responseCurvesData[[species]] <- responseCurves  # Store response curve data
     
@@ -200,7 +191,9 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
       width = 2000,
       height = 1500,
       res = 300)
-    plot(responseCurves)
+    bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
+                               models.chosen = get_built_models(myBiomodModelOut)[c(1:3, 12:14)],
+                               fixed.var = 'median')
     dev.off()
     
     # Store response curve plot objects for later combination
@@ -209,10 +202,10 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     # Building ensemble-models
     myBiomodEM <- BIOMOD_EnsembleModeling(bm.mod = myBiomodModelOut,
                                           models.chosen = 'all',
-                                          em.by = 'all',
+                                          em.by = 'all', #'PA+run'
                                           em.algo = c('EMmean', 'EMcv', 'EMci', 'EMmedian', 'EMca', 'EMwmean'),
                                           metric.select = c('TSS'),
-                                          metric.select.thresh = c(0.4), # no model passed the threshold of 0.7 (suggested by main function)
+                                          metric.select.thresh = c(0.6), # no model passed the threshold of 0.7 (suggested by main function)
                                           metric.eval = c('TSS', 'ROC'),
                                           var.import = 3,
                                           EMci.alpha = 0.05,
@@ -251,7 +244,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Generate response curves and save data for individual models
     responseCurvesEM <- bm_PlotResponseCurves(bm.out = myBiomodEM, 
-                                            models.chosen = get_built_models(myBiomodEM),
+                                            models.chosen = get_built_models(myBiomodEM)[c(1, 6, 7)],
                                             fixed.var = 'median') # 'min'
     responseCurvesDataEM[[species]] <- responseCurvesEM  # Store response curve data
     
@@ -261,11 +254,34 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
       width = 2000,
       height = 1500,
       res = 300)
-    plot(responseCurvesEM)
+    bm_PlotResponseCurves(bm.out = myBiomodEM, 
+                          models.chosen = get_built_models(myBiomodEM)[c(1, 6, 7)],
+                          fixed.var = 'median')
     dev.off()
     
     # Store response curve plot objects for later combination
     combinedPlotsEM[[species]] <- responseCurvesEM
+    
+    # Project current conditions
+    currentProjections <- list()
+    currentProjections <- BIOMOD_Projection(bm.mod = myBiomodModelOut,
+                                      proj.name = 'Current',
+                                      new.env = trainingLandscapes,
+                                      models.chosen = 'all',
+                                      metric.binary = 'TSS',
+                                      metric.filter = 'all',
+                                      build.clamping.mask = TRUE)
+    plot(currentProjections)
+    currentProjectionsList[[species]] <- currentProjections
+    
+    # Project ensemble-models (from single projections) on current variables
+    biomodECList[[species]] <- list()
+    myBiomodEC <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM, 
+                                                 bm.proj = currentProjections,
+                                                 models.chosen = 'all',
+                                                 metric.binary = 'all',
+                                                 metric.filter = 'all')
+    biomodECList[[species]] <- myBiomodEC
     
     # Project onto future conditions
     futureProjections <- list()
@@ -281,7 +297,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     # Store future projections
     futureProjectionsList[[species]] <- futureProjections
     
-    # Make ensemble-models projections on future variables
+    # Project ensemble-models projections on future variables
     biomodEFList[[species]] <- list()
     for (scenario in names(futureProjections)) {
       myBiomodEF <- BIOMOD_EnsembleForecasting(bm.em = myBiomodEM,
@@ -307,14 +323,14 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
       plot(myBiomodEF)
       dev.off()
       
-      # Collect metadata for the projection
+      # Collect metadata for the projection, why does it not work with myBiomodEF?
       projectionMetadata <- rbind(
         projectionMetadata,
         data.frame(
           species = species,
           scenario = scenario,
           rasterFile = rasterFilename,
-          evaluationMetrics = paste(get_evaluations(myBiomodEF), collapse = ";")
+          evaluationMetrics = paste(get_evaluations(myBiomodEM), collapse = ";") # Use myBiomodEM here
         )
       )
     }
@@ -340,82 +356,18 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     biomodDataPA = biomodDataPAList,
     biomodModelOut = biomodModelOutList,
     biomodEM = biomodEMList,
+    currentProjections = currentProjectionsList,
+    biomodEC = biomodECList,
     futureProjections = futureProjectionsList,
     biomodEF = biomodEFList,
     evaluationScores = evaluationScores,
     variableImportance = variableImportance,
+    evaluationScoresEM = evaluationScoresEM,
+    variableImportanceEM = variableImportanceEM,
     responseCurvesData = responseCurvesData,
     combinedPlots = combinedPlots,
+    responseCurvesDataEM = responseCurvesDataEM,
+    combinedPlotsEM = combinedPlotsEM,
     projectionMetadata = projectionMetadata
   ))
 }
-
-# load dataset and variables -----------------------------------------------------------------
-# Crop the landscapes to the extent of the biome
-biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
-biome_name <- "Boreal Forests/Taiga"
-
-# Function to load and select the biome shapefile
-load_select_biome <- function(biome_name) {
-  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
-  biome_sf[biome_sf$BIOME_NAME == biome_name, ]}
-
-biome_sf <- load_select_biome(biome_name)
-biome_sp <- vect(biome_sf)
-
-# Function to crop and mask rasters to biome
-crop_mask_raster <- function(raster, biome_sp) {
-  mask(crop(raster, biome_sp), biome_sp)}
-
-# Crop and mask trainingLandscapes to biome extent
-trainingLandscapes <- crop_mask_raster(trainingLandscapes, biome_sp)
-plot(trainingLandscapes)
-
-#### Test with Sweden ####
-
-biome_name <- "Sweden"
-# Load Sweden's shapefile using rnaturalearth
-library(rnaturalearth)
-library(rnaturalearthdata)
-sweden_sf <- ne_countries(scale = "medium", country = "Sweden", returnclass = "sf")
-sweden_sp <- vect(sweden_sf)  # Convert to SpatVector for terra compatibility
-# Function to crop and mask rasters to Sweden
-crop_mask_raster <- function(raster, sweden_sp) {
-  mask(crop(raster, sweden_sp), sweden_sp)
-}
-# Crop and mask trainingLandscapes to Sweden's extent
-trainingLandscapes <- crop_mask_raster(trainingLandscapes, sweden_sp)
-plot(trainingLandscapes)
-
-# Loop through each predictionLandscapes raster in the list and mask and crop to biome (test extent)
-for (i in seq_along(predictionLandscapes)) {
-  # Crop and mask the raster
-  predictionLandscapes[[i]] <- mask(crop(predictionLandscapes[[i]], sweden_sp), sweden_sp)
-}
-
-print(predictionLandscapes)
-plot(predictionLandscapes[["ssp126_2071-2100"]])
-
-####### 
-
-# Select the name of the studied species
-targetSpecies <- c("Alces alces", "Canis lupus")
-
-# Format species occurence to true presence and NAs with corresonding coordinates
-# test with trainingLandscape
-speciesData <- formatInputDataFrame(
-  speciesData = speciesDataOcc,
-  targetSpecies = targetSpecies, 
-  landscape = trainingLandscapes)
-head(speciesData)
-
-# Run the SEMensemble function
-results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
-                                    speciesData = speciesData,
-                                    trainingLandscapes = trainingLandscapes,
-                                    predictionLandscapes = predictionLandscapes,
-                                    biome_name = biome_name)
-
-# Access results
-results$biomodData[["Alces alces"]]
-
