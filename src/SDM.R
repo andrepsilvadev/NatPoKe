@@ -1,25 +1,13 @@
-## Name: SDMensembleTest ##
+## Name: SDM.R ##
 ## Author: Jorinde-M. Rieger ##
-## Description: test SDM main function with true species occurence in R ##
-## Date: April 23th 2025 ##
+## Description: SDM main function with true species occurence in R ##
+## Date: April 30th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
-library(easypackages)
-packages("readr","RColorBrewer",
-         "raster", "sp", "sf", "terra", "tidyterra", #geospatial data packages
-         "rworldmap", 
-         "biomod2", "gam","mda", "earth", "maxnet", "ggtext","xgboost","MAXENT", "randomForest", # models
-         "rgbif",  "doParallel", 
-         "rnaturalearth", "rnaturalearthdata", #background global maps
-         "ggpubr",
-         "ggplot2", "gridExtra", "dplyr", "patchwork", # plotting
-         "writexl",
-         prompt = FALSE)
-
-source("./src/libraries.R") # libraries
-source("./src/customFunctions.R") # functions
-source("./scripts/inputClimate.R") # format and reads input raster landscapes
-source("./scripts/inputSpeciesData.R") # format and reads input data
+source("~/NatPoKe9/src/libraries.R") # libraries
+source("~/NatPoKe9/src/customFunctions.R") # functions
+source("~/NatPoKe9/src/inputClimate.R") # format and reads input raster landscapes
+source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data
 
 # customFunctions.R -----------------------------------------------------------------
 
@@ -66,7 +54,7 @@ formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
 }
 
 
-# SDMensemble Function -----------------------------------------------------------------
+# SDMensembleMultiSpecies Function -----------------------------------------------------------------
 
 SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscapes, predictionLandscapes, biome_name){
   # Create output folder
@@ -156,8 +144,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
                                         modeling.id = paste0("Model_", species),
                                         models = c('ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
                                         CV.strategy = 'random',
-                                        CV.nb.rep = 2, # 10
-                                        CV.perc = 0.8, # data split, percentage that will be kept for calibaration
+                                        CV.nb.rep = 5, # 10
+                                        CV.perc = 0.7, # data split, percentage that will be kept for calibaration
                                         OPT.strategy = 'bigboss',
                                         var.import = 3,
                                         metric.eval = c('TSS','ROC'))
@@ -226,7 +214,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
                                           em.by = 'all', #'PA+run'
                                           em.algo = c('EMmean', 'EMcv', 'EMci', 'EMmedian', 'EMca', 'EMwmean'),
                                           metric.select = c('TSS'),
-                                          metric.select.thresh = c(0.4), # no model passed the threshold of 0.7 (suggested by main function)
+                                          metric.select.thresh = c(0.6), # no model passed the threshold of 0.7 (suggested by main function)
                                           metric.eval = c('TSS', 'ROC'),
                                           var.import = 3,
                                           EMci.alpha = 0.05,
@@ -393,7 +381,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
   ))
 }
 
-# load dataset and variables -----------------------------------------------------------------
+# Load dataset and format species occurence -----------------------------------------------------------------
 # Crop the landscapes to the extent of the biome
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
 biome_name <- "Boreal Forests/Taiga"
@@ -442,7 +430,7 @@ plot(predictionLandscapes[["ssp126_2071-2100"]])
 # Select the name of the studied species
 targetSpecies <- c("Alces alces", "Canis lupus")
 
-# Format species occurence to true presence and NAs with corresonding coordinates
+# Format species occurence to true presence and NAs with corresponding coordinates
 # test with trainingLandscape
 speciesData <- formatInputDataFrame(
   speciesData = speciesDataOcc,
@@ -450,13 +438,14 @@ speciesData <- formatInputDataFrame(
   landscape = trainingLandscapes)
 head(speciesData)
 
-# Run the SEMensemble function
+# Run the SDMensembleMultiSpecies function -----------------------------------------------------------------
+
 results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
                                     speciesData = speciesData,
                                     trainingLandscapes = trainingLandscapes,
                                     predictionLandscapes = predictionLandscapes,
                                     biome_name = biome_name)
 
-# Access results
+# Example of accessing the results
 results$biomodData[["Alces alces"]]
 
