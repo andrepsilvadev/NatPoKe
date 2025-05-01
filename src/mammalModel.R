@@ -53,9 +53,9 @@ set_verbosity(2L) # 0L = silent, 1L = progress updates, 2L =  debug
 options(scipen = 999) # prevents use of scientific notation for large numbers
 set.seed(1) # reproducibility
 
-# For each species, create an empty raster and store in a named list
-cumulative_abundance <- lapply(target_species, function(sp) mean_abundance <- matrix(0, 763, 671))
-names(cumulative_abundance) <- target_species
+# # For each species, create an empty raster and store in a named list
+# cumulative_abundance <- lapply(target_species, function(sp) mean_abundance <- matrix(0, 763, 671))
+# names(cumulative_abundance) <- target_species
 
 ##########
 # Step 2 # RUN THE METARANGE MODEL FOR MAMMAL SPECIES
@@ -246,11 +246,16 @@ sim$add_globals("alive_species" = species_names)
     # setting a simulation name
     sim_name <- paste0(str_replace_all(target_biome, " ", ""), "_", target_region, "_Mammals_")
     
-    # saving results of one random run (when current replicate number is the same as the random number defined in the beggining)
+    # Saving results
     sim$add_process(
-      process_name = "saving_traits",
+      process_name = "save_results",
       process_fun = function() {
-        if (as.integer(replicateN) == as.integer(sim$ID)){
+
+        timesteps_to_save <- c(101, 125)
+        current_timestep <- self$get_current_time_step()
+        
+      if (as.integer(replicateN) == as.integer(sim$ID)){
+        if (current_timestep %in% timesteps_to_save) {
           for (species in species_names) {
             results_paths <- save_species(
               # pass the species object
@@ -258,7 +263,7 @@ sim$add_globals("alive_species" = species_names)
               # specify traits we want to save
               traits = c("abundance", "reproductionRate", "dispersal_change"),
               # a prefix for each time step
-              prefix = paste0(sim_name, sprintf("%03d", self$get_current_time_step()), "_"),
+              prefix = paste0(sim_name, sprintf("%03d", current_timestep), "_"),
               # where should it be saved
               path = dirout,
               overwrite = TRUE
@@ -266,9 +271,36 @@ sim$add_globals("alive_species" = species_names)
             self$globals$results_paths <- c(self$globals$results_paths, results_paths)
           }
         }
-      },
+      }
+    },
       execution_priority = 7
     )
+    
+    # # saving results of one random run (when current replicate number is the same as the random number defined in the beggining)
+    # sim$add_process(
+    #   process_name = "saving_traits",
+    #   process_fun = function() {
+    #     if (as.integer(replicateN) == as.integer(sim$ID)){
+    #       for (species in species_names) {
+    #         results_paths <- save_species(
+    #           # pass the species object
+    #           self[[species]],
+    #           # specify traits we want to save
+    #           traits = c("abundance", "reproductionRate", "dispersal_change"),
+    #           # a prefix for each time step
+    #           prefix = paste0(sim_name, sprintf("%03d", self$get_current_time_step()), "_"),
+    #           # where should it be saved
+    #           path = dirout,
+    #           overwrite = TRUE
+    #         )
+    #         self$globals$results_paths <- c(self$globals$results_paths, results_paths)
+    #       }
+    #     }
+    #   },
+    #   execution_priority = 7
+    # )
+    
+    
     # sim$add_process(
     #   species = species_names,
     #   process_name = "accumulate_abundance",
