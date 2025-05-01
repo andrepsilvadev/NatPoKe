@@ -7,20 +7,20 @@
 # Define multiple pairs of input and output directories
 directory_pairs <- list(
   # Europe
-  EuropeSSP1 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Europe/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Europe/Outputs"),
-  EuropeSSP5 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs"),
+  EuropeSSP1 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Europe/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Europe/Outputs"),
+  EuropeSSP5 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs"),
   # North America
-  NorthAmericaSSP1 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_NorthAmerica/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_NorthAmerica/Outputs"),
-  NorthAmericaSSP5 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs"),
+  NorthAmericaSSP1 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_NorthAmerica/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_NorthAmerica/Outputs"),
+  NorthAmericaSSP5 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs"),
   # South America
-  SouthAmericaSSP1 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_SouthAmerica/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_SouthAmerica/Outputs"),
-  SouthAmericaSSP5 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs"),
+  SouthAmericaSSP1 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_SouthAmerica/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_SouthAmerica/Outputs"),
+  SouthAmericaSSP5 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs"),
   # Africa
-  AfricaSSP1 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Africa/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Africa/Outputs"),
-  AfricaSS5 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs"),
+  AfricaSSP1 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Africa/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Africa/Outputs"),
+  AfricaSS5 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs"),
   # Asia
-  AsiaSSP1 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Asia/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Asia/Outputs"),
-  AsiaSSP5 = c(input = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Inputs", output = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs")
+  AsiaSSP1 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Asia/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Asia/Outputs"),
+  AsiaSSP5 = c(input = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Inputs", output = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs")
   )
 
 # start an empty list (for results dfs)
@@ -37,7 +37,7 @@ for (name in names(directory_pairs)) {
     dplyr::pull(Species)
   
   # (2) get independentDensity
-  santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
+  santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
     mutate(Species = str_replace_all(Species, " ", ""))
   
   # (3) get spData (modelling resolution)
@@ -82,7 +82,7 @@ for (plot_data in plot_data_list) {
     facet_wrap(~ species, scales = "free_y", labeller = labeller(species = pretty_species_names)) +
     ylab(expression("Independent density estimate (individuals/km"^2*")")) +
     xlab(" ") +
-    ggtitle(paste("Model validation", plot_name, "scenario")) +
+    ggtitle(" ") +
     theme_minimal() +
     theme(axis.text.x = element_blank(),
           axis.ticks.x = element_blank(),
@@ -91,9 +91,11 @@ for (plot_data in plot_data_list) {
   print(plot_output) # see the plot
   
   # to save the plots
-  ggsave(filename = paste0("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/figures_20250427/SupplementaryFigure_validation_plot_", plot_name, ".tiff"),
+  ggsave(filename = paste0("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/figures_20250427/SupplementaryFigure_validation_plot_", plot_name, ".png"),
          plot_output, # plot
-         bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+         bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200,
+         #compression = "lzw"
+         ) # image parameters
 }
 
 

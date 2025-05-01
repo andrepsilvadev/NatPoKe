@@ -12,7 +12,7 @@ source("./src/customFunctions.R")
 ##########
 
 # all runs were previously compiled into one .csv file stored in the outputs folder
-TNIND_yr <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/completeRunApril2025.csv")
+TNIND_yr <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/completeRunApril2025.csv")
 
 
 # count number of unique species per biome and trophic level
@@ -98,7 +98,7 @@ option1 <- ggplot(data = Shannon_index, aes(x = timestep, y = Shannon_Wiener_Ind
                      axes = "x", switch = "y", labeller = labeller(biome = as_labeller(biome_names))) +
   labs(#title = "Shannon's Index over time",
        x = "Time",
-       y = "Metric value",
+       y = "Shannon-Wiener index",
        caption = caption_final) +
   scale_color_manual("Socio-economic\nscenario", values = custom_colors) +
   geom_phylopic(data = icon_positions_shannon, aes(x = x, y = y, uuid = phylopic), 
@@ -127,9 +127,11 @@ option1 <- ggplot(data = Shannon_index, aes(x = timestep, y = Shannon_Wiener_Ind
     plot.margin = unit(c(0, 0.5, 0, 0.5), "cm")) +
   geom_vline(xintercept = t_policy, linetype = "dotted", color = "black", size = 0.8)
 
-ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/figures_20250427/Figure2.tiff", # path
+ggsave(filename = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/figures_20250427/Figure2.png", # path
        option1, # plot
-       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200,
+       #compression = "lzw"
+       ) # image parameters
 
 
 ############

@@ -14,7 +14,7 @@ source("./src/customFunctions.R")
 # Boreal Forests ---------------------------------------------------------------
 
 ## Europe SSP5
-europe_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
+europe_SSP5 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv") %>% 
   mutate(scenario = "SSP5",
          Biome = case_when(Biome == "Boreal Forests Taiga" ~ "BorealForestsTaiga"),
          Region = "Europe")
@@ -22,17 +22,17 @@ europe_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/Nat
 colnames(europe_SSP5) <- c("TNIND", "biome", "region", "species", "timestep", "scenario")
 
 ## Europe SSP1
-europe_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Europe/Outputs/TNIND_yr_23April_Europe.csv") %>% 
+europe_SSP1 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Europe/Outputs/TNIND_yr_23April_Europe.csv") %>% 
   dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario")
 
 
 ## North America SSP5
-northamerica_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
+northamerica_SSP5 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv") %>% 
   mutate(scenario = "SSP5",
          biome = case_when(biome == "oreal Forests Taiga" ~ "BorealForestsTaiga")) 
 
 ## North America SSP1
-northamerica_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_NorthAmerica/Outputs/TNIND_yr_23April_NorthAmerica.csv") %>% 
+northamerica_SSP1 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_NorthAmerica/Outputs/TNIND_yr_23April_NorthAmerica.csv") %>% 
   dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario") %>% 
   mutate(scenario = "SSP1")
 
@@ -40,32 +40,32 @@ northamerica_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/AND
 # Tropical Moist Forests -------------------------------------------------------
 
 ## Asia SSP5
-asia_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
+asia_SSP5 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv") %>% 
   mutate(scenario = "SSP5",
          biome = case_when(biome == "Tropical Subtropical Moist Broadleaf Forests" ~ "TropicalSubtropicalMoistBroadleafForests"))
 
 ## Asia SSP1
-asia_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Asia/Outputs/TNIND_yr_23April_Asia.csv") %>% 
+asia_SSP1 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Asia/Outputs/TNIND_yr_23April_Asia.csv") %>% 
   dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario")%>% 
   mutate(scenario = "SSP1")
 
 
 ## Africa SSP5
-africa_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
+africa_SSP5 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv") %>% 
   mutate(scenario = "SSP5",
          biome = case_when(biome == "Tropical Subtropical Moist Broadleaf Forests" ~ "TropicalSubtropicalMoistBroadleafForests"))
 ## Africa SSP1
-africa_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_Africa/Outputs/TNIND_yr_23April_Africa.csv") %>% 
+africa_SSP1 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_Africa/Outputs/TNIND_yr_23April_Africa.csv") %>% 
   dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario")%>% 
   mutate(scenario = "SSP1")
 
 
 
 ## South America SSP5
-southamerica_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
+southamerica_SSP5 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv") %>% 
   mutate(scenario = "SSP5")
 ## South America SSP1
-southamerica_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/23April_SouthAmerica/Outputs/TNIND_yr_23April_SouthAmerica.csv") %>% 
+southamerica_SSP1 <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/23April_SouthAmerica/Outputs/TNIND_yr_23April_SouthAmerica.csv") %>% 
   dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario")%>% 
   mutate(scenario = "SSP1")
 
@@ -87,7 +87,7 @@ TNIND_yr <- do.call("rbind", datasets)
 ##########
 # Step 3 # Get correspondence between species names and functional group
 ##########
-combined_traits_data <- read_csv("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/NatPoKe/data/mammalTraits_2025-03-17.csv") %>% 
+combined_traits_data <- read_csv("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/NatPoKe/data/mammalTraits_2025-03-17.csv") %>% 
   #read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
   mutate(
@@ -113,10 +113,10 @@ TNIND_yr <- TNIND_yr %>%
            "biome" = "BIOME_NAME", # keep biome & continent here or a many-to-many warning will appear
            "region" = "CONTINENT")
   )
-#C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/NatPoKe/data/mammalTraits_2025-03-17.csv
+#C:/Users/User/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/NatPoKe/data/mammalTraits_2025-03-17.csv
 # write complete dataset into .csv to facilitate usage downstream
 write_csv(TNIND_yr, 
-          file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/completeRunApril2025.csv")
+          file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/completeRunApril2025.csv")
 
 ##########
 # Step 4 # Calculate metrics
@@ -200,7 +200,7 @@ stability_avg_long <- stability_avg %>%
 ##########
 
 # new facet label names
-metric.labs <- c("Impact (units)", "Recovery (units)", "Time to Impact (years)" , "Time to recovery (years)")
+metric.labs <- c("Impact\n (proportion of individuals lost)", "Recovery\n (proportion of individuals recovered)", "Time to Impact (years)" , "Time to recovery (years)")
 names(metric.labs) <- c("impact",
                         "recovery",
                         "timeimpact",
@@ -247,10 +247,49 @@ figure1
 invisible(gc())
 
 
-ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/figures_20250427/Figure1.tiff", # path
+ggsave(filename = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/figures_20250427/Figure1.png", # path
        figure1, # plot
-       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, compression = "lzw") # image parameters
+       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, #compression = "lzw"
+       ) # image parameters
 
+# Updated plot
+supfigure1 <- stability_avg_long %>%
+  dplyr::filter(metric %in% c("timeimpact", "timerecovery")) %>%
+  ggplot(aes(x = trophic_level , y = avg, fill = scenario)) +
+  geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
+  geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
+  facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs, biome = biome_names), switch = "y") +
+  geom_hline(yintercept = 0) +
+  # use custom colors for taxa
+  scale_fill_manual("Socio-economic\nscenario", values = custom_colors) +
+  ylab("") +
+  xlab("") +
+  theme_minimal() +
+  theme(
+    # remove gridlines 
+    panel.grid = element_blank(),
+    # add subtle horizontal lines 
+    panel.grid.major.y = element_line(color = "gray90", linetype = "dashed"),
+    # modify facet labels
+    strip.text = element_text(face = "bold", size = rel(1)),
+    strip.placement = "outside",
+    # adjust legend
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold"),
+    # modify y & x-axis text
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    axis.title = element_text(face = "bold", margin = margin(t = 20, r = 0, b = 0, l = 0)),
+    # remove panel borders
+    panel.border = element_blank(),
+    panel.spacing.x = unit(1, "lines"),
+    panel.spacing.y = unit(2, "lines"))
+supfigure1
+invisible(gc())
+
+ggsave(filename = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/figures_20250427/SupFigure1.png", # path
+       supfigure1, # plot
+       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, #compression = "lzw"
+) # image parameters
 
 
 # maybe (just maybe) we can go bacj to get the radial plot??
