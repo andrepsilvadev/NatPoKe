@@ -14,8 +14,8 @@ scenarios <- c("rcp26_ssp1", "rcp85_ssp5")
 scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
 
 # Simplify and define ESA LULC types (39) to the 7 (SEALS) LULC types
-# Source of ESA LULC simplification scheme in Table S.2.4.1 of Supporting Information Appendix in Johnson et al. 2023 
-# (https://www.pnas.org/doi/10.1073/pnas.2220401120#supplementary-materials)
+# ESA LULC simplification scheme based on  Johnson, J. A., & Thakrar, S., (2024)
+# (Code availability: https://github.com/jandrewjohnson/seals)
 LULC_Types <- 1:7
 LULC_Types_names <- c(
   "Urban",
@@ -120,12 +120,12 @@ stack_rasters <- function(year) {
 map_values_to_landUse <- function(x) {
   value_to_landUse <- list(
     "190" = 1,  # Urban
-    "10" = 2, "11" = 2, "12" = 2, "20" = 2, "30" = 2,  # Cropland
+    "10" = 2, "11" = 2, "12" = 2, "20" = 2, "30" = 2, "40" = 2,   # Cropland
     "130" = 3,  # Pasture/Grassland
-    "40" = 4, "50" = 4, "60" = 4, "61" = 4, "62" = 4, "70" = 4, "71" = 4, "72" = 4, "80" = 4, "81" = 4, "82" = 4, "90" = 4, "100" = 4,  # Forest
-    "110" = 5, "120" = 5, "121" = 5, "122" = 5, "140" = 5,  # Non-forest vegetation
+    "50" = 4, "60" = 4, "61" = 4, "62" = 4, "70" = 4, "71" = 4, "72" = 4, "80" = 4, "81" = 4, "82" = 4, "90" = 4, "100" = 4, "151" = 4, "160" = 4, "170" = 4, # Forest
+    "110" = 5, "120" = 5, "121" = 5, "122" = 5, "140" = 5, "150" = 5, "152" = 5, "153" = 5, "180" = 5,  # Non-forest vegetation
     "210" = 6,  # Water
-    "150" = 7, "151" = 7, "152" = 7, "153" = 7, "160" = 7, "170" = 7, "180" = 7, "200" = 7, "201" = 7, "202" = 7, "210" = 7, "220" = 7  # Barren or Other # 210 is also Water should it still be here?
+    "200" = 7, "201" = 7, "202" = 7, "220" = 7  # Barren or Other
   )
   sapply(x, function(val) {
     if (val %in% names(value_to_landUse)) {
