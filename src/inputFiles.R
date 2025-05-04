@@ -12,6 +12,15 @@
 target_species <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv")) %>% 
   dplyr::pull(Species)
 
+# match target region and CRS
+# match target region and CRS
+targetRegionCRS <- ifelse(target_region == "Europe", "EPSG:3035",
+                          ifelse(target_region == "North America", "EPSG:10598",
+                                 ifelse(target_region == "Africa", "EPSG:27701",
+                                        ifelse(target_region == "South America", "EPSG:10603",
+                                               ifelse(target_region == "Asia", "EPSG:10594",
+                                                      NA)))))
+
 ##########
 # Step 2 # Retrieve Global Suitability Landscapes from Google drive 
 ##########
@@ -167,7 +176,7 @@ for (landscape in landscapes) {
   r <- rast(landscape)
   
   # reproject to SWEREF99 TM (EPSG:3006) 
-  r_utm <- project(r, "ESRI:54030")
+  r_utm <- project(r, targetRegionCRS)
   
   # convert to rasterStack
   r_raster <- stack(r_utm)

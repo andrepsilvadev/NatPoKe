@@ -866,7 +866,10 @@ avg_dispersal_plot
 
 ## Model validation
 
-To determine whether the model accurately represents the behavior of the real system being modeled, we can compare the estimated abundance for our target species with an external source dataset. In this case used the dataset from [Santini et. al 2022](https://onlinelibrary.wiley.com/doi/full/10.1111/geb.13476) and a user defined function, which takes as inputs:
+
+# Model Validation
+
+To determine whether the model accurately represents the behavior of the real system being modeled, we can compare the estimated abundance for our target species with an external source dataset. In this case, we used the dataset from [Santini et. al 2022](https://onlinelibrary.wiley.com/doi/full/10.1111/geb.13476) and a user defined function, which takes as inputs:
 
 -   targetspecies: Vector of species names for which the validation will be performed
 
