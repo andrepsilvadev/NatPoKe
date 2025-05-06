@@ -2,7 +2,8 @@
 .Rproj.user
 .Rhistory
 .RData
-.Ruserdata
+.Rproj
 
-# Ignore R Markdown output
-*_files/
+# Ignore deleteLater folder
+src/deleteLater/
+data/Ecoregions2017/
