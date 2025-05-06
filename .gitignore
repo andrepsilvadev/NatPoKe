@@ -1,0 +1,8 @@
+# Ignore R session files
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Ignore R Markdown output
+*_files/
