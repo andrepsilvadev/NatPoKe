@@ -12,7 +12,7 @@ source("./src/customFunctions.R")
 ##########
 
 # all runs were previously compiled into one .csv file stored in the outputs folder
-TNIND_yr <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/completeRunApril2025.csv")
+TNIND_yr <- fread("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/completeRunApril2025.csv")
 
 
 # count number of unique species per biome and trophic level
@@ -38,22 +38,6 @@ biome_names <- c("BorealForestsTaiga" = "Boreal Forests Taiga",
 # prep custom color palette
 custom_colors <- c("SSP5" = "#ffab27", "SSP1" = "#99cc00")
 
-# get the top-right corner coordinates for each *TOP* facet only
-icon_positions_shannon <- Shannon_index %>%
-  group_by(biome, trophic_level) %>%
-  summarise(x = max(timestep) - 2, # xx coordinate
-            y = 1.3 ) # yy coordinate, max(Shannon)
-  ungroup() %>% 
-  # add the PhyloPic UUIDs to the positions
-  mutate(phylopic = case_when(
-    biome == "TropicalSubtropicalMoistBroadleafForests" ~ NA_character_,  # if Tropical biome, no icon (NA)
-    trophic_level == "Carnivore" ~ uuid_carnivores,
-    trophic_level == "Herbivore" ~ uuid_herbivores,
-    trophic_level == "Omnivore" ~ uuid_omnivores
-  )) %>%
-  left_join(species_count, by = c("biome", "trophic_level"))
-
-
 ##########
 # Step 3 # Calculate Community metric (Shannon Diversity)
 ##########
@@ -71,9 +55,26 @@ invisible(gc())
 
 # if adding more variables we need to transform from wide to long format
 
+
 ##########
 # Step 4 # Build plot
 ##########
+
+# get the top-right corner coordinates for each *TOP* facet only
+icon_positions_shannon <- Shannon_index %>%
+  group_by(biome, trophic_level) %>%
+  summarise(x = max(timestep) - 2, # xx coordinate
+            y = 1.3 ) # yy coordinate, max(Shannon)
+ungroup() %>% 
+  # add the PhyloPic UUIDs to the positions
+  mutate(phylopic = case_when(
+    biome == "TropicalSubtropicalMoistBroadleafForests" ~ NA_character_,  # if Tropical biome, no icon (NA)
+    trophic_level == "Carnivore" ~ uuid_carnivores,
+    trophic_level == "Herbivore" ~ uuid_herbivores,
+    trophic_level == "Omnivore" ~ uuid_omnivores
+  )) %>%
+  left_join(species_count, by = c("biome", "trophic_level"))
+
   
 ShannonOverTime <- ggplot(data = Shannon_index,
        aes(x = timestep, y = Shannon_Wiener_Index, color = scenario)) +
@@ -116,3 +117,13 @@ ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoK
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200,
        #compression = "lzw"
        ) # image parameters
+
+# AUXILARY TABLE FOR FIGURE 2
+Shannon_index_DF <- Shannon_index %>%
+  group_by(scenario, biome, trophic_level) %>% 
+  mutate(Shannon_Index_change_pct = ((Shannon_Wiener_Index - Shannon_Wiener_Index[timestep == 100])/Shannon_Wiener_Index[timestep == 100])*100) %>% 
+  dplyr::filter(timestep == 125)
+
+write.csv(Shannon_index_DF,
+          file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/ShannonIndexChange.csv",
+          row.names = FALSE)         

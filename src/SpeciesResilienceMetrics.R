@@ -11,7 +11,7 @@ source("./src/customFunctions.R")
 # Step 1 # Get all the data
 ##########
 
-runsFolder <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs"
+runsFolder <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs"
 
 
 # Boreal Forests ---------------------------------------------------------------
@@ -97,23 +97,9 @@ invisible(gc())
 # Step 3 # Get correspondence between species names and functional group
 ##########
 
-combined_traits_data <- read_csv("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/NatPoKe/data/mammalTraits_2025-03-17.csv") %>% 
-  #read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
-  dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
-  mutate(
-    BIOME_NAME = gsub("[/& ]", "", BIOME_NAME),
-    CONTINENT = gsub("[/& ]", "", CONTINENT),
-    Trophic = case_when(
-    # based on Schloss 2012
-    Diet.Meat >= 90 ~ "Carnivore",
-    Diet.Plant >= 90 ~ "Herbivore",
-    TRUE ~ NA_character_),
-    trophic_level = case_when(
-      # from original database
-      trophic_level == 1 ~ "Herbivore",
-      trophic_level == 2 ~ "Omnivore",
-      trophic_level == 3 ~ "Carnivore",
-      TRUE ~ as.character(trophic_level)))
+# retrieve trait data for trophic level, continent and biome info
+combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
+  dplyr::filter(BIOME_NAME %in%  gsub("[/& ]", "", c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"))) 
 
 TNIND_yr <- TNIND_yr %>% 
   mutate(species = pretty_species_names(species)) %>% # if running twice it throws a warning - It's ok!
@@ -123,10 +109,11 @@ TNIND_yr <- TNIND_yr %>%
            "biome" = "BIOME_NAME", # keep biome & continent here or a many-to-many warning will appear
            "region" = "CONTINENT")
   )
-#C:/Users/User/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/NatPoKe/data/mammalTraits_2025-03-17.csv
+
+
 # write complete dataset into .csv to facilitate usage downstream
-write_csv(TNIND_yr, 
-          file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/completeRunApril2025.csv")
+#write_csv(TNIND_yr, 
+ #         file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/completeRunApril2025.csv")
 
 ##########
 # Step 4 # Calculate metrics
@@ -181,10 +168,10 @@ stability_sps <- TNIND_yr %>%
                            NA),
          time_recovery = recovery_year_Post - t_policy)
 
-# write metrics per species to csv file
+# write metrics per species to csv file (Table X - supports **FIGURE 1**)
 write.csv(stability_sps %>% 
-            dplyr::select(biome, scenario, species, trophic_level, impact, time_impact, recovery, time_recovery),
-          file = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/resilienceMetricsPerSpecies.csv",
+            dplyr::select(biome, scenario, species, trophic_level, mean_Post, mean_Pre, impact, time_impact, recovery, time_recovery),
+          file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/resilienceMetricsPerSpecies.csv",
           row.names = FALSE)
 invisible(gc())
 
@@ -225,7 +212,7 @@ biome_names <- c("BorealForestsTaiga" = "Boreal Forests Taiga", "TropicalSubtrop
 # Custom color palette
 custom_colors <- c("SSP5" = "#ffab27", "SSP1" = "#99cc00")
 
-# Updated plot
+# Updated plot (**FIGURE 1**)
 figure1 <- stability_avg_long %>%
   dplyr::filter(metric %in% c("impact", "recovery")) %>%
   ggplot(aes(x = trophic_level , y = avg, fill = scenario)) +
@@ -259,7 +246,7 @@ figure1 <- stability_avg_long %>%
 figure1
 invisible(gc())
 
-ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/figures_20250427/Figure1.png", # path
+ggsave(filename = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/figures_20250427/Figure1.png", # path
        figure1, # plot
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, #compression = "lzw"
        ) # image parameters
@@ -269,7 +256,7 @@ ggsave(filename = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoK
 ##########
 
 
-# Updated plot
+# Updated plot (**SUPPLEMENTARY FIGURE 1**)
 supfigure1 <- stability_avg_long %>%
   dplyr::filter(metric %in% c("timeimpact", "timerecovery")) %>%
   ggplot(aes(x = trophic_level , y = avg, fill = scenario)) +

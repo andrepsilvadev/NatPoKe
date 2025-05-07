@@ -30,7 +30,9 @@ easypackages::packages(
     "dplyr",
     "tidyverse",
     "ggplot2",
+    "ggh4x",
     "stringr",
+    "grr",
     "tibble",
     "tidyterra",
     "tidyr",
@@ -41,6 +43,9 @@ easypackages::packages(
     "gridExtra",
     "patchwork",
     "RColorBrewer",
+     "crayon",
+  "HomeRange",
+  "naniar",
   
   prompt = FALSE)
 
