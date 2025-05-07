@@ -1,12 +1,7 @@
-# Src folder - NatPoKe
-
-[![Master Script](https://img.shields.io/badge/src-source-blue)](https://github.com/andrepsilvadev/NatPoKe/blob/8cb276119a3c2ad5cd751932f9ee613dd05304fc/src/run.R) [![Input Data](https://img.shields.io/badge/input-data-green)](#0) [![Models: Mammals](https://img.shields.io/badge/_Models-🦣_Mammals-yellow?style=flat&labelColor=grey)](https://github.com/andrepsilvadev/NatPoKe/blob/8cb276119a3c2ad5cd751932f9ee613dd05304fc/src/mammalModel.R) [![Figures & Maps](https://img.shields.io/badge/visualizations-figures-orange)](#0) [![Validation](https://img.shields.io/badge/validation-modelValidation-red)](https://github.com/andrepsilvadev/NatPoKe/blob/8cb276119a3c2ad5cd751932f9ee613dd05304fc/src/modelValidation.R)
-
-------------------------------------------------------------------------
-
-## Structure
-
-`run.R` - this is a master script that runs the entire pipeline (from loading packages up to building plots and maps); here you can specify which biome, region and species to model
+# Src folder structure
+<br>
+ 
+ - `run.R` - this is a master script that runs the entire pipeline (from loading packages up to building plots and maps); here you can specify which biome, region and species to model
 
 **Environment setup**
 
@@ -60,15 +55,6 @@
 
 [![Models: Mammals](https://img.shields.io/badge/_Models-🦣_Mammals-yellow?style=flat&labelColor=grey)](#mammals-model) [![🕊 Birds](https://img.shields.io/badge/🐦_Birds-blue?style=flat)](#birds-model) [![🌳 Trees](https://img.shields.io/badge/🌳_Trees-green?style=flat)](#trees-model) \# extra button for the future
 
-# lixo - 
-| Purpose | Key Files |
-|---------------------------------|---------------------------------------|
-| Run complete pipeline | `run.R` |
-| Environment setup | `generalSettings.R`, `libraries.R`, `customFunctions.R` |
-| Input data preparation | `mammalMetaRangeSpeciesDataframe.R`, `inputFiles.R` |
-| Species modelling | `mammalModelSpecificRes.R` `mammalModel.R`  |
-| Visualizations | `mammalSpeciesSpecificPlots.R`, `speciesResilienceMetrics.R`, `communityMetrics.R`, `updatedSpatiallyExplicitMaps.R` |
-| Validation & Sensitivity Analysis | `modelValidation.R`, `updatedSensitivityAnalysis.R` |
 
  - `mammalModelSpecificRes.R` - runs the metaRange model for mammals with species specific resolution (which is based on species Mean Home Range)
 
