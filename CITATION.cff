@@ -12,19 +12,19 @@ authors:
   - given-names: André Pinto
     family-names: Silva
     email: andre.pinto.da.silva@su.se
-    affiliation: >-
+    affiliation: -
       Stockholm Resilience Centre, Stockholm University,
       SE-106 91, Sweden
     orcid: 'https://orcid.org/0000-0002-4722-8497'
   - given-names: Maria Inês
     family-names: Silva
     email: misilva@ciencias.ulisboa.pt
-    affiliation: >-
+    affiliations: -
       MARE – Marine and Environmental Sciences Centre &
       ARNET – Aquatic Research Network, Faculdade de
       Ciências, Universidade de Lisboa, Campo Grande,
       1749-016, Lisboa, Portugal
->- Stockholm Resilience Centre, Stockholm University,
+- Stockholm Resilience Centre, Stockholm University,
       SE-106 91, Sweden
     orcid: 'https://orcid.org/0009-0009-4578-7381'
 keywords:
