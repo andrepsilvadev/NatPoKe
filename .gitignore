@@ -5,5 +5,5 @@
 .Rproj
 
 # Ignore deleteLater folder
-src/deleteLater/
+src/deprecatedScripts/
 data/Ecoregions2017/
