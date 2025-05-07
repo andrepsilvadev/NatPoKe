@@ -168,7 +168,7 @@ stability_sps <- TNIND_yr %>%
                            NA),
          time_recovery = recovery_year_Post - t_policy)
 
-# write metrics per species to csv file (Table X - supports **FIGURE 1**)
+# write metrics per species to csv file (SUPPLEMENTARY TABLE X)
 write.csv(stability_sps %>% 
             dplyr::select(biome, scenario, species, trophic_level, mean_Post, mean_Pre, impact, time_impact, recovery, time_recovery),
           file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/resilienceMetricsPerSpecies.csv",
@@ -188,6 +188,23 @@ stability_avg <- stability_sps %>%
     timerecovery_avg = mean(time_recovery, na.rm = TRUE),
     timerecovery_sd = sd(time_recovery, na.rm = TRUE)
   )
+invisible(gc())
+
+# new column labels
+lookup <- c("impact_avg" = "Mean Impact",
+            "impact_sd" = "Impact SD",
+            "recovery_avg" = "Mean Recovery",
+            "recovery_sd" = "Recovery SD",
+            "timeimpact_avg" = "Mean Time to Impact",
+            "timeimpact_sd" = "Time to Impact SD",
+            "timerecovery_avg" = "Mean Time to Recovery",
+            "timerecovery_sd" = "Time to Recovery SD")
+
+# (Table x to support **FIGURE 1**)
+write.csv(stability_avg %>%
+    rename_with(~ lookup[.x], .cols = names(lookup)),
+          file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/resilienceMetricsAveraged.csv",
+          row.names = FALSE)
 invisible(gc())
 
 # transform into long format for plots -----------------------------------------
@@ -295,5 +312,3 @@ ggsave(filename = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/Nat
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, #compression = "lzw"
 ) # image parameters
 
-
-# maybe (just maybe) we can go bacj to get the radial plot??
