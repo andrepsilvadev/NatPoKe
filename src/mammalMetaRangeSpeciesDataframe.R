@@ -10,25 +10,10 @@
 
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   # filter for prefered area & species
-  dplyr::filter(BIOME_NAME %in% target_biome) %>% 
+  dplyr::filter(BIOME_NAME %in% gsub("[/& ]", "", target_biome)) %>% 
   dplyr::filter(CONTINENT %in% target_region) %>% 
-  dplyr::filter(sci_name %in% target_species) %>% 
-  mutate(Trophic = case_when(
-    # based on Schloss 2012
-    Diet.Meat >= 90 ~ "Carnivore",
-    Diet.Plant >= 90 ~ "Herbivore",
-    TRUE ~ NA_character_),
-    trophic_level = case_when(
-      # from original database
-      trophic_level == 1 ~ "Herbivore",
-      trophic_level == 2 ~ "Omnivore",
-      trophic_level == 3 ~ "Carnivore",
-      TRUE ~ as.character(trophic_level)),
-    # maximum age (years)
-    MaxAge = max_longevity_d / 365,
-    # age at first reproduction
-    AgeFirstReproduction = age_first_reproduction_d / 365,
-  )
+  dplyr::filter(sci_name %in% target_species) 
+
 
 ##########
 # Step 2 # Format dataframe for metaRange
