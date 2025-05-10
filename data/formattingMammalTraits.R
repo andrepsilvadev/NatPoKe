@@ -10,8 +10,6 @@ source("./src/customFunctions.R")
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   #dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
   mutate(
-    BIOME_NAME = gsub("[/& ]", "", BIOME_NAME),
-    CONTINENT = gsub("[/& ]", "", CONTINENT),
     Trophic = case_when(
       # based on Schloss 2012
       Diet.Meat >= 90 ~ "Carnivore",
@@ -22,7 +20,11 @@ combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>
       trophic_level == 1 ~ "Herbivore",
       trophic_level == 2 ~ "Omnivore",
       trophic_level == 3 ~ "Carnivore",
-      TRUE ~ as.character(trophic_level)))
+      TRUE ~ as.character(trophic_level)),
+    # maximum age (years)
+    MaxAge = max_longevity_d / 365,
+    # age at first reproduction
+    AgeFirstReproduction = age_first_reproduction_d / 365)
 
 write.csv(combined_traits_data, 
-          file = "data/mammalTraits_2025-03-17.csv")
+          file = "data/mammalTraits_2025-03-17.csv", row.names = FALSE)
