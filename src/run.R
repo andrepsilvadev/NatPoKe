@@ -8,26 +8,25 @@
 source("./src/libraries.R")            # Load necessary packages
 source("./src/customFunctions.R")      # Load customized functions
 
-runname <- "23April_Asia_Robinson"   # Unique identifier for the run
+runname <- "09May_Europe_Robinson"   # Unique id for the run e.g. date_region_scenario
 source("./src/generalSettings.R")      # Load paths and spatial settings
 
 
 # Input Selection --------------------------------------------------------------
 
 ## Select Target Biome (choose one)
-target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
+target_biome <- "Boreal Forests/Taiga" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
 
 ## Select Target Region (choose one)
-target_region <- "Asia" # Options: "North America", "South America", "Europe", "Asia", "Africa"
+target_region <- "Europe" # Options: "North America", "South America", "Europe", "Asia", "Africa"
 
 ## Select scenario
 scenario <- "SSP1"
 
 ## Select Target Species (multiple allowed with spaces)
 target_species <- c(
-  "Panthera tigris",      
-  "Sus scrofa"
-)
+  "Alces alces",
+  "Lynx lynx")
 
 # Prepare & Load Species Data --------------------------------------------------
 
