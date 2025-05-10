@@ -92,7 +92,7 @@ duplicate_layers <- function(raster, times) {
   # layers 3 to end - suitability decreases progressivly by 1%
   new_layer <- raster
   for (i in 3:times) {
-    new_layer <- new_layer * 1.01
+    new_layer <- new_layer * 0.99
     new_layer <- terra::clamp(new_layer, lower = 0, upper = 1)  # cap at 1.0
     replicated[[i]] <- new_layer
   }
@@ -230,7 +230,7 @@ for (landscape in landscapes) {
   # remove unecessary objects
   #rm(r, r_utm, r_raster, orig_crs, new_crs, r_km, output_filename)
 }
-rm(landscape, landscape_SW)
+
 
 
 ##########
