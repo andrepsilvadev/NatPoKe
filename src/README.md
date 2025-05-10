@@ -13,11 +13,13 @@
   
  -  `customFunctions.R` - load created functions necessary throughout the pipeline
 
+<br>
+
 **Input data preparation**
 
   - `mammalMetaRangeSpeciesDataframe.R` - format traget species traits, from a .csv file in the [data folder](https://github.com/andrepsilvadev/NatPoKe/blob/6bca303d6b0c17e94915c44f5e6323e978c0763e/data/mammalTraits_2025-03-17.csv), into an input dataframe ready to use within the metaRange model.
 
-  - `inputFiles.R` - download and crop global suitability raster files for multiple species in a designated biome and region, from the SRIT Database google drive
+  - `inputFiles.R` - download and crop global suitability raster files for multiple species in a designated biome and region, from the SRIT Database google drive *THIS WILL PROBABLY BE DEPRECATED IN THE NEAR FUTURE*
  
   - `TaxaOccurence.R` <- download taxa occurrence of multiple species from GBIF Database
   
@@ -25,14 +27,16 @@
   
   - `inputClimate.R` <- calculates environmental input data (bioclimates) in various time periods, builds training and prediction landscapes
 
+<br>
 
 **Models**
 
-  - `mammalModel.R` - runs the metaRange model for mammals with all species at the same resolution 
-
   - `SMD.R` <- main function for species distribution modelling for multiple true species occurrences
-  
- 
+   
+  - `mammalModel.R` - runs the metaRange model for mammals with all species at the same resolution  
+   
+<br>
+
 **Visualizations**
 
   - `ClimateChange.R` <- calculates spatially explicit bioclimatic changes in biomes
@@ -49,6 +53,8 @@
   
   - `updatedSpatiallyExplicitMaps.R` - takes metrics calulated in the communityMetricsFigures.R and builds maps showing the change in these indexes per taxa in a spatially-explicit manner
 
+<br>
+
 **Validation & Sensitivity Analysis**
 
   - `modelValidation.R` - performs model validation by comparing mean species densities estimated from two sources (metaRange model & santini et al. 2022)
@@ -57,8 +63,3 @@
 
 [![Models: Mammals](https://img.shields.io/badge/_Models-🦣_Mammals-yellow?style=flat&labelColor=grey)](#mammals-model) [![🕊 Birds](https://img.shields.io/badge/🐦_Birds-blue?style=flat)](#birds-model) [![🌳 Trees](https://img.shields.io/badge/🌳_Trees-green?style=flat)](#trees-model) \# extra button for the future
 
-
- - `mammalModelSpecificRes.R` - runs the metaRange model for mammals with species specific resolution (which is based on species Mean Home Range)
-
-
-------------------------------------------------------------------------
