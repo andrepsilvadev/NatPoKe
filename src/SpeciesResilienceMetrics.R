@@ -108,7 +108,10 @@ TNIND_yr <- TNIND_yr %>%
     by = c("species" = "sci_name",
            "biome" = "BIOME_NAME", # keep biome & continent here or a many-to-many warning will appear
            "region" = "CONTINENT")
-  )
+  ) 
+# %>% 
+#   group_by(biome, region, species, timestep, scenario, trophic_level) %>% 
+#   summarise(across(height:mass, ~ mean(.x, na.rm = TRUE)))
 
 
 # write complete dataset into .csv to facilitate usage downstream

@@ -8,7 +8,7 @@
 source("./src/libraries.R")            # Load necessary packages
 source("./src/customFunctions.R")      # Load customized functions
 
-runname <- "09May_Europe_Robinson"   # Unique id for the run e.g. date_region_scenario
+runname <- "13May_Europe_Robinson"   # Unique id for the run e.g. date_region_scenario
 source("./src/generalSettings.R")      # Load paths and spatial settings
 
 
