@@ -1,5 +1,6 @@
 ## Taxa occurrences ##
 ## Andre P. Silva & Afonso Barrocal ## Jorinde-M. Rieger ##
+## Description: Downloads taxa occurence for multiple species from GBIF Database ##
 ## April 2nd, 2025 ##
 
 # Use IUCN species names and ranges
