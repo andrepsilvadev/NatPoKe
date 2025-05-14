@@ -1,6 +1,7 @@
-## Input Species Data ##
-## Jorinde-M. Rieger ##
-## April 2nd, 2025 ##
+## Name: InputSpeciesData.R ##
+## Author: Jorinde-M. Rieger ##
+## Description: Cleans species occurrence data, one species per grid cell, filters by year ##
+## Date: April 2nd, 2025 ##
 
 # Load species occurence data
 speciesData <- read.csv(
