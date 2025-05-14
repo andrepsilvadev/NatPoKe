@@ -156,7 +156,7 @@ LandUseChange_time_plot <- ggplot(scenarios_percentages_df_filtered, aes(x = tim
     legend.title = element_text(size = 14),  # Adjust legend title size
     legend.text = element_text(size = 12),   # Adjust legend text size
     strip.text = element_text(size = 12),    # Adjust facet label size
-    plot.margin = margin(t = 10, r = 10, b = 10, l = 10)  # Add margin around the entire plot
+    plot.margin = ggplot2::margin(t = 10, r = 10, b = 10, l = 10)  # Add margin around the entire plot
   )
 print(LandUseChange_time_plot)
 
