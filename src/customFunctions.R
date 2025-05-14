@@ -354,7 +354,7 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
       axis.title = element_text(size = 18),
       axis.text = element_text(size = 18),
       plot.title = element_blank(),
-      legend.title = element_text(size = 22, margin = margin(b = 10)),
+      legend.title = element_text(size = 22, margin = ggplot2::margin(b = 10)),
       legend.text = element_text(size = 18),
       legend.key.height = unit(1, "cm"),  # Increase the height of the color ramp
       legend.spacing = unit(1, "cm")
