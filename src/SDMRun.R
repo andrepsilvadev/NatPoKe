@@ -67,9 +67,12 @@ plot(predictionLandscapesContinents[["ssp126_2071-2100"]][["Europe"]])
 # Select the name of the studied species
 targetSpecies <- c("Alces alces", "Canis lupus")
 
+# Specify a single continent to process
+continent_name <- "Europe"
+
 # Initialize a list to store results for each continent
 resultsByContinents <- list()
-for (continent_name in names(trainingLandscapesContinents)){
+#for (continent_name in names(trainingLandscapesContinents)){
   print(paste("Processing continent:", continent_name))
   training_landscape <- trainingLandscapesContinents[[continent_name]]
   prediction_landscape <- lapply(predictionLandscapesContinents, function(x) x[[continent_name]])
@@ -93,10 +96,13 @@ for (continent_name in names(trainingLandscapesContinents)){
     predictionLandscapes = prediction_landscape,
     biome_name = continent_name
   )
-}
+#}
 
-# Example access of results
-resultsByContinents$`North America`$biomodData[["Alces alces"]]
+# Access results for single specified continent_name
+results <- resultsByContinents[[continent_name]] # single continent
+
+# Access of results for mulitple continents/regions
+#resultsByContinents$`North America`$biomodData[["Alces alces"]]
 
 # SDM evaluation metrics ------------------------------------------------
 # Plot Evaluation Metrics for single models
