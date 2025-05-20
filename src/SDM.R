@@ -1,7 +1,7 @@
 ## Name: SDM.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: SDM main function with true species occurence in R ##
-## Date: April 30th 2025 ##
+## Date: May 15th 2025 ##
 
 # Functions to format Data and SDM -----------------------------------------------------------------
 
@@ -81,6 +81,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
   combinedPlotsEM <- list()
   projectionMetadata <- data.frame()
   
+  # Calculate the average number of presence points across species
+
   
   # Loop through each species
   for (species in targetSpecies){
@@ -90,6 +92,9 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     myResp <- as.matrix(speciesData[, species])  # Convert to a matrix
     myResp <- as.numeric(myResp)  # Flatten the matrix into a numeric vector
     myRespXY <- speciesData[, c('x', 'y')]        # Coordinates for the species
+    
+    # Calculate the number of presence point for the current species
+    num_presence <- sum(myResp ==1, na.rm = TRUE) # counts presence points
     
     # Format Data with only true presences
     myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
@@ -110,33 +115,68 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     dev.off()
     
     # Format Data with true presences and pseudo-absences
+    #myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
+#                                            expl.var = trainingLandscapes,
+#                                            resp.xy = myRespXY,
+#                                            resp.name = species, 
+#                                            PA.nb.rep = 5, # Number of pseudo-absences repetitions
+#                                            PA.nb.absences = 10000, # Number of pseudo-absences per set
+#                                            PA.strategy = 'random') # Random pseudo-absence
+    # Store the formatted data
+    #biomodDataPAList[[species]] <- myBiomodData.PA
+    
+    # Save the presence and pseudo absence points plot
+    #png(
+#      filename = file.path(output_folder, paste0("PresencePAPoints_", species, "_", biome_name, ".png")),
+#      width = 2000,
+#      height = 1500,
+#      res = 300
+#    )
+    #plot(myBiomodData.PA)
+    #dev.off()
+    
+    # Format data with true presence and generate pseudo-absence sets
+    #myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
+#                                            expl.var = trainingLandscapes,
+#                                            resp.xy = myRespXY,
+#                                            resp.name = species,
+#                                            PA.nb.rep = 2,  # Two sets of pseudo-absences
+#                                            PA.nb.absences = c(10000, round(avg_presence)),  # 10,000 for MAXENT, balanced for others
+#                                            PA.strategy = 'random')  # Random pseudo-absence strategy
+    
+    # Format data with true presence and generate pseudo-absence sets
     myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
                                             expl.var = trainingLandscapes,
                                             resp.xy = myRespXY,
-                                            resp.name = species, 
-                                            PA.nb.rep = 2, # Number of pseudo-absences 4
-                                            PA.nb.absences = 1000, # Number of pseudo-absences per set
-                                            PA.strategy = 'random') # Random pseudo-absence
+                                            resp.name = species,
+                                            PA.nb.rep = 2,  # Two sets of pseudo-absences
+                                            PA.nb.absences = c(10000, num_presence),  # 10,000 for MAXENT, number of presence points per species
+                                            PA.strategy = 'random')  # Random pseudo-absence strategy
+    
     # Store the formatted data
     biomodDataPAList[[species]] <- myBiomodData.PA
     
     # Save the presence and pseudo absence points plot
     png(
-      filename = file.path(output_folder, paste0("PresencePAPoints_", species, "_", biome_name, ".png")),
-      width = 2000,
-      height = 1500,
-      res = 300
-    )
+          filename = file.path(output_folder, paste0("PresencePAPoints_", species, "_", biome_name, ".png")),
+          width = 2000,
+          height = 1500,
+          res = 300
+        )
     plot(myBiomodData.PA)
     dev.off()
     
     # Run single models
-    myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA,
+    myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA, 
                                         modeling.id = paste0("Model_", species),
-                                        models = c('ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'), # Exclude 'SRE', 'MAXENT', 'ANN', 'GAM', 'GLM', 'RF', 'GBM', 'CTA', 'FDA', 'MARS', 'XGBOOST'
+                                        models = c('ANN', 'RF', 'XGBOOST'), # 'MAXENT' needs to be added, but did not work on the server
+                                        models.pa = list(#MAXENT = "PA1", # needs to be added, uses the first pseudo-absence set
+                                                        ANN = "PA2", # use the second PA set
+                                                        RF = "PA2",
+                                                        XGBOOST = "PA2"),
                                         CV.strategy = 'random',
-                                        CV.nb.rep = 5, # 10
-                                        CV.perc = 0.7, # data split, percentage that will be kept for calibaration
+                                        CV.nb.rep = 5, # cross-validation repetitions
+                                        CV.perc = 0.7, # data split, percentage that will be kept for calibration
                                         OPT.strategy = 'bigboss',
                                         var.import = 3,
                                         metric.eval = c('TSS','ROC'))
@@ -153,12 +193,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     variableImportance <- rbind(variableImportance, var_importance)  # Combine importance across species
     
     # Save evaluation scores and variable importance to files
-    write.csv(eval_scores, file = file.path(output_folder, paste0("EvalScores_", species, ".csv")), row.names = FALSE)
-    write.csv(var_importance, file = file.path(output_folder, paste0("VarImportance_", species, ".csv")), row.names = FALSE)
+    write.csv(eval_scores, file = file.path(output_folder, paste0("EvalScores_", species, biome_name, ".csv")), row.names = FALSE)
+    write.csv(var_importance, file = file.path(output_folder, paste0("VarImportance_", species, biome_name, ".csv")), row.names = FALSE)
     
     # Save evaluation score boxplots and variables importance
     png(
-      filename = file.path(output_folder, paste0("EvalBoxplot_", species, ".png")),
+      filename = file.path(output_folder, paste0("EvalBoxplot_", species, biome_name, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -177,7 +217,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
         fill = "Model"
       ) +
       theme_minimal()
-    ggsave(file.path(output_folder, paste0("VarImpBoxplot_AllRun_", species, ".png")), width = 10, height = 6, dpi = 300)
+    ggsave(file.path(output_folder, paste0("VarImpBoxplot_AllRun_", species, biome_name, ".png")), width = 10, height = 6, dpi = 300)
     
     # Generate response curves and save data for individual models
     responseCurves <- bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
@@ -187,7 +227,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Save response curve plots
     png(
-      filename = file.path(output_folder, paste0("ResponseCurves_", species, ".png")),
+      filename = file.path(output_folder, paste0("ResponseCurves_", species, biome_name, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -205,7 +245,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
                                           em.by = 'all', #'PA+run'
                                           em.algo = c('EMmean', 'EMcv', 'EMci', 'EMmedian', 'EMca', 'EMwmean'),
                                           metric.select = c('TSS'),
-                                          metric.select.thresh = c(0.6), # no model passed the threshold of 0.7 (suggested by main function)
+                                          metric.select.thresh = c(0.25), # no model passed the threshold of 0.6
                                           metric.eval = c('TSS', 'ROC'),
                                           var.import = 3,
                                           EMci.alpha = 0.05,
@@ -222,12 +262,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     variableImportanceEM <- rbind(variableImportanceEM, var_importanceEM)  # Combine importance across species
     
     # Save evaluation scores and variable importance to files
-    write.csv(eval_scoresEM, file = file.path(output_folder, paste0("EvalScoresEM_", species, ".csv")), row.names = FALSE)
-    write.csv(var_importanceEM, file = file.path(output_folder, paste0("VarImportanceEM_", species, ".csv")), row.names = FALSE)
+    write.csv(eval_scoresEM, file = file.path(output_folder, paste0("EvalScoresEM_", species, biome_name, ".csv")), row.names = FALSE)
+    write.csv(var_importanceEM, file = file.path(output_folder, paste0("VarImportanceEM_", species, biome_name, ".csv")), row.names = FALSE)
     
     # Save evaluation score boxplots and variables importance
     png(
-      filename = file.path(output_folder, paste0("EvalBoxplotEM_", species, ".png")),
+      filename = file.path(output_folder, paste0("EvalBoxplotEM_", species, biome_name, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -235,7 +275,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     dev.off()
     
     png(
-      filename = file.path(output_folder, paste0("VarImpBoxplotEM_", species, ".png")),
+      filename = file.path(output_folder, paste0("VarImpBoxplotEM_", species, biome_name, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -250,7 +290,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Save response curve plots
     png(
-      filename = file.path(output_folder, paste0("ResponseCurvesEM_", species, ".png")),
+      filename = file.path(output_folder, paste0("ResponseCurvesEM_", species, biome_name, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -310,12 +350,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
       
       # Save ensemble forecast as raster files
       ensembleRaster <- get_predictions(myBiomodEF)
-      rasterFilename <- file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, ".tif"))
+      rasterFilename <- file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, "_", biome_name, ".tif"))
       terra::writeRaster(ensembleRaster, rasterFilename, overwrite = TRUE)
       
       # Save ensemble forecast plots
       png(
-        filename = file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, ".png")),
+        filename = file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, biome_name, ".png")),
         width = 2000,
         height = 1500,
         res = 300
