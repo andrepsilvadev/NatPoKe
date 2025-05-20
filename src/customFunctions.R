@@ -3,7 +3,7 @@
 ## Description: Loads all developed customised functions ##
 
 #####################################
-# Common Functions for Land-Use & Climate Change  #
+# Common Functions for LandUseChang.R, ClimateChange.R & inputClimate.R  #
 #####################################
 # Functions to load and modify rasters-------------------------------------------
 # Function to load and select the biome shapefile
@@ -75,7 +75,7 @@ intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
 }
 
 # Function to crop and mask the rasters to the continents
-crop_mask_continent <- function(raster, continent_geom) {
+crop_mask_continent <- function(raster, continent_geom) { # technically not needed, merge with crop_mask_raster
   mask(crop(raster, continent_geom), continent_geom)
 }
 
