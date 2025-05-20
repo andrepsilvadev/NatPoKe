@@ -51,7 +51,7 @@ continent_title <- c("North America", "Europe & Asia")
 
 # Prepare the climate scenarios rasters for further calculations and graphical representation -------------------------------------------
 # Process baseline year
-baseline_raster <- load_baseline_raster(baseline_year)
+baseline_raster <- load_baseline_landUse(baseline_year)
 
 # Aggregate the baseline raster
 baseline_raster_agg <- aggregate(baseline_raster, fact = 10, fun = mean)
@@ -76,7 +76,7 @@ assign(paste0("Mapped_LandUseChange_baseline_", baseline_year, "_", biome_name_s
 for (scenario in scenarios) {
   for (year in years) {
     # Load the raster
-    raster <- load_scenario_raster(scenario, year)
+    raster <- load_scenario_landUse(scenario, year)
     
     # Aggregate the raster
     raster_agg <- aggregate(raster, fact = 10, fun = mean)
@@ -116,7 +116,7 @@ LandUseChange_scenarioStack_2021_Tropical_Biome
 # Load mapped scenarios if needed
 mapped_scenarios <- list()
 for (year in years) {
-  mapped_scenarios[[as.character(year)]] <- load_mapped_rasters(year)
+  mapped_scenarios[[as.character(year)]] <- load_mapped_landUse(year)
 }
 
 # Define consistent color palette for the scenarios
@@ -171,12 +171,12 @@ ggsave(
 
 # Calculate spatially explicit Land Use Change -------------------------------------------
 # Load the mapped raster stack for the baseline year
-baseline_year_raster <- load_mapped_baseline(baseline_year)
+baseline_year_raster <- load_mapped_baseline_landUse(baseline_year)
 
 # Load the mapped raster stacks for the target years
 target_year_rasters_list <- list()
 for (year in years) {
-  target_year_rasters_list[[as.character(year)]] <- load_mapped_rasters(year)
+  target_year_rasters_list[[as.character(year)]] <- load_mapped_rasters_landUse(year)
 }
 
 # Load the selected biome, ensure CRS consistency, converst to spatial object
