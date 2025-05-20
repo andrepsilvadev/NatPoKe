@@ -37,7 +37,7 @@
    
 <br>
 
-**Visualizations**
+**Output Manipulation & Visualizations**
 
   - `ClimateChange.R` <- calculates spatially explicit bioclimatic changes in biomes
   
@@ -45,7 +45,11 @@
   
   -  `SDMRun.R` <- creates outputs of species distribution modeling, Species presence points, Evaluation plots for ensemble model evaluation, current and future suitability landscapes for multiple species
 
-  - `mammalSpeciesSpecificPlots.R` - creates figures for each mammal species suitability over time, abundance in the last time step, model validation, average abundance over time, proportion of abundance change, average dispersal change and produces a model overview figure, combining all maps/plots per species. See here an [example]().
+  - `meanTraitValuesAcrossReplicates.R` <- averages all rasters across replicates for each trait, species and timestep
+
+*Note: the folowing scripts should use the ouput produced by the meanTraitValuesAcrossReplicates.R script, but they also run with each replicate after modifications to the code*
+  
+  -  `mammalSpeciesSpecificPlots.R` - creates figures for each mammal species suitability over time, abundance in the last time step, model validation, average abundance over time, proportion of abundance change, average dispersal change and produces a model overview figure, combining all maps/plots per species. See here an [example]().
 
   - `speciesResilienceMetrics.R` - calculates stability metrics, such as impact, recovery, time to impact and time to recovery, and builds figures per taxa and scenario
 
