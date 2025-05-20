@@ -7,7 +7,7 @@
 # GOAL: Running the model for mammals species
 
 #######################
-# NAVIGATION WARNINGS #
+# NAVIGATION WARNINGS # I MIGHT PUT THESE RECOMMENDATIONS ELSEWHERE WHEN THE REPO IS ALMOST FINAL
 #######################
 
 # Model input files
@@ -29,6 +29,8 @@
     ## 3 - max_dispersal_dist HAS to be an INTEGRER! So I added as.integer() into that line 
     ## 4 - when this "self$sim$environment$current[[species_suitability_name]]" appears make sure species_suitability is the EXACT same name as the name of the raster imported with sds()
 
+
+
 ##########
 # Step 1 # Configure Targets and Parameters
 ##########
@@ -41,32 +43,29 @@ target_biome <- gsub("[/& ]", "", target_biome)
 target_region <- gsub("[/& ]", "", target_region)
 
 # select target species 
-# by default, this selects *all* species in the traits df
-target_species <- species_traits$Species
+target_species <- species_traits$Species # by default, this selects *all* species in the traits df
 
 # set number of replicates
-n_replicates <- 3 # total number of replicates to run
-random_number <- 1 # should be random but i am impatient (change later)
+n_replicates <- 3 # total nº of replicates
+all_reps_list <- list() # list to save the .csv
+
+# burn-in
+burnin_t <- 100 # nº of years the model should consider
 
 # global setup options
 set_verbosity(2L) # 0L = silent, 1L = progress updates, 2L =  debug
-options(scipen = 999) # prevents use of scientific notation for large numbers
+options(scipen = 999) # prevents scientific notation for large numbers
 set.seed(1) # reproducibility
-
-# # For each species, create an empty raster and store in a named list
-cumulative_abundance <- lapply(target_species, function(sp) mean_abundance <- matrix(0, 763, 671)) # this needs to be with ifs because it need to match each landscape based on the region's name definied in the run.R
-names(cumulative_abundance) <- target_species
 
 ##########
 # Step 2 # RUN THE METARANGE MODEL FOR MAMMAL SPECIES
 ##########
 
 for (replicateN in 1:n_replicates) {
-  # select a random number inside the replicates to save
-  current_replicate_n <- 1
   
   # Step 1 # Add landscape for all target species 
-
+  
+  sim_name <- paste0(replicateN, "_", str_replace_all(target_biome, " ", ""), "_", target_region, "_Mammals")
   sim_env <- sds(list.files(dirinput,
                             pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
   invisible(gc())
@@ -74,12 +73,12 @@ for (replicateN in 1:n_replicates) {
   # Step 2 # Create a simulation object 
   
   sim <- create_simulation(sim_env,
-                           ID = as.character(current_replicate_n))
+                           ID = sim_name)
   invisible(gc())
   
   # Step 3 # Add a timesteps "layer"
   
-  sim$set_time_layer_mapping(c(rep(1, 100), seq_len(min(nlyr(sim_env)))))
+  sim$set_time_layer_mapping(c(rep(1, burnin_t), seq_len(min(nlyr(sim_env)))))
   
   # Step 4 # Add species & traits 
   
@@ -89,7 +88,7 @@ for (replicateN in 1:n_replicates) {
     # "register" the species with the simulation
     sim$add_species(this_species)
     
-    # add traits that need to be stored at the population level
+    # traits that need to be stored at the population level
     sim$add_traits(
       species = this_species,
       population_level = TRUE,
@@ -100,7 +99,7 @@ for (replicateN in 1:n_replicates) {
         "carryingCapacity" = species_traits[["carryingCapacity"]][i],
         "yearlySurvivalRate" = species_traits[["yearlySurvivalRate"]][i])
     
-    # add traits that are the same for all populations of a species
+    # traits that are the same for all populations of a species
     sim$add_traits(
       species = this_species,
       population_level = FALSE,
@@ -108,7 +107,7 @@ for (replicateN in 1:n_replicates) {
         "maxReproductionRate" = species_traits[["reproductionRate"]][i],
         "maxCarryingCapacity" = species_traits[["carryingCapacity"]][i],
     
-    # simple kernel, but you can use any function / dispersal kernel
+    # simple dispersal kernel
         "dispersalKernel" = calculate_dispersal_kernel(
           max_dispersal_dist = as.integer(species_traits[["dispersalMaxDistance"]][i]),
           kfun = negative_exponential_function,
@@ -138,7 +137,7 @@ for (replicateN in 1:n_replicates) {
   
   do.call(sim$add_globals, species_sum_abundance)
   
-  # Step 7 # Add process 
+  # Step 6 # Add process 
   
     # Suitability influence on the environment  
     sim$add_process(
@@ -178,21 +177,27 @@ for (replicateN in 1:n_replicates) {
         self$traits[["abundance_before"]] <- trunc(self$traits[["abundance"]])
         # weighted dispersal
         # i.e. individuals disperse more likely into more suitable cells
-        self$traits[["abundance"]] <- dispersal(
-          abundance = self$traits[["abundance"]],
-          weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojectedKm")]],
-          dispersal_kernel = self$traits[["dispersalKernel"]])
+        abundance_after <- dispersal(
+                  abundance = self$traits[["abundance"]],
+                  weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojectedKm")]],
+                  dispersal_kernel = self$traits[["dispersalKernel"]])
+        
+        # adding randomness?
+        abundance_after <- matrix(rpois(ncell(abundance_after), abundance_after),
+                                  nrow = nrow(self$traits[["abundance"]]),
+                                  ncol = ncol(self$traits[["abundance"]]))
+        self$traits[["abundance"]] <- abundance_after
         # calculate the dispersal change
         self$traits[["dispersal_change"]] <- self$traits[["abundance"]] - self$traits[["abundance_before"]]
       },
       execution_priority = 3
     )
     
-    # Ensure whole individuals
+    # Ensure whole individuals & randomness
     sim$add_process(
       process_name = "truncate",
       process_fun = function() {
-        # just because there is nothing in reality like 0.5 individuals
+        # keep individuals whole, because there is nothing in like 0.5 individual
         for (i in self$globals[["alive_species"]]) {
           self[[i]]$traits[["abundance"]] <- trunc(self[[i]]$traits[["abundance"]])
         }
@@ -243,67 +248,43 @@ for (replicateN in 1:n_replicates) {
       execution_priority = 6
     )
     
-    # setting a simulation name
-    sim_name <- paste0(str_replace_all(target_biome, " ", ""), "_", target_region, "_Mammals_")
     
-    # saving results of one random run (when current replicate number is the same as the random number defined in the beggining)
+    # saving results
     sim$add_process(
       process_name = "saving_traits",
       process_fun = function() {
-        if (as.integer(replicateN) == as.integer(sim$ID)){
-          for (species in species_names) {
+        for (species in species_names) {
+          
+          # save all replicates
             results_paths <- save_species(
               # pass the species object
               self[[species]],
               # specify traits we want to save
               traits = c("abundance", "reproductionRate", "dispersal_change"),
               # a prefix for each time step
-              prefix = paste0(sim_name, sprintf("%03d", self$get_current_time_step()), "_"),
+              prefix = paste0(sim$ID, sprintf("%03d", self$get_current_time_step()), "_"),
               # where should it be saved
               path = dirout,
               overwrite = TRUE
             )
+
             self$globals$results_paths <- c(self$globals$results_paths, results_paths)
-          }
         }
       },
       execution_priority = 7
     )
     
     
-    sim$add_process(
-      process_name = "accumulate_abundance",
-      process_fun = function() {
-        for (species in species_names) {
-        #sp <- self$species_names  # Gets current species inside simulation
-        cumulative_abundance[[species]] <- cumulative_abundance[[species]] + self$traits[["abundance"]]
-      }
-    },
-      execution_priority = 7
-    )
-
-    # Step 8 # STARTING THE SIMULATION
+    # Step 7 # STARTING THE SIMULATION
     
     set_verbosity(1L)
     print("Simulation begin")
     sim$begin()
     print("Simulation finished")
     
-    # Step 9 # Save additional outputs (for easy diagnostics & plotting)
+    # Step 8 # Save additional outputs (for easy diagnostics & plotting)
     
-    ## mean abundance per cell plots ##
-    
-    for (species in target_species) {
-      tiff(file.path(dirout, paste0("MeanAbundancePerCell", species, ".tiff")),
-           width = 300, height = 230, units = "mm", res = 1200, compression = "lzw")
-      # plotting mean abundance per cell
-      plot(sim$globals[[species]][["mean_abundance"]],
-           type = "l",
-           xlab = "Time", ylab = "Mean Abundance Per Cell", main = species)
-      dev.off()
-    }
-    
-    ## total number of individuals ##
+    ## .csv file with global variables ##
     
     # create a list to store dfs
     df_list <- list()
@@ -318,17 +299,21 @@ for (replicateN in 1:n_replicates) {
           biome = target_biome,
           region = target_region,
           species = species,
-          timestep = row_number())
+          timestep = row_number(),
+          rep = sim$ID)
     }
+    
     # combine all species together
     TNIND_yr <- do.call(rbind, df_list)
-    colnames(TNIND_yr) <- c("TNIND", "MNIND", "mean_repRate", "mean_carrCap", "occupancy", "scenario", "biome", "region", "species", "timestep")
-    # save csv file with TNIND
-    write.csv(TNIND_yr, file = file.path(dirout, paste0("TNIND_yr_", runname, ".csv")), row.names = FALSE)
+    colnames(TNIND_yr) <- c("TNIND", "MNIND", "mean_repRate", "mean_carrCap",
+                            "occupancy", "scenario", "biome", "region",
+                            "species", "timestep", "rep")
     
-    ###########
-    # Step 10 # Save a settings file
-    ###########
+    # append the current replicate's data to the full list
+    all_reps_list[[length(all_reps_list) + 1]] <- TNIND_yr
+    
+    
+    ## settings file (currently saving the last replicate) ##
     
     sink(file.path(dirout, "simulationSettings.txt"))
     # write overall summary of simulation
@@ -344,32 +329,11 @@ for (replicateN in 1:n_replicates) {
     
     sink()
 }
-    
-################
-# DELETE LATER #
-################
 
-# for (sp in species_names) {
-#   avg_abundance <- cumulative_abundance[[sp]] / n_replicates
-#   
-#   # Save the result to disk
-#   writeRaster(
-#     avg_abundance,
-#     filename = file.path(dirout, paste0("avg_abundance_", sp, ".tif")),
-#     format = "GTiff",
-#     overwrite = TRUE
-#   )
-# }
-  
-    
-###########
-# Step 2  # 
-###########
-# replace line 69 with 65-67 if modelling just one species 
-# r <- rast(list.files(dirinput,
-#            pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
-# sim_env <- sds(r)
+# Step 9 # Finish saving the .csv file (this is done outside the loop purposefully)
 
-
-
-
+all_TNIND_data <- do.call(rbind, all_reps_list) # combine all replicates into one big data frame
+# write to .csv
+write.csv(all_TNIND_data,
+          file = file.path(dirout, paste0("TNIND_yr_", runname, ".csv")),
+          row.names = FALSE)
