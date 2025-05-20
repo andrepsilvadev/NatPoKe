@@ -1,82 +1,102 @@
 ## Name: SDMRun.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: Creates output of SDM results in R ##
-## Date: April 30th 2025 ##
+## Date: May 19th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
 source("~/NatPoKe9/src/libraries.R") # libraries
-source("~/NatPoKe9/src/customFunctions.R") # functions
-source("~/NatPoKe9/src/inputClimate.R") # format and reads input raster landscapes
-source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data
+# When using the pipeline for the first time run taxaOcccurence.R and adapt species and user-login for GBIF Database:
+#source("~/NatPoKe9/src/TaxaOccurence.R") # downloads taxa occurences from GBIF Database
+source("~/NatPoKe9/src/customFunctions2.R") # functions
+source("~/NatPoKe9/src/inputClimate.R") # format and reads input raster landscapes, adapt: scenarios, years & variables
+source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data based on TaxaOccurence.R output
 source("~/NatPoKe9/src/SDM.R") # function to format data and SDM
 
 # Load dataset and format species occurence -----------------------------------------------------------------
-# Crop the landscapes to the extent of the biome
+# Define the biome and continents
+# Tropical Biome
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
+biome_name_short <- "Tropical Biome"
+continent_names <- c("Central & South America", "Africa", "Asia")
+continent_title <- c("Central & South America", "Africa", "Asia")
+
+# Boreal Biome
 biome_name <- "Boreal Forests/Taiga"
+biome_name_short <- "Boreal Biome"
+continent_names <- c("North America", "Europe")
+continent_title <- c("North America", "Europe & Asia")
 
-# Function to load and select the biome shapefile
-load_select_biome <- function(biome_name) {
-  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
-  biome_sf[biome_sf$BIOME_NAME == biome_name, ]}
-
+# Load and select the biome shapefile
 biome_sf <- load_select_biome(biome_name)
 biome_sp <- vect(biome_sf)
 
-# Function to crop and mask rasters to biome
-crop_mask_raster <- function(raster, biome_sp) {
-  mask(crop(raster, biome_sp), biome_sp)}
+# Load and select the continents
+continents <- load_select_continents(continent_names)
 
-# Crop and mask trainingLandscapes to biome extent
-trainingLandscapes <- crop_mask_raster(trainingLandscapes, biome_sp)
-plot(trainingLandscapes)
+# Transform continent CRS to match the raster CRS
+continents <- st_transform(continents, crs = st_crs(biome_sf))
 
-#### Test with Sweden ####
+# Define continent geometries
+continent_geoms <- setNames(lapply(continent_names, function(continent) {
+  continents %>% dplyr::filter(continent == !!continent)
+}), continent_names)
 
-biome_name <- "Sweden"
-# Load Sweden's shapefile using rnaturalearth
-sweden_sf <- ne_countries(scale = "medium", country = "Sweden", returnclass = "sf")
-sweden_sp <- vect(sweden_sf)  # Convert to SpatVector for terra compatibility
-# Function to crop and mask rasters to Sweden
-crop_mask_raster <- function(raster, sweden_sp) {
-  mask(crop(raster, sweden_sp), sweden_sp)
-}
-# Crop and mask trainingLandscapes to Sweden's extent
-trainingLandscapes <- crop_mask_raster(trainingLandscapes, sweden_sp)
-plot(trainingLandscapes)
+# Crop and mask trainingLandscapes to biome and selected continents
+trainingLandscapesContinents <- lapply(continent_geoms, function(continent_geom) {
+  cropped_training <- crop_mask_raster(trainingLandscapes, biome_sp)
+  crop_mask_raster(cropped_training, continent_geom)
+})
 
-# Loop through each predictionLandscapes raster in the list and mask and crop to biome (test extent)
+# Example access a training landscape
+plot(trainingLandscapesContinents[["Europe"]])
+
+# Loop through each predictionLandscapes raster in the list and mask and crop to biome and continent
+predictionLandscapesContinents <- list()
 for (i in seq_along(predictionLandscapes)) {
-  # Crop and mask the raster
-  predictionLandscapes[[i]] <- mask(crop(predictionLandscapes[[i]], sweden_sp), sweden_sp)
+  landscape_name<- names(predictionLandscapes)[i]
+  predictionLandscapesContinents[[landscape_name]] <- lapply(continent_geoms, function(continent_geom){
+    cropped_prediction <- crop_mask_raster(predictionLandscapes[[i]], biome_sp)
+    crop_mask_raster(cropped_prediction, continent_geom)
+  })
 }
 
-print(predictionLandscapes)
-plot(predictionLandscapes[["ssp126_2071-2100"]])
+# Example access a training landscape
+plot(predictionLandscapesContinents[["ssp126_2071-2100"]][["Europe"]])
 
-####### 
-
+# Run the SDMensembleMultiSpecies function -----------------------------------------------------------------
 # Select the name of the studied species
 targetSpecies <- c("Alces alces", "Canis lupus")
 
-# Format species occurence to true presence and NAs with corresponding coordinates
-# test with trainingLandscape
-speciesData <- formatInputDataFrame(
-  speciesData = speciesDataOcc,
-  targetSpecies = targetSpecies, 
-  landscape = trainingLandscapes)
-head(speciesData)
+# Initialize a list to store results for each continent
+resultsByContinents <- list()
+for (continent_name in names(trainingLandscapesContinents)){
+  print(paste("Processing continent:", continent_name))
+  training_landscape <- trainingLandscapesContinents[[continent_name]]
+  prediction_landscape <- lapply(predictionLandscapesContinents, function(x) x[[continent_name]])
+  
+  print(paste("Training landscape for", continent_name, ":"))
+  print(training_landscape)
+  print(paste("Prediction landscapes for", continent_name, ":"))
+  print(prediction_landscape)
+  
+  # Format species occurence data for the current continent
+  speciesData <- formatInputDataFrame(
+    speciesData = speciesDataOcc,
+    targetSpecies = targetSpecies,
+    landscape = training_landscape
+  )
+  # Run the SDM ensembleMulitSpecies function for the current continent
+  resultsByContinents[[continent_name]] <- SDMensembleMultiSpecies(
+    targetSpecies = targetSpecies,
+    speciesData = speciesData,
+    trainingLandscapes = training_landscape,
+    predictionLandscapes = prediction_landscape,
+    biome_name = continent_name
+  )
+}
 
-# Run the SDMensembleMultiSpecies function -----------------------------------------------------------------
-
-results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
-                                   speciesData = speciesData,
-                                   trainingLandscapes = trainingLandscapes,
-                                   predictionLandscapes = predictionLandscapes,
-                                   biome_name = biome_name)
-
-# Example of accessing the results
-results$biomodData[["Alces alces"]]
+# Example access of results
+resultsByContinents$`North America`$biomodData[["Alces alces"]]
 
 # SDM evaluation metrics ------------------------------------------------
 # Plot Evaluation Metrics for single models
