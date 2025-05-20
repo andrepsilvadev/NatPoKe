@@ -21,35 +21,13 @@ output_folder <- "~/data/output"
 # Define the target resolution (based on the landUsePercentage rasters)
 target_resolution <- 0.277
 
-
-# Functions - later add them to CustomFunctions.R -------------------------------------------
-# Function to load rasters
-load_baseline_raster <- function(variable, baseline_year){
-  file_path <- file.path(base_path, paste0("CHELSA_", variable, "_", baseline_year, "_V.2.1.tif"))
-  rast(file_path)}
-
-load_raster <- function(scenario, variable, year) {
-  file_path <- file.path(base_path, scenario, paste0("CHELSA_", variable, "_", year, "_gfdl-esm4_", scenario, "_V.2.1.tif"))
-  rast(file_path)}
-
-# Function to aggregate rasters
-aggregate_raster <- function(raster, aggregation_factor) {
-  aggregate(raster, aggregation_factor, fun = mean)
-}
-
-# Function to crop and mask rasters
-crop_mask_raster <- function(raster, land) {
-  mask(crop(raster, land), land)
-}
-
 # Create environmental input Data (climate) as training and prediction landscapes-------------------------------------------
-
 # Create an empty list to store training Landscapes
 trainingLandscapes <- list()
 # Loop through the training landscapes
 for (variable in variables) {
     # Load the raster
-    raster <- load_baseline_raster(variable, baseline_year)
+    raster <- load_baseline_clim(variable, baseline_year)
     
     # Get the original resolution from the raster
     original_resolution <- res(raster)[1]
@@ -60,7 +38,7 @@ for (variable in variables) {
     # Aggregate the raster
     raster_agg <- aggregate_raster(raster, aggregation_factor)
     
-    # Load terrestrial extent
+    # Load global terrestrial extent
     land <- ne_countries(scale = "medium", returnclass = "sf")
     
     # Ensure CRS consistency
@@ -96,7 +74,7 @@ for (scenario in scenarios) {
     
     for (variable in variables) {
       # Load the raster
-      raster <- load_raster(scenario, variable, year)
+      raster <- load_scenario_clim(scenario, variable, year)
       
       # Get the original resolution from the raster
       original_resolution <- res(raster)[1]
@@ -107,7 +85,7 @@ for (scenario in scenarios) {
       # Aggregate the raster
       raster_agg <- aggregate_raster(raster, aggregation_factor)
       
-      # Load the terrestrial extent
+      # Load the global terrestrial extent
       land <- ne_countries(scale = "medium", returnclass = "sf")
       
       # Ensure CRS consistency
