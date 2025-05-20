@@ -6,7 +6,7 @@
 
 # Settings & libraries -------------------------------------------
 source("~/NatPoKe9/src/libraries.R") # libraries
-source("~/NatPoKe9/src/customFunctions.R") # functions
+source("~/NatPoKe9/src/customFunctions2.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
@@ -50,7 +50,7 @@ for (scenario in scenarios) {
   for (variable in variables) {
     for (year in years) {
       # Load the raster
-      raster <- load_raster(scenario, variable, year)
+      raster <- load_scenario_clim(scenario, variable, year)
       
       # Get the original resolution from the raster
       original_resolution <- res(raster)[1]
