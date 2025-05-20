@@ -188,7 +188,7 @@ for (replicateN in 1:n_replicates) {
                                   ncol = ncol(self$traits[["abundance"]]))
         self$traits[["abundance"]] <- abundance_after
         # calculate the dispersal change
-        self$traits[["dispersal_change"]] <- self$traits[["abundance"]] - self$traits[["abundance_before"]]
+        self$traits[["dispersalChange"]] <- self$traits[["abundance"]] - self$traits[["abundance_before"]]
       },
       execution_priority = 3
     )
@@ -260,7 +260,7 @@ for (replicateN in 1:n_replicates) {
               # pass the species object
               self[[species]],
               # specify traits we want to save
-              traits = c("abundance", "reproductionRate", "dispersal_change"),
+              traits = c("abundance", "reproductionRate", "dispersalChange"),
               # a prefix for each time step
               prefix = paste0(sim$ID, sprintf("%03d", self$get_current_time_step()), "_"),
               # where should it be saved
