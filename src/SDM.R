@@ -1,7 +1,7 @@
 ## Name: SDM.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: SDM main function with true species occurence in R ##
-## Date: May 15th 2025 ##
+## Date: May 22nd 2025 ##
 
 # Functions to format Data and SDM -----------------------------------------------------------------
 
@@ -47,7 +47,7 @@ formatInputDataFrame <- function(speciesData, targetSpecies, landscape){
   return(inputDataFrame)
 }
 
-SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscapes, predictionLandscapes, biome_name){
+SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscapes, predictionLandscapes, extent){
   # Create output folder
   output_folder <- "~/data/output/SDMensemble"
   if(!dir.exists(output_folder)){
@@ -106,7 +106,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Save the presence points plot
     png(
-      filename = file.path(output_folder, paste0("PresencePoints_", species, "_", biome_name, ".png")),
+      filename = file.path(output_folder, paste0("PresencePoints_", species, "_", extent, ".png")),
       width = 2000,
       height = 1500,
       res = 300
@@ -127,7 +127,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Save the presence and pseudo absence points plot
     #png(
-#      filename = file.path(output_folder, paste0("PresencePAPoints_", species, "_", biome_name, ".png")),
+#      filename = file.path(output_folder, paste0("PresencePAPoints_", species, "_", extent, ".png")),
 #      width = 2000,
 #      height = 1500,
 #      res = 300
@@ -158,7 +158,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Save the presence and pseudo absence points plot
     png(
-          filename = file.path(output_folder, paste0("PresencePAPoints_", species, "_", biome_name, ".png")),
+          filename = file.path(output_folder, paste0("PresencePAPoints_", species, "_", extent, ".png")),
           width = 2000,
           height = 1500,
           res = 300
@@ -193,12 +193,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     variableImportance <- rbind(variableImportance, var_importance)  # Combine importance across species
     
     # Save evaluation scores and variable importance to files
-    write.csv(eval_scores, file = file.path(output_folder, paste0("EvalScores_", species, biome_name, ".csv")), row.names = FALSE)
-    write.csv(var_importance, file = file.path(output_folder, paste0("VarImportance_", species, biome_name, ".csv")), row.names = FALSE)
+    write.csv(eval_scores, file = file.path(output_folder, paste0("EvalScores_", species, extent, ".csv")), row.names = FALSE)
+    write.csv(var_importance, file = file.path(output_folder, paste0("VarImportance_", species, extent, ".csv")), row.names = FALSE)
     
     # Save evaluation score boxplots and variables importance
     png(
-      filename = file.path(output_folder, paste0("EvalBoxplot_", species, biome_name, ".png")),
+      filename = file.path(output_folder, paste0("EvalBoxplot_", species, extent, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -217,7 +217,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
         fill = "Model"
       ) +
       theme_minimal()
-    ggsave(file.path(output_folder, paste0("VarImpBoxplot_AllRun_", species, biome_name, ".png")), width = 10, height = 6, dpi = 300)
+    ggsave(file.path(output_folder, paste0("VarImpBoxplot_AllRun_", species, extent, ".png")), width = 10, height = 6, dpi = 300)
     
     # Generate response curves and save data for individual models
     responseCurves <- bm_PlotResponseCurves(bm.out = myBiomodModelOut, 
@@ -227,7 +227,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Save response curve plots
     png(
-      filename = file.path(output_folder, paste0("ResponseCurves_", species, biome_name, ".png")),
+      filename = file.path(output_folder, paste0("ResponseCurves_", species, extent, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -262,12 +262,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     variableImportanceEM <- rbind(variableImportanceEM, var_importanceEM)  # Combine importance across species
     
     # Save evaluation scores and variable importance to files
-    write.csv(eval_scoresEM, file = file.path(output_folder, paste0("EvalScoresEM_", species, biome_name, ".csv")), row.names = FALSE)
-    write.csv(var_importanceEM, file = file.path(output_folder, paste0("VarImportanceEM_", species, biome_name, ".csv")), row.names = FALSE)
+    write.csv(eval_scoresEM, file = file.path(output_folder, paste0("EvalScoresEM_", species, extent, ".csv")), row.names = FALSE)
+    write.csv(var_importanceEM, file = file.path(output_folder, paste0("VarImportanceEM_", species, extent, ".csv")), row.names = FALSE)
     
     # Save evaluation score boxplots and variables importance
     png(
-      filename = file.path(output_folder, paste0("EvalBoxplotEM_", species, biome_name, ".png")),
+      filename = file.path(output_folder, paste0("EvalBoxplotEM_", species, extent, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -275,7 +275,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     dev.off()
     
     png(
-      filename = file.path(output_folder, paste0("VarImpBoxplotEM_", species, biome_name, ".png")),
+      filename = file.path(output_folder, paste0("VarImpBoxplotEM_", species, extent, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -290,7 +290,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Save response curve plots
     png(
-      filename = file.path(output_folder, paste0("ResponseCurvesEM_", species, biome_name, ".png")),
+      filename = file.path(output_folder, paste0("ResponseCurvesEM_", species, extent, ".png")),
       width = 2000,
       height = 1500,
       res = 300)
@@ -350,12 +350,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
       
       # Save ensemble forecast as raster files
       ensembleRaster <- get_predictions(myBiomodEF)
-      rasterFilename <- file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, "_", biome_name, ".tif"))
+      rasterFilename <- file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, "_", extent, ".tif"))
       terra::writeRaster(ensembleRaster, rasterFilename, overwrite = TRUE)
       
       # Save ensemble forecast plots
       png(
-        filename = file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, biome_name, ".png")),
+        filename = file.path(output_folder, paste0("EnsembleForecast_", species, "_", scenario, extent, ".png")),
         width = 2000,
         height = 1500,
         res = 300
