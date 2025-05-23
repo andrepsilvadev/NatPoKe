@@ -97,11 +97,11 @@ extract_legend <- function(plot) {
 #####################################
 # Functions to load rasters -------------------------------------------
 load_baseline_clim <- function(variable, baseline_year){
-  file_path <- file.path(base_path, paste0("CHELSA_", variable, "_", baseline_year, "_V.2.1.tif"))
+  file_path <- file.path(basePathClim, paste0("CHELSA_", variable, "_", baseline_year, "_V.2.1.tif"))
   rast(file_path)}
 
 load_scenario_clim <- function(scenario, variable, year) {
-  file_path <- file.path(base_path, scenario, paste0("CHELSA_", variable, "_", year, "_gfdl-esm4_", scenario, "_V.2.1.tif"))
+  file_path <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", year, "_gfdl-esm4_", scenario, "_V.2.1.tif"))
   rast(file_path)}
 
 # Function to aggregate rasters
@@ -126,7 +126,7 @@ stack_clim_rasters <- function(variable, year) {
   names(scenarios_stack) <- names(scenarios_list)
   
   # Save the raster stack
-  stack_output_file <- file.path(output_path, paste0("scenarios_stack_", variable, "_", year, "_", biome_name_short, ".tif"))
+  stack_output_file <- file.path(outputPathLandscapes, paste0("scenarios_stack_", variable, "_", year, "_", biome_name_short, ".tif"))
   writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
   # Assign the raster stack to a variable in the environment
@@ -245,20 +245,20 @@ load_baseline_landUse <- function(baseline_year){
 # Scenario Rasters
 load_scenario_landUse <- function(scenario, year) {
   # Construct the file path
-  file_path <- file.path(base_path, scenario, paste0("lulc_esa_gtap1_", scenario, "_", year, "_no_policy.tif"))
+  file_path <- file.path(basePathLandUse, scenario, paste0("lulc_esa_gtap1_", scenario, "_", year, "_no_policy.tif"))
   rast(file_path)
 }
 # Mapped baseline raster
 load_mapped_baseline_landUse <- function(baseline_year){
-  mapped_baseline_path <- file.path(output_path, paste0("Mapped_LandUseChange_baseline_", baseline_year, "_", biome_name_short, ".tif"))
+  mapped_baseline_path <- file.path(outputPathLandscapes, paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent), ".tif"))
   rast(mapped_baseline_path)
 }
 # Mapped raster stacks
 load_mapped_landUse <- function(year) {
-  mapped_file_path <- file.path(output_path, paste0("Mapped_LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
+  mapped_file_path <- file.path(outputPathLandscapes, paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent), ".tif"))
   if (file.exists(mapped_file_path)) {
     mapped_raster_stack <- rast(mapped_file_path)
-    assign(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), mapped_raster_stack, envir = .GlobalEnv)
+    assign(paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent)), mapped_raster_stack, envir = .GlobalEnv)
     return(mapped_raster_stack)
   } else {
     stop(paste("Mapped raster file for year", year, "does not exist."))
@@ -270,7 +270,7 @@ load_mapped_landUse <- function(year) {
 stack_rasters <- function(year) {
   scenarios_list <- list()
   for (scenario in scenarios) {
-    raster_name <- paste0("LandUseChange_", scenario, "_", year, "_", biome_name_short)
+    raster_name <- paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent))
     if (exists(raster_name)) {
       scenarios_list[[paste0(scenario, "_", year)]] <- get(raster_name)
     }
@@ -280,16 +280,16 @@ stack_rasters <- function(year) {
   scenarios_stack <- rast(scenarios_list)
   names(scenarios_stack) <- names(scenarios_list)
   
-  stack_output_file <- file.path(output_path, paste0("LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
+  stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
   writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
   # Assign the raster stack to a variable in the environment
-  assign(paste0("LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
+  assign(paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent)), scenarios_stack, envir = .GlobalEnv)
   
   return(scenarios_stack)
 }
 
-# Define the mapping function of ESA LULC types (39) to the 7 (SEALS) LULC types
+# Define the mapping function of ESA LULC types (37) to the 7 (SEALS) LULC types
 map_values_to_landUse <- function(x) {
   value_to_landUse <- list(
     "190" = 1,  # Urban
@@ -337,7 +337,7 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
 # Function to process the mapped scenarios and apply the function to calculate percentages
 process_and_map_scenarios <- function(year) {
   # Load the raster stack for the years
-  mapped_raster_stack <- get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", biome_name_short)))
+  mapped_raster_stack <- get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", extent)))
   
   # Calculate land use percentages
   scenarios_percentages_list <- list()
@@ -360,7 +360,7 @@ process_and_map_scenarios <- function(year) {
 }
 
 # Function to create binary maps and classes of land-use types
-calculateRasterClass <- function(OriginalRaster, extent) {
+calculateRasterClass <- function(OriginalRaster, extent, target_resolution) {
   # Crop and mask the raster to the biome's boundary
   raster <- mask(crop(OriginalRaster, extent), extent)
   
@@ -384,10 +384,14 @@ calculateRasterClass <- function(OriginalRaster, extent) {
     binary_rasters[[as.character(class)]] <- create_binary_raster(raster, class)
   }
   
+  # Calculate the aggregation factor based on the target resolution
+  input_resolution <- res(raster)[1]  # Assuming square cells, take the resolution of the first dimension
+  aggregation_factor <- round(target_resolution / input_resolution)
+  
   # Aggregate each binary raster by a factor of 10
   aggregated_rasters <- list()
   for (class in names(binary_rasters)) {
-    aggregated_raster <- aggregate(binary_rasters[[class]], fact = 10, fun = function(x) sum(x > 0, na.rm = TRUE))
+    aggregated_raster <- aggregate(binary_rasters[[class]], fact = aggregation_factor, fun = function(x) sum(x > 0, na.rm = TRUE)) # change aggregation faktor to 1km
     masked_raster <- mask(crop(aggregated_raster, extent), extent)
     aggregated_rasters[[class]] <- masked_raster
   }
