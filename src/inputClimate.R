@@ -1,125 +1,119 @@
 ## Name: inputClimate.R ##
 ## Authors: Jorinde-M. Rieger ##
-## Description: Applies functions to calculate environmental input data (temperature and precipitation)
-## for the ssp126 and ssp585 scenarios in various time periods ##
-## Date: April 1st 2025 ##
+## Description: Applies functions to calculate climate input data (temperature and precipitation)
+## for the ssp126 and ssp585 scenarios in various years##
+## Date: May 22nd 2025 ##
 
 # Input variables -------------------------------------------
 # Define input variables
-scenarios <- c("ssp126", "ssp585")
-scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
+#scenarios <- c("ssp126", "ssp585")
+#scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
 variables <- c("bio1", "bio12")
 
-years <- c("2011-2040", "2041-2070", "2071-2100") 
-baseline_year <- "1981-2010"
+#years <- c("2011-2040", "2041-2070", "2071-2100") # original in time periods"2011-2040", "2041-2070", "2071-2100"
+#yearsAdapted <- c(2030, 2050, 2100) # adapted from landuse 
+#baseline_year <- "1981-2010"
+#baseline_yearAdapted <- 2015 # adapted from landuse
+
+yearsOrigin <- c("2011-2040", "2041-2070", "2071-2100") # original in time periods"2011-2040", "2041-2070", "2071-2100"
+#years <- c(2030, 2050, 2100) # adapted from landuse 
+baseline_yearOrigin <- "1981-2010"
+#baseline_year <- 2015 # adapted from landuse
+
+#Map time periods to adapted years
+yearsMapping <- setNames(years, yearsOrigin)
 
 # Define the file paths
-base_path <- "~/data/data/CHELSA_gfdl-esm4_V.2.1"
-output_path <- "~/data/data/CHELSA_gfdl-esm4_V.2.1/outputData"
-output_folder <- "~/data/output"
-
-# Define the target resolution (based on the landUsePercentage rasters)
-target_resolution <- 0.277
+basePathClim <- "~/data/data/CHELSA_gfdl-esm4_V.2.1"
 
 # Create environmental input Data (climate) as training and prediction landscapes-------------------------------------------
-# Create an empty list to store training Landscapes
-trainingLandscapes <- list()
+# Create an empty list to store climate training Landscapes
+trainingLandscapesClim <- list()
 # Loop through the training landscapes
 for (variable in variables) {
     # Load the raster
-    raster <- load_baseline_clim(variable, baseline_year)
-    
-    # Get the original resolution from the raster
-    original_resolution <- res(raster)[1]
-    
-    # Calculate the aggregation factor
-    aggregation_factor <- target_resolution / original_resolution
-    
-    # Aggregate the raster
-    raster_agg <- aggregate_raster(raster, aggregation_factor)
+    raster <- load_baseline_clim(variable, baseline_yearOrigin)
     
     # Load global terrestrial extent
     land <- ne_countries(scale = "medium", returnclass = "sf")
     
     # Ensure CRS consistency
-    land <- st_transform(land, crs = crs(raster_agg))
+    land <- st_transform(land, crs = crs(raster))
     
     # Convert the sf to a spatial object
     land <- vect(land)
     
     # Crop and mask the raster
-    raster_land <- crop_mask_raster(raster_agg, land)
+    raster_land <- crop_mask_raster(raster, land)
     
-    trainingLandscapes[[variable]] <- raster_land
+    trainingLandscapesClim[[variable]] <- raster_land
 }
 # Convert the list into a SpatRaster stack
-trainingLandscapes <- rast(trainingLandscapes)
+trainingLandscapesClim <- rast(trainingLandscapesClim)
 
 # Rename layers to match variable names
-names(trainingLandscapes) <- variables
+names(trainingLandscapesClim) <- variables
+
+# Save the trainingLandscape with the adapted baseline year
+output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, ".tif"))
+writeRaster(trainingLandscapesClim, output_file, overwrite = TRUE)
 
 # Test the rasters
-print(trainingLandscapes)
-plot(trainingLandscapes)
+print(trainingLandscapesClim)
+plot(trainingLandscapesClim)
 
 # Create an empty list to store prediction landscapes
-predictionLandscapes <- list()
+predictionLandscapesClim <- list()
 
 # Loop through the prediction landscapes
 for (scenario in scenarios) {
-  for (year in years) {
+  for (yearOrigin in yearsOrigin) {
     
     # Create a list for each scenario-year combination
     raster_list <- list()
     
     for (variable in variables) {
       # Load the raster
-      raster <- load_scenario_clim(scenario, variable, year)
-      
-      # Get the original resolution from the raster
-      original_resolution <- res(raster)[1]
-      
-      # Calculate the aggregation factor
-      aggregation_factor <- target_resolution / original_resolution
-      
-      # Aggregate the raster
-      raster_agg <- aggregate_raster(raster, aggregation_factor)
+      raster <- load_scenario_clim(scenario, variable, yearOrigin)
       
       # Load the global terrestrial extent
       land <- ne_countries(scale = "medium", returnclass = "sf")
       
       # Ensure CRS consistency
-      land <- st_transform(land, crs = crs(raster_agg))
+      land <- st_transform(land, crs = crs(raster))
       
       # Convert the sf object to a spatial vector
       land <- vect(land)
       
       # Crop and mask the raster
-      raster_land <- crop_mask_raster(raster_agg, land)
+      raster_land <- crop_mask_raster(raster, land)
       
       # Store the processed raster in the list
       raster_list[[variable]] <- raster_land
     }
     
     # Convert the list of rasters into a SpatRaster stack
-    predictionLandscapes[[paste0(scenario, "_", year)]] <- rast(raster_list)
+    predictionLandscapesClim[[paste0(scenario, "_", yearOrigin)]] <- rast(raster_list)
   }
 }
 
 # Rename raster layers within each stack to match variable names
-for (i in seq_along(predictionLandscapes)) {
-  names(predictionLandscapes[[i]]) <- variables
+for (i in seq_along(predictionLandscapesClim)) {
+  names(predictionLandscapesClim[[i]]) <- variables
 }
 
+# Save the climate prediction landscapes  with adapted years
+for (scenario in scenarios) {
+  for (yearOrigin in yearsOrigin) {
+    # Get the adapted year
+    year <- yearsMapping[yearOrigin]
+    
+    # Save the prediction landscape
+    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, ".tif"))
+    writeRaster(predictionLandscapesClim[[paste0(scenario, "_", year)]], output_file, overwrite = TRUE)
+  }
+}
 # Print the structure of the final list
-print(predictionLandscapes)
-plot(predictionLandscapes[["ssp126_2071-2100"]])
+print(predictionLandscapesClim)
+plot(predictionLandscapesClim[["ssp126_2100"]])
 
-# Combined raster with all envrionmental variables
-#landscapes <- list()
-#for (name in names(predictionLandscapes)) {
-#  landscapes[[name]] <- c(trainingLandscapes, predictionLandscapes[[name]])
-#}
-#landscapes <- rast(landscapes)
-
-#print(landscapes)  # List of combined raster stacks
