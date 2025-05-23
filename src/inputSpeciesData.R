@@ -1,11 +1,11 @@
 ## Name: InputSpeciesData.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: Cleans species occurrence data, one species per grid cell, filters by year ##
-## Date: April 2nd, 2025 ##
+## Date: May 22nd, 2025 ##
 
 # Load species occurence data
 speciesData <- read.csv(
-  "~/data/data/trait_datasets/GBIF_mammal_30+occurrences_speciesTest.csv")
+  "~/data/data/trait_datasets/GBIF_mammal_30+occurrences.csv") # all targeted mammals
 print(head(speciesData))
 
 # Remove NAs and filter out records older than 2015
