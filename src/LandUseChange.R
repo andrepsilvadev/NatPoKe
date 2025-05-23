@@ -189,6 +189,7 @@ baseline_year_raster_classified <- calculateRasterClass(
   OriginalRaster = baseline_year_raster,  # Already aggregated and mapped raster
   extent = biome_sp
 )
+plot(baseline_year_raster_classified)
 
 # Save the processed baseline raster
 output_file <- file.path(output_path, paste0("LandUseChange_baseline_", baseline_year,"_", biome_name_short, "_classified.tif"))
