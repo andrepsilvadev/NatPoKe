@@ -1,18 +1,119 @@
 ## Name: SDMRun.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: Creates output of SDM results in R ##
-## Date: May 19th 2025 ##
+## Date: May 22nd 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
 source("~/NatPoKe9/src/libraries.R") # libraries
 # When using the pipeline for the first time run taxaOcccurence.R and adapt species and user-login for GBIF Database:
 #source("~/NatPoKe9/src/TaxaOccurence.R") # downloads taxa occurences from GBIF Database
 source("~/NatPoKe9/src/customFunctions2.R") # functions
-source("~/NatPoKe9/src/inputClimate.R") # format and reads input raster landscapes, adapt: scenarios, years & variables
-source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data based on TaxaOccurence.R output
 source("~/NatPoKe9/src/SDM.R") # function to format data and SDM
 
-# Load dataset and format species occurence -----------------------------------------------------------------
+# Format training and prediction Landscape -----------------------------------------------------------------
+# Define input variables
+scenarios <- c("ssp126", "ssp585")
+scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
+
+# Define years
+years <- c(2030, 2050, 2100)
+baseline_year <- 2015
+
+# Define the target resolution (based on climate inputs)
+target_resolution <- 0.008333333 # 1km resolution
+
+# Define output path
+outputPathLandscapes <- "~/data/output/Landscapes"
+if (!dir.exists(outputPathLandscapes)) {
+  dir.create(outputPathLandscapes, recursive = TRUE)
+}
+
+source("~/NatPoKe9/src/inputClimate.R") # format and reads input climate raster landscapes, adapt: scenarios, years & variables
+source("~/NatPoKe9/src/inputLandUse.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
+source("~/NatPoKe9/src/inputElev.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
+
+# Define file paths and load training landscapes, if needed
+#trainingLandscapesClim <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, ".tif"))
+#trainingLandscapesLandUse <- file.path(outputPathLandscapes,paste0("trainingLandscapesLandUse_",  baseline_year, ".tif"))
+trainingLandscapesElev <- file.path(outputPathLandscapes, paste0("trainingLandscapesElev_",  baseline_year, ".tif"))
+#trainingLandscapesClim <- rast(trainingLandscapesClim)
+#trainingLandscapesLandUse <- rast(trainingLandscapesLandUse)
+trainingLandscapesElev <- rast(trainingLandscapesElev)
+
+# Ensure CRS, extent, and resolution consistency
+trainingLandscapesLandUse <- project(trainingLandscapesLandUse, crs(trainingLandscapesClim))
+trainingLandscapesLandUse <- resample(trainingLandscapesLandUse, trainingLandscapesClim)
+
+# Merge the climate and land-use rasters
+trainingLandscapes <- c(trainingLandscapesClim, trainingLandscapesLandUse, trainingLandscapesElev)
+
+# Save the merged training landscape
+output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif"))
+writeRaster(trainingLandscapes, output_file, overwrite = TRUE)
+
+# Plot the merged training landscape
+#plot(trainingLandscapes)
+
+
+# Create a list to store the merged prediction landscapes
+predictionLandscapes <- list()
+# Loop through scenarios and years
+for (scenario in scenarios) {
+  for (year in years) {
+    # Define file paths for climate and land-use prediction landscapes & load them in the environment, if needed
+    #predictionLandscapesClim <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, ".tif"))
+    #predictionLandscapesLandUse <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
+    #predictionLandscapesElev <- file.path(outputPathLandscapes, paste0("predictionLandscapesElev_", scenario, "_", year, ".tif"))
+    #predictionLandscapesClim <- rast(predictionLandscapesClim)
+    #predictionLandscapesLandUse <- rast(predictionLandscapesLandUse)
+    #predictionLandscapesElev <- rast(predictionLandscapesElev)
+    
+    # Ensure CRS, extent, and resolution consistency
+    predictionLandscapesLandUse <- project(predictionLandscapesLandUse, crs(predictionLandscapesClim))
+    predictionLandscapesLandUse <- resample(predictionLandscapesLandUse, predictionLandscapesClim)
+    
+    # Merge the climate and land-use rasters
+    merged_prediction <- c(predictionLandscapesClim, predictionLandscapesLandUse, predictionLandscapesElev)
+    
+    # Save the merged prediction landscape
+    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapes_", scenario, "_", year, ".tif"))
+    writeRaster(merged_prediction, output_file, overwrite = TRUE)
+    
+    # Store the merged prediction landscape in the list
+    predictionLandscapes[[paste0(scenario, "_", year)]] <- merged_prediction
+  }
+}
+
+# Example: Plot a merged prediction landscape
+#plot(predictionLandscapes[["ssp126_2030"]])
+
+
+# Format species occurence input data -----------------------------------------------------------------
+source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data based on TaxaOccurence.R output
+
+# Select input values for species and extent
+targetSpecies <- c("Alces alces", "Canis lupus")
+extent_name = "Global"
+
+# Format species occurence to true presence and NAs with corresponding coordinates
+speciesData <- formatInputDataFrame(
+  speciesData = speciesDataOcc,
+  targetSpecies = targetSpecies, 
+  landscape = trainingLandscapes)
+head(speciesData)
+
+# Run the SDMensembleMultiSpecies function globally -----------------------------------------------------------------
+results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
+                                   speciesData = speciesData,
+                                   trainingLandscapes = trainingLandscapes,
+                                   predictionLandscapes = predictionLandscapes,
+                                   extent = extent_name)
+
+# Example of accessing the results
+results$biomodData[["Alces alces"]]
+
+# Load dataset and format species occurence according to continents/regions -----------------------------------------------------------------
+
 # Define the biome and continents
 # Tropical Biome
 biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
@@ -48,7 +149,7 @@ trainingLandscapesContinents <- lapply(continent_geoms, function(continent_geom)
 })
 
 # Example access a training landscape
-plot(trainingLandscapesContinents[["Europe"]])
+#plot(trainingLandscapesContinents[["Europe"]])
 
 # Loop through each predictionLandscapes raster in the list and mask and crop to biome and continent
 predictionLandscapesContinents <- list()
@@ -61,9 +162,9 @@ for (i in seq_along(predictionLandscapes)) {
 }
 
 # Example access a training landscape
-plot(predictionLandscapesContinents[["ssp126_2071-2100"]][["Europe"]])
+#plot(predictionLandscapesContinents[["ssp126_2071-2100"]][["Europe"]])
 
-# Run the SDMensembleMultiSpecies function -----------------------------------------------------------------
+# Run the SDMensembleMultiSpecies function for a specific continent/region -----------------------------------------------------------------
 # Select the name of the studied species
 targetSpecies <- c("Alces alces", "Canis lupus")
 
@@ -94,7 +195,7 @@ resultsByContinents <- list()
     speciesData = speciesData,
     trainingLandscapes = training_landscape,
     predictionLandscapes = prediction_landscape,
-    biome_name = continent_name
+    extent = continent_name
   )
 #}
 
@@ -103,6 +204,8 @@ results <- resultsByContinents[[continent_name]] # single continent
 
 # Access of results for mulitple continents/regions
 #resultsByContinents$`North America`$biomodData[["Alces alces"]]
+
+
 
 # SDM evaluation metrics ------------------------------------------------
 # Plot Evaluation Metrics for single models
