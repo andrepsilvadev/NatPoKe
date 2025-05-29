@@ -1,7 +1,7 @@
 ## Name: SDMRun.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: Creates output of SDM results in R ##
-## Date: May 22nd 2025 ##
+## Date: May 29th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
 source("~/NatPoKe9/src/libraries.R") # libraries
@@ -12,8 +12,16 @@ source("~/NatPoKe9/src/SDM.R") # function to format data and SDM
 
 # Format training and prediction Landscape -----------------------------------------------------------------
 # Define input variables
-scenarios <- c("ssp126", "ssp585")
-scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
+scenarios <- c("ssp126", "ssp585") # define socio-economic pathways
+scenarios_des <- c("rcp26_ssp1", "rcp85_ssp5") # scenario names in land-use raster
+scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5") # define socio-economic pathways names
+
+# Define a mapping for scenario names
+scenario_name_mapping <- c(
+  "rcp26_ssp1" = "ssp126",
+  "rcp85_ssp5" = "ssp585")
+
+variables <- c("bio1", "bio12") # define climatologies
 
 # Define years
 years <- c(2030, 2050, 2100)
@@ -21,6 +29,10 @@ baseline_year <- 2015
 
 # Define the target resolution (based on climate inputs)
 target_resolution <- 0.008333333 # 1km resolution
+
+# Define extent
+extent = "Global Terrestrial"
+extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
 
 # Define output path
 outputPathLandscapes <- "~/data/output/Landscapes"
@@ -33,19 +45,25 @@ source("~/NatPoKe9/src/inputLandUse.R") # format and reads input land-use raster
 source("~/NatPoKe9/src/inputElev.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
 
 # Define file paths and load training landscapes, if needed
-#trainingLandscapesClim <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, ".tif"))
-#trainingLandscapesLandUse <- file.path(outputPathLandscapes,paste0("trainingLandscapesLandUse_",  baseline_year, ".tif"))
+trainingLandscapesClim <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, ".tif"))
+trainingLandscapesLandUse <- file.path(outputPathLandscapes,paste0("trainingLandscapesLandUse_",  baseline_year, ".tif"))
 trainingLandscapesElev <- file.path(outputPathLandscapes, paste0("trainingLandscapesElev_",  baseline_year, ".tif"))
-#trainingLandscapesClim <- rast(trainingLandscapesClim)
-#trainingLandscapesLandUse <- rast(trainingLandscapesLandUse)
-trainingLandscapesElev <- rast(trainingLandscapesElev)
+trainingLandscapesClim <- terra::rast(trainingLandscapesClim)
+trainingLandscapesLandUse <- terra::rast(trainingLandscapesLandUse)
+trainingLandscapesElev <- terra::rast(trainingLandscapesElev)
 
-# Ensure CRS, extent, and resolution consistency
-trainingLandscapesLandUse <- project(trainingLandscapesLandUse, crs(trainingLandscapesClim))
-trainingLandscapesLandUse <- resample(trainingLandscapesLandUse, trainingLandscapesClim)
+plot(trainingLandscapesLandUse)
+# Print extents
+print(terra::ext(trainingLandscapesClim))
+print(terra::ext(trainingLandscapesLandUse))
+print(terra::ext(trainingLandscapesElev))
+
+# Resample the extent of the training landscapes to the land-use training Landscape
+trainingLandscapesClim <- terra::resample(trainingLandscapesClim, trainingLandscapesLandUse)
+trainingLandscapesElev <- terra::resample(trainingLandscapesElev, trainingLandscapesLandUse)
 
 # Merge the climate and land-use rasters
-trainingLandscapes <- c(trainingLandscapesClim, trainingLandscapesLandUse, trainingLandscapesElev)
+trainingLandscapes <- c(trainingLandscapesElev, trainingLandscapesLandUse, trainingLandscapesClim)
 
 # Save the merged training landscape
 output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif"))
@@ -61,19 +79,19 @@ predictionLandscapes <- list()
 for (scenario in scenarios) {
   for (year in years) {
     # Define file paths for climate and land-use prediction landscapes & load them in the environment, if needed
-    #predictionLandscapesClim <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, ".tif"))
-    #predictionLandscapesLandUse <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
-    #predictionLandscapesElev <- file.path(outputPathLandscapes, paste0("predictionLandscapesElev_", scenario, "_", year, ".tif"))
-    #predictionLandscapesClim <- rast(predictionLandscapesClim)
-    #predictionLandscapesLandUse <- rast(predictionLandscapesLandUse)
-    #predictionLandscapesElev <- rast(predictionLandscapesElev)
+    predictionLandscapesClim <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, ".tif"))
+    predictionLandscapesLandUse <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
+    predictionLandscapesElev <- file.path(outputPathLandscapes, paste0("predictionLandscapesElev_", scenario, "_", year, ".tif"))
+    predictionLandscapesClim <- terra::rast(predictionLandscapesClim)
+    predictionLandscapesLandUse <- terra::rast(predictionLandscapesLandUse)
+    predictionLandscapesElev <- terra::rast(predictionLandscapesElev)
     
     # Ensure CRS, extent, and resolution consistency
-    predictionLandscapesLandUse <- project(predictionLandscapesLandUse, crs(predictionLandscapesClim))
-    predictionLandscapesLandUse <- resample(predictionLandscapesLandUse, predictionLandscapesClim)
+    predictionLandscapesClim <- terra::resample(predictionLandscapesClim, predictionLandscapesLandUse)
+    predictionLandscapesElev <- terra::resample(predictionLandscapesElev, predictionLandscapesLandUse)
     
     # Merge the climate and land-use rasters
-    merged_prediction <- c(predictionLandscapesClim, predictionLandscapesLandUse, predictionLandscapesElev)
+    merged_prediction <- c(predictionLandscapesElev, predictionLandscapesLandUse, predictionLandscapesClim)
     
     # Save the merged prediction landscape
     output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapes_", scenario, "_", year, ".tif"))
@@ -93,7 +111,9 @@ source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data based 
 
 # Select input values for species and extent
 targetSpecies <- c("Alces alces", "Canis lupus")
-extent_name = "Global"
+
+# Select all species in speciesDataOcc as target species
+targetSpecies <- unique(speciesDataOcc$species)
 
 # Format species occurence to true presence and NAs with corresponding coordinates
 speciesData <- formatInputDataFrame(
@@ -107,7 +127,7 @@ results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
                                    speciesData = speciesData,
                                    trainingLandscapes = trainingLandscapes,
                                    predictionLandscapes = predictionLandscapes,
-                                   extent = extent_name)
+                                   extent = extent)
 
 # Example of accessing the results
 results$biomodData[["Alces alces"]]
