@@ -1,7 +1,7 @@
 ## Name: CustomFunctions2.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Loads all developed customised functions for LandUseChange.R, ClimateChange.R, inputClimate.R, inputLandUse.R##
-## Date: May 20th 2025 ##
+## Date: May 29th 2025 ##
 
 #####################################
 # General Functions
@@ -267,25 +267,48 @@ load_mapped_landUse <- function(year) {
 
 # Functions to modify rasters-------------------------------------------
 # Function to stack rasters
-stack_rasters <- function(year) {
+#stack_rasters <- function(year) {
+#  scenarios_list <- list()
+#  for (scenario in scenarios) {
+#    raster_name <- paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent))
+#    if (exists(raster_name)) {
+#      scenarios_list[[paste0(scenario, "_", year)]] <- get(raster_name)
+#    }
+#  }
+  
+  # Create a raster stack from the list of scenarios
+#  scenarios_stack <- rast(scenarios_list)
+#  names(scenarios_stack) <- names(scenarios_list)
+  
+#  stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
+#  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
+  
+  # Assign the raster stack to a variable in the environment
+#  assign(paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent)), scenarios_stack, envir = .GlobalEnv)
+  
+#  return(scenarios_stack)
+#}
+
+stack_rasters <- function(year, scenarios, extent, outputPathLandscapes) {
   scenarios_list <- list()
+  
   for (scenario in scenarios) {
-    raster_name <- paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent))
-    if (exists(raster_name)) {
-      scenarios_list[[paste0(scenario, "_", year)]] <- get(raster_name)
-    }
+    # Dynamically construct the raster file path
+    raster_file <- file.path(outputPathLandscapes, paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
+    
+    # rasterize file
+    scenarios_list[[paste0(scenario, "_", year)]] <- terra::rast(raster_file)
   }
   
   # Create a raster stack from the list of scenarios
-  scenarios_stack <- rast(scenarios_list)
-  names(scenarios_stack) <- names(scenarios_list)
+  scenarios_stack <- terra::rast(scenarios_list)
+  terra::names(scenarios_stack) <- terra::names(scenarios_list)
   
+  # Save the raster stack to disk
   stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
   writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
-  # Assign the raster stack to a variable in the environment
-  assign(paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent)), scenarios_stack, envir = .GlobalEnv)
-  
+  # Return the raster stack
   return(scenarios_stack)
 }
 
@@ -365,7 +388,7 @@ calculateRasterClass <- function(OriginalRaster, extent, target_resolution) {
   raster <- mask(crop(OriginalRaster, extent), extent)
   
   # Define the unique land-use classes and remove NAs
-  land_use_classes <- unique(values(raster))
+  land_use_classes <- terra::freq(raster)[,2] #unique(values(raster))
   land_use_classes <- na.omit(land_use_classes)
   
   # Function to create binary raster for each land-use class
