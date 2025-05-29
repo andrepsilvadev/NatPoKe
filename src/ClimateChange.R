@@ -19,8 +19,8 @@ value_units <- c("°C", "kg m-2 year-1")
 years <- c("2011-2040", "2041-2070", "2071-2100") # first year/timeperiod will be used as a baseline for change calculation
 
 # Define the file paths
-base_path <- "~/data/data/CHELSA_gfdl-esm4_V.2.1"
-output_path <- "~/data/data/CHELSA_gfdl-esm4_V.2.1/outputData"
+basePathClim <- "~/data/data/CHELSA_gfdl-esm4_V.2.1"
+outputPathClim <- "~/data/data/CHELSA_gfdl-esm4_V.2.1/outputData"
 output_folder <- "~/data/output"
 
 # Define the target resolution (based on the landUsePercentage rasters)
@@ -71,7 +71,7 @@ for (scenario in scenarios) {
       raster_biome <- crop_mask_raster(raster_agg, biome_sp)
       
       # Save the aggregated raster
-      output_file <- file.path(output_path, paste0("ClimateChange_", scenario, "_", variable, "_", year, "_", biome_name_short, ".tif"))
+      output_file <- file.path(outputPathClim, paste0("ClimateChange_", scenario, "_", variable, "_", year, "_", biome_name_short, ".tif"))
       writeRaster(raster_biome, output_file, overwrite = TRUE)
       
       # Assign the raster to a variable dynamically
