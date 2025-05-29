@@ -1,20 +1,9 @@
 ## Name: inputLandUse.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate land-use input data for the ssp126 and ssp585 scenarios in various years##
-## Date: May 23rd 2025 ##
+## Date: May 29th 2025 ##
 
 # Input variables -------------------------------------------
-# Define input variables
-#scenarios <- c("ssp126", "ssp585")
-#scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
-
-# Define years
-#years <- c(2030, 2050, 2100)
-#baseline_year <- 2015
-
-# Define the target resolution
-#target_resolution <- 0.008333333 # 1km resolution
-
 # Define the file paths
 basePathLandUse <- "~/data/data/stitched_lulc_esa_scenarios"
 
@@ -32,81 +21,73 @@ LULC_Types_names <- c(
   "Barren or other"
 )
 
-# Define the biome and continents
-# Tropical Biome
-#biome_name <- "Tropical & Subtropical Moist Broadleaf Forests"
-#extent <- "Tropical Biome"
-
-# Boreal Biome
-#biome_name <- "Boreal Forests/Taiga"
-#extent <- "Boreal Biome"
-
 # Create land-use input raster for the trainingLandscape -------------------------------------------
 # Process baseline year
 baseline_raster <- load_baseline_landUse(baseline_year)
-#plot(baseline_raster)
-
-# Load extent global OR biome
-extent <- "Global"
-extent_sf <- ne_countries(scale = "medium", returnclass = "sf") # OR load_select_biome(biome_name)
-extent_sf <- st_transform(extent_sf, crs = crs(baseline_raster))
-extent_sp <- vect(extent_sf)
 
 # Crop and mask baseline raster to biome
 baseline_raster_extent <- crop_mask_raster(baseline_raster, extent_sp)
 
 # Apply land-use type mapping
-mapped_baseline<- terra::app(x = baseline_raster_extent, fun = map_values_to_landUse) # takes approx. 2h for one biome
+mapped_baseline<- terra::app(x = baseline_raster_extent, fun = map_values_to_landUse) # takes approx. ?
 plot(mapped_baseline)
 
 # Save the mapped baseline raster
 output_file <- file.path(outputPathLandscapes, paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent), ".tif"))
-writeRaster(mapped_baseline, output_file, overwrite = TRUE)
+terra::writeRaster(mapped_baseline, output_file, overwrite = TRUE)
 assign(paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent)), mapped_baseline, envir = .GlobalEnv)
 
 # Load the mapped raster stack for the baseline year
-#baseline_year_raster <- load_mapped_baseline_landUse(baseline_year)
+mapped_baseline <- load_mapped_baseline_landUse(baseline_year)
 
 # Apply calculateRasterClass to the baseline raster to create raster classes for the land use types
 trainingLandscapesLandUse <- calculateRasterClass(
   OriginalRaster = mapped_baseline,
-  extent = extent_sp,
+  extent = extent_sp, # defined in inputClimate.R
   target_resolution = target_resolution
 )
 
 # Replace land use numbers with names
-trainingLandscapesLandUse <- replace_numbers_with_names(baseline_LULC, LULC_Types, LULC_Types_names)
+trainingLandscapesLandUse <- replace_numbers_with_names(trainingLandscapesLandUse, LULC_Types, LULC_Types_names)
 
 # Save the processed baseline raster
 output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year, ".tif")) # add extent name if needed "gsub(" ", "_", extent)"
-writeRaster(trainingLandscapesLandUse, output_file, overwrite = TRUE)
+terra::writeRaster(trainingLandscapesLandUse, output_file, overwrite = TRUE)
 
 #plot(trainingLandscapesLandUse)
 
 # Create land-use input raster for the predictionLandscape -------------------------------------------
 # Loop through the scenarios and years crop to the biome
-for (scenario in scenarios) {
+for (scenario_des in scenarios_des) {
   for (year in years) {
     # Load the raster
-    raster <- load_scenario_landUse(scenario, year)
+    raster <- load_scenario_landUse(scenario_des, year)
     
     # Crop and mask the raster
     raster_extent <- crop_mask_raster(raster, extent_sp)
     
+    # Map the scenario name
+    scenario <- scenario_name_mapping[scenario_des]
+    
     # Save the aggregated raster
     output_file <- file.path(outputPathLandscapes, paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
-    writeRaster(raster_extent, output_file, overwrite = TRUE)
+    terra::writeRaster(raster_extent, output_file, overwrite = TRUE)
     
     # Assign the raster to name
     assign(paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent)), raster_extent)
   }
 }
 
+library(foreach)
+library(doParallel)
+# Register parallel backend
+num_cores <- min(parallel::detectCores() - 1, 10)  # use up to 10 cores
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
+
 # Loop through the years to create raster stacks and map land-use types
-for (year in years) {
-  stack_rasters(year)
-  # Load the raster stack for the year
-  raster_stack <- get(paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent)))
+mapped_rasters <- foreach(year = years, .combine = 'c', .packages = c("terra", "sf")) %dopar% {
+  raster_stack <- stack_rasters(year, scenarios, extent, outputPathLandscapes)
   
   # Apply land-use type mapping
   mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_landUse)
@@ -115,19 +96,18 @@ for (year in years) {
   output_file <- file.path(outputPathLandscapes, paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent), ".tif"))
   writeRaster(mapped_scenarios, output_file, overwrite = TRUE)
   
-  # Save the mapped raster stack back to the environment
-  assign(paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent)), mapped_scenarios, envir = .GlobalEnv)
+  # Return the mapped raster stack
+  mapped_scenarios
 }
-
-# Access mapped land-use scenario stacks
-#MappedLandUse_scenarios_2021_Boreal_Biome
-
+stopCluster(cl)
 
 # Load the mapped raster stacks for the target years
 LULC_scenarios_list <- list()
 for (year in years) {
   LULC_scenarios_list[[as.character(year)]] <- load_mapped_landUse(year)
 }
+
+#plot(LULC_scenarios_list$`2100`$ssp126_2100)
 
 # Apply calculateRasterClass to the target year rasters
 # Loop through the years to process each layer (scenario)
@@ -163,7 +143,7 @@ for (year in names(LULC_scenarios_list)) {
     
     # Save the processed raster
     output_file <- file.path(outputPathLandscapes, paste0("LandUseClass_", scenario, "_", year,"_", gsub(" ", "_", extent), ".tif"))
-    writeRaster(scenario_raster_classified, output_file, overwrite = TRUE)
+    terra::writeRaster(scenario_raster_classified, output_file, overwrite = TRUE)
     
     # Store the processed raster in the list
     processed_scenario_rasters[[scenario]] <- scenario_raster_classified
@@ -173,45 +153,27 @@ for (year in names(LULC_scenarios_list)) {
   LULC_scenarios_list[[year]] <- processed_scenario_rasters
 }
 
-# Replace land use numbers with names
-LULC_scenarios_list <- replace_numbers_with_names_nested(LULC_scenarios_list, LULC_Types, LULC_Types_names)
-
-# Create a list to store the formatted prediction landscapes
+# Load land-use classes
 predictionLandscapesLandUse <- list()
-# Loop through each year
-for (year in names(LULC_scenarios_list)) {
-  # Loop through each scenario
-  for (scenario in names(LULC_scenarios_list[[year]])) {
-    # Get the classified raster for the scenario and year
-    scenario_raster <- LULC_scenarios_list[[year]][[scenario]]
+# Loop through scenarios and years to load rasters
+for (scenario in scenarios) {
+  for (year in years) {
+    # Dynamically construct the file path
+    input_file <- file.path(outputPathLandscapes, paste0("LandUseClass_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
     
-    # Combine the layers into a single SpatRaster stack
-    combined_raster <- rast(scenario_raster)
+    # Load the raster
+    loaded_raster <- terra::rast(input_file)
+    loaded_raster <- replace_numbers_with_names(loaded_raster, LULC_Types, LULC_Types_names)
     
-    # Rename the layers to match the land-use class names
-    names(combined_raster) <- LULC_Types_names
+    # Save the processed raster
+    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
+    terra::writeRaster(loaded_raster, output_file, overwrite = TRUE)
     
-    # Store the combined raster in the formatted list
-    predictionLandscapesLandUse[[paste0(scenario, "_", year)]] <- combined_raster
+    # Store the raster in the list
+    predictionLandscapesLandUse[[paste0(scenario, "_", year)]] <- loaded_raster
   }
 }
 
-# Save the formatted prediction landscapes
-for (key in names(predictionLandscapesLandUse)) {
-  # Extract the scenario and year from the key
-  scenario <- strsplit(key, "_")[[1]][1]
-  year <- strsplit(key, "_")[[1]][2]
-  
-  # Get the combined raster
-  predictionLandscapesLandUse <- predictionLandscapesLandUse[[key]]
-  
-  # Define the output file path
-  output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
-  
-  # Save the raster
-  writeRaster(predictionLandscapesLandUse, output_file, overwrite = TRUE)
-}
-
 # Example plot
-#plot(predictionLandscapesLandUse$ssp126$`2100`)
+#plot(predictionLandscapesLandUse$ssp126_2100)
 
