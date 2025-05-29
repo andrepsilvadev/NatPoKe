@@ -4,31 +4,22 @@
 ## Date: May 23rd 2025 ##
 
 # Input variables -------------------------------------------
-# Define input variables
-#scenarios <- c("ssp126", "ssp585")
-#years <- c(2030, 2050, 2100) # adapted from land use
-#baseline_year <- 2015 # adapted from land use
-
 # Define the file paths
 basePathElev <- "~/data/data/wc2.1_30s_elev/wc2.1_30s_elev.tif" # Path to the elevation raster
 
 # Load the elevation raster -------------------------------------------
-elevation_raster <- rast(basePathElev)
-
-# Load global terrestrial extent
-extent_sf <- ne_countries(scale = "medium", returnclass = "sf")
-extent_sf <- st_transform(extent_sf, crs = crs(elevation_raster))
-extent_sp <- vect(extent_sf)
+elevation_raster <- terra::rast(basePathElev)
 
 # Crop and mask the elevation raster to the global terrestrial extent
-elevation_raster <- crop_mask_raster(elevation_raster, extent_sp)
+elevation_raster <- crop_mask_raster(elevation_raster, extent_sp) # extent_sp defined in inputClimate.R
+names(elevation_raster) <- "Elevation"
 
 # Create training landscape -------------------------------------------
 trainingLandscapesElev <- elevation_raster
 output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesElev_", baseline_year, ".tif"))
-writeRaster(trainingLandscapesElev, output_file, overwrite = TRUE)
+terra::writeRaster(trainingLandscapesElev, output_file, overwrite = TRUE)
 
-plot(trainingLandscapesElev)
+#plot(trainingLandscapesElev)
 
 # Create prediction landscapes -------------------------------------------
 # Create an empty list to store prediction landscapes
@@ -42,7 +33,7 @@ for (scenario in scenarios) {
     
     # Save the elevation raster for this scenario and year
     output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesElev_", scenario, "_", year, ".tif"))
-    writeRaster(predictionLandscapesElev[[paste0(scenario, "_", year)]], output_file, overwrite = TRUE)
+    terra::writeRaster(predictionLandscapesElev[[paste0(scenario, "_", year)]], output_file, overwrite = TRUE)
   }
 }
 
