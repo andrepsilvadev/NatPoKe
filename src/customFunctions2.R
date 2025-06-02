@@ -302,7 +302,7 @@ stack_rasters <- function(year, scenarios, extent, outputPathLandscapes) {
   
   # Create a raster stack from the list of scenarios
   scenarios_stack <- terra::rast(scenarios_list)
-  terra::names(scenarios_stack) <- terra::names(scenarios_list)
+  names(scenarios_stack) <- names(scenarios_list)
   
   # Save the raster stack to disk
   stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
