@@ -87,7 +87,11 @@ registerDoParallel(cl)
 
 # Loop through the years to create raster stacks and map land-use types
 mapped_rasters <- foreach(year = years, .combine = 'c', .packages = c("terra", "sf")) %dopar% {
-  raster_stack <- stack_rasters(year, scenarios, extent, outputPathLandscapes)
+  #raster_stack <- stack_rasters(year, scenarios, extent, outputPathLandscapes)
+  
+  # Load the raster stack for the year
+  raster_stack <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
+  raster_stack <- terra::rast(raster_stack)
   
   # Apply land-use type mapping
   mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_landUse)
