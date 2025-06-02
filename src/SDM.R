@@ -81,10 +81,13 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
   combinedPlotsEM <- list()
   projectionMetadata <- data.frame()
   
-  # Calculate the average number of presence points across species
-
+  # Set up the parallel backend
+  #num_cores <- parallel::detectCores() - 1  # Use all but one core
+  #cl <- makeCluster(num_cores)
+  #registerDoParallel(cl)
   
   # Loop through each species
+  #results <- foreach(species = targetSpecies, .combine = 'list', .packages = c("terra", "BIOMOD2", "ggplot2")) %dopar% {
   for (species in targetSpecies){
     cat("\n", species, "modeling started...")
     
@@ -169,8 +172,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     # Run single models
     myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA, 
                                         modeling.id = paste0("Model_", species),
-                                        models = c('ANN', 'RF', 'XGBOOST'), # 'MAXENT' needs to be added, but did not work on the server
-                                        models.pa = list(#MAXENT = "PA1", # needs to be added, uses the first pseudo-absence set
+                                        models = c('ANN', 'RF', 'XGBOOST', 'MAXENT'), # 'MAXENT' needs to be added, but did not work on the server
+                                        models.pa = list(MAXENT = "PA1", # needs to be added, uses the first pseudo-absence set
                                                         ANN = "PA2", # use the second PA set
                                                         RF = "PA2",
                                                         XGBOOST = "PA2"),
@@ -391,6 +394,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
   write.csv(projectionMetadata, file = file.path(output_folder, paste0("ProjectionMetadata_", species, ".csv")), row.names = FALSE)
   
   # Return all results as a list
+  #list(
   return(list(
     biomodData = biomodDataList,
     biomodDataPA = biomodDataPAList,
@@ -411,3 +415,9 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     projectionMetadata = projectionMetadata
   ))
 }
+# Shut down the parallel backend
+#stopCluster(cl)
+
+# Return the combined results
+#return(results)
+#}
