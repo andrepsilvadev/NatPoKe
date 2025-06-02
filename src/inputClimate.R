@@ -8,11 +8,15 @@
 yearsOrigin <- c("2011-2040", "2041-2070", "2071-2100") # original in time periods"2011-2040", "2041-2070", "2071-2100"
 baseline_yearOrigin <- "1981-2010"
 
+# Climate Models (GCMs)
+models <- c("gfdl-esm4", "ipsl-cm6a-lr", "mpi-esm1-2-hr", "mri-esm2-0", "ukesm1-0-ll")
+
 # Map time periods to adapted years
 yearsMapping <- setNames(years, yearsOrigin)
 
 # Define the file paths
 basePathClim <- "~/data/data/CHELSA_gfdl-esm4_V.2.1"
+# add all five cliamte models and create the average values out of them
 
 # Create environmental input Data (climate) as training and prediction landscapes-------------------------------------------
 # Create an empty list to store climate training Landscapes
@@ -47,6 +51,8 @@ terra::writeRaster(trainingLandscapesClim, output_file, overwrite = TRUE)
 # Test the rasters
 #plot(trainingLandscapesClim)
 
+# layer all raster and average results
+
 # Create an empty list to store prediction landscapes
 predictionLandscapesClim <- list()
 
@@ -59,10 +65,24 @@ for (scenario in scenarios) {
     
     for (variable in variables) {
       # Load the raster
-      raster <- load_scenario_clim(scenario, variable, yearOrigin)
+      #raster <- load_scenario_clim(scenario, variable, yearOrigin)
+      
+      # Initialize a list to store rasters from all models
+      model_rasters <- list()
+      
+      # Loop through the 5 models
+      for (model in models) {
+        # Dynamically construct the file path for the model raster
+        raster_file <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", yearOrigin, "_", model, "_", scenario, "_V.2.1.tif"))
+        # Load the raster
+        model_rasters[[model]] <- rast(raster_file)
+      }
+      
+      # Calculate the average of the 5 model rasters
+      averaged_raster <- mean(stack(model_rasters), na.rm = TRUE)
       
       # Crop and mask the raster
-      raster_extent <- crop_mask_raster(raster, extent_sp)
+      raster_extent <- crop_mask_raster(averaged_raster, extent_sp)
       
       # Store the processed raster in the list
       raster_list[[variable]] <- raster_extent
