@@ -34,6 +34,10 @@ target_resolution <- 0.008333333 # 1km resolution
 extent = "Global Terrestrial"
 extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
 
+# Test with Iberian penisula extent
+#extent = "Iberian peninsula"
+#extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
+
 # Define output path
 outputPathLandscapes <- "~/data/output/Landscapes"
 if (!dir.exists(outputPathLandscapes)) {
