@@ -54,15 +54,15 @@ continent_title <- c("North America", "Europe & Asia")
 baseline_raster <- load_baseline_landUse(baseline_year)
 
 # Aggregate the baseline raster
-baseline_raster_agg <- aggregate(baseline_raster, fact = 10, fun = mean)
+#baseline_raster_agg <- aggregate(baseline_raster, fact = 10, fun = mean)
 
 # Load the selected biome, ensure CRS consistency, converst to spatial object
 biome_sf <- load_select_biome(biome_name)
-biome_sf <- st_transform(biome_sf, crs = crs(baseline_raster_agg))
+biome_sf <- st_transform(biome_sf, crs = crs(baseline_raster))
 biome_sp <- vect(biome_sf)
 
 # Crop and mask the baseline raster
-baseline_raster_biome <- crop_mask_raster(baseline_raster_agg, biome_sp)
+baseline_raster_biome <- crop_mask_raster(baseline_raster, biome_sp)
 
 # Apply land-use type mapping
 mapped_baseline<- terra::app(x = baseline_raster_biome, fun = map_values_to_landUse)
@@ -79,10 +79,10 @@ for (scenario in scenarios) {
     raster <- load_scenario_landUse(scenario, year)
     
     # Aggregate the raster
-    raster_agg <- aggregate(raster, fact = 10, fun = mean)
+    #raster_agg <- aggregate(raster, fact = 10, fun = mean)
     
     # Crop and mask the raster
-    raster_biome <- crop_mask_raster(raster_agg, biome_sp)
+    raster_biome <- crop_mask_raster(raster, biome_sp)
     
     # Save the aggregated raster
     output_file <- file.path(output_path, paste0("LandUseChange_", scenario, "_", year, "_agg.tif"))
