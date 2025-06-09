@@ -21,7 +21,13 @@ scenario_name_mapping <- c(
   "rcp26_ssp1" = "ssp126",
   "rcp85_ssp5" = "ssp585")
 
-variables <- c("bio1", "bio12") # define climatologies
+#Define climatologies
+variables <- c("bio1", # mean annual air temperature
+               "bio10", # mean daily mean air temperatures of the warmest quarter
+               "bio11", # mean daily mean air temperatures of the coldest quarter
+               "bio12", # annual precipitation amount
+               "bio16", # mean monthly precipitation amount of the wettest quarter
+               "bio17") # mean monthly precipitation amount of the driest quarter
 
 # Define years
 years <- c(2030, 2050, 2100)
@@ -30,13 +36,17 @@ baseline_year <- 2015
 # Define the target resolution (based on climate inputs)
 target_resolution <- 0.008333333 # 1km resolution
 
-# Define extent
-extent = "Global Terrestrial"
-extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
-
 # Test with Iberian penisula extent
 #extent = "Iberian peninsula"
 #extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
+#outputPathLandscapes <- "~/data/BoS/output/Landscapes"
+#if (!dir.exists(outputPathLandscapes)) {
+#  dir.create(outputPathLandscapes, recursive = TRUE)
+#}
+
+# Define extent
+extent = "Global Terrestrial"
+extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
 
 # Define output path
 outputPathLandscapes <- "~/data/output/Landscapes"
@@ -56,11 +66,12 @@ trainingLandscapesClim <- terra::rast(trainingLandscapesClim)
 trainingLandscapesLandUse <- terra::rast(trainingLandscapesLandUse)
 trainingLandscapesElev <- terra::rast(trainingLandscapesElev)
 
-plot(trainingLandscapesLandUse)
+#plot(trainingLandscapesLandUse)
+
 # Print extents
-print(terra::ext(trainingLandscapesClim))
-print(terra::ext(trainingLandscapesLandUse))
-print(terra::ext(trainingLandscapesElev))
+#print(terra::ext(trainingLandscapesClim))
+#print(terra::ext(trainingLandscapesLandUse))
+#print(terra::ext(trainingLandscapesElev))
 
 # Resample the extent of the training landscapes to the land-use training Landscape
 trainingLandscapesClim <- terra::resample(trainingLandscapesClim, trainingLandscapesLandUse)
@@ -73,8 +84,12 @@ trainingLandscapes <- c(trainingLandscapesElev, trainingLandscapesLandUse, train
 output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif"))
 writeRaster(trainingLandscapes, output_file, overwrite = TRUE)
 
+# load trainingLandscapes
+trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif"))
+trainingLandscapes <- terra::rast(trainingLandscapes)
+
 # Plot the merged training landscape
-#plot(trainingLandscapes)
+plot(trainingLandscapes)
 
 
 # Create a list to store the merged prediction landscapes
@@ -107,17 +122,18 @@ for (scenario in scenarios) {
 }
 
 # Example: Plot a merged prediction landscape
-#plot(predictionLandscapes[["ssp126_2030"]])
+plot(predictionLandscapes[["ssp126_2030"]])
 
 
 # Format species occurence input data -----------------------------------------------------------------
 source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data based on TaxaOccurence.R output
 
 # Select input values for species and extent
-targetSpecies <- c("Alces alces", "Canis lupus")
+#targetSpecies <- c("Alces alces", "Canis lupus")
+targetSpecies <- "Martes foina"
 
 # Select all species in speciesDataOcc as target species
-targetSpecies <- unique(speciesDataOcc$species)
+#targetSpecies <- unique(speciesDataOcc$species)
 
 # Format species occurence to true presence and NAs with corresponding coordinates
 speciesData <- formatInputDataFrame(
