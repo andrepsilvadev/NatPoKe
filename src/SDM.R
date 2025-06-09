@@ -55,12 +55,12 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
   }
   
   #Test the function
-#  targetSpecies = c("Alces alces", "Canis lupus")
-#  species = "Alces alces"
-#  speciesData = speciesData
-#  trainingLandscapes = trainingLandscapes
-#  predictionLandscapes = predictionLandscapes
-#  biome_name = "SwedenTest"
+  targetSpecies <- "Martes foina"
+  species = "Martes foina"
+  speciesData = speciesData
+  trainingLandscapes = trainingLandscapes
+  predictionLandscapes = predictionLandscapes
+  biome_name = "Iberian peninsula"
   
   # Initialize lists to store results for each species
   biomodDataList <- list()
@@ -172,8 +172,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     # Run single models
     myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA, 
                                         modeling.id = paste0("Model_", species),
-                                        models = c('ANN', 'RF', 'XGBOOST', 'MAXENT'), # 'MAXENT' needs to be added, but did not work on the server
-                                        models.pa = list(MAXENT = "PA1", # needs to be added, uses the first pseudo-absence set
+                                        models = c('ANN', 'RF', 'XGBOOST'), # 'MAXENT' needs to be added, but did not work on the server
+                                        models.pa = list(#MAXENT = "PA1", # needs to be added, uses the first pseudo-absence set
                                                         ANN = "PA2", # use the second PA set
                                                         RF = "PA2",
                                                         XGBOOST = "PA2"),
@@ -190,7 +190,6 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     eval_scores <- get_evaluations(myBiomodModelOut)
     eval_scores$species <- species  # Add species column
     evaluationScores <- rbind(evaluationScores, eval_scores)  # Combine scores across species
-    
     var_importance <- get_variables_importance(myBiomodModelOut)
     var_importance$species <- species  # Add species column
     variableImportance <- rbind(variableImportance, var_importance)  # Combine importance across species
