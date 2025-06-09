@@ -15,7 +15,7 @@ load_select_biome <- function(biome_name) {
 
 # Function to crop and mask rasters
 crop_mask_raster <- function(raster, biome_sp) {
-  mask(crop(raster, biome_sp), biome_sp)
+  terra::mask(terra::crop(raster, biome_sp), biome_sp)
 }
 
 # Function to load and select continents
@@ -103,6 +103,10 @@ load_baseline_clim <- function(variable, baseline_year){
 load_scenario_clim <- function(scenario, variable, year) {
   file_path <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", year, "_gfdl-esm4_", scenario, "_V.2.1.tif"))
   rast(file_path)}
+
+load_average_scenario_clim <- function(scenario, year, variable){
+  file_path <- file.path(outputPathLandscapes, paste0("AverageCHELSA",variable, "_", scenario, "_", yearOrigin, ".tif"))
+  terra::rast(file_path)}
 
 # Function to aggregate rasters
 aggregate_raster <- function(raster, aggregation_factor) {
@@ -289,48 +293,48 @@ load_mapped_landUse <- function(year) {
 #  return(scenarios_stack)
 #}
 
-stack_rasters <- function(year, scenarios, extent, outputPathLandscapes) {
-  scenarios_list <- list()
+#stack_rasters <- function(year, scenarios, extent, outputPathLandscapes) {
+#  scenarios_list <- list()
   
-  for (scenario in scenarios) {
+#  for (scenario in scenarios) {
     # Dynamically construct the raster file path
-    raster_file <- file.path(outputPathLandscapes, paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
+#    raster_file <- file.path(outputPathLandscapes, paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
     
     # rasterize file
-    scenarios_list[[paste0(scenario, "_", year)]] <- terra::rast(raster_file)
-  }
+#    scenarios_list[[paste0(scenario, "_", year)]] <- terra::rast(raster_file)
+#  }
   
   # Create a raster stack from the list of scenarios
-  scenarios_stack <- terra::rast(scenarios_list)
-  names(scenarios_stack) <- names(scenarios_list)
+#  scenarios_stack <- terra::rast(scenarios_list)
+#  names(scenarios_stack) <- names(scenarios_list)
   
   # Save the raster stack to disk
-  stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
-  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
+#  stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
+#  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
   # Return the raster stack
-  return(scenarios_stack)
-}
+#  return(scenarios_stack)
+#}
 
 # Define the mapping function of ESA LULC types (37) to the 7 (SEALS) LULC types
-map_values_to_landUse <- function(x) {
-  value_to_landUse <- list(
-    "190" = 1,  # Urban
-    "10" = 2, "11" = 2, "12" = 2, "20" = 2, "30" = 2, "40" = 2,   # Cropland
-    "130" = 3,  # Pasture/Grassland
-    "50" = 4, "60" = 4, "61" = 4, "62" = 4, "70" = 4, "71" = 4, "72" = 4, "80" = 4, "81" = 4, "82" = 4, "90" = 4, "100" = 4, "151" = 4, "160" = 4, "170" = 4, # Forest
-    "110" = 5, "120" = 5, "121" = 5, "122" = 5, "140" = 5, "150" = 5, "152" = 5, "153" = 5, "180" = 5,  # Non-forest vegetation
-    "210" = 6,  # Water
-    "200" = 7, "201" = 7, "202" = 7, "220" = 7  # Barren or Other
-  )
-  sapply(x, function(val) {
-    if (val %in% names(value_to_landUse)) {
-      return(value_to_landUse[[as.character(val)]])
-    } else {
-      return(NA)  # Handles values that do not map to any land-use type
-    }
-  })
-}
+#map_values_to_landUse <- function(x) {
+#  value_to_landUse <- list(
+#    "190" = 1,  # Urban
+#    "10" = 2, "11" = 2, "12" = 2, "20" = 2, "30" = 2, "40" = 2,   # Cropland
+#    "130" = 3,  # Pasture/Grassland
+#    "50" = 4, "60" = 4, "61" = 4, "62" = 4, "70" = 4, "71" = 4, "72" = 4, "80" = 4, "81" = 4, "82" = 4, "90" = 4, "100" = 4, "151" = 4, "160" = 4, "170" = 4, # Forest
+#    "110" = 5, "120" = 5, "121" = 5, "122" = 5, "140" = 5, "150" = 5, "152" = 5, "153" = 5, "180" = 5,  # Non-forest vegetation
+#    "210" = 6,  # Water
+#    "200" = 7, "201" = 7, "202" = 7, "220" = 7  # Barren or Other
+#  )
+#  sapply(x, function(val) {
+#    if (val %in% names(value_to_landUse)) {
+#      return(value_to_landUse[[as.character(val)]])
+#    } else {
+#      return(NA)  # Handles values that do not map to any land-use type
+#    }
+#  })
+#}
 
 
 # Functions to analyze rasters-------------------------------------------
@@ -415,12 +419,12 @@ calculateRasterClass <- function(OriginalRaster, extent, target_resolution) {
   aggregated_rasters <- list()
   for (class in names(binary_rasters)) {
     aggregated_raster <- aggregate(binary_rasters[[class]], fact = aggregation_factor, fun = function(x) sum(x > 0, na.rm = TRUE)) # change aggregation faktor to 1km
-    masked_raster <- mask(crop(aggregated_raster, extent), extent)
+    masked_raster <- terra::mask(terra::crop(aggregated_raster, extent), extent)
     aggregated_rasters[[class]] <- masked_raster
   }
   
   # Convert the list of rasters to a SpatRaster stack
-  aggregated_rasters_stack <- rast(aggregated_rasters)
+  aggregated_rasters_stack <- terra::rast(aggregated_rasters)
   return(aggregated_rasters_stack)
 }
 
