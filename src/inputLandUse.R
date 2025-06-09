@@ -1,7 +1,7 @@
 ## Name: inputLandUse.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate land-use input data for the ssp126 and ssp585 scenarios in various years##
-## Date: May 29th 2025 ##
+## Date: June 9th 2025 ##
 
 # Input variables -------------------------------------------
 # Define the file paths
@@ -14,12 +14,54 @@ LULC_Types <- 1:7
 LULC_Types_names <- c(
   "Urban",
   "Cropland",
-  "Pasture/Grassland",
+  "Pasture_Grassland",
   "Forest",
-  "Non-forest vegetation",
+  "Nonforest_vegetation",
   "Water",
-  "Barren or other"
+  "Barren_other"
 )
+
+# To reclassify LandUse classes create a matrix that ranges from and to to define intervals
+value_to_landUse <- c(
+  190, 1,  # Urban
+  10, 2, # Cropland
+  11, 2,
+  12, 2,
+  20, 2,
+  30, 2,
+  40, 2,
+  130, 3,  # Pasture/Grassland
+  50, 4, # Forest
+  60, 4,
+  61, 4,
+  62, 4, 
+  70, 4, 
+  71, 4,
+  72, 4, 
+  80, 4,
+  81, 4, 
+  82, 4,
+  90, 4, 
+  100, 4,
+  151, 4,
+  160, 4,
+  170, 4,
+  110, 5, # Non-forest vegetation
+  120, 5,
+  121, 5,
+  122, 5, 
+  140, 5,
+  150, 5,
+  152, 5,
+  153, 5,
+  180, 5,
+  210, 6, # Water
+  200, 7, # Barren or Other
+  201, 7,
+  202, 7,
+  220, 7)
+landUsematrix <- matrix(value_to_landUse, ncol = 2, byrow = TRUE )
+
 
 # Create land-use input raster for the trainingLandscape -------------------------------------------
 # Process baseline year
@@ -29,7 +71,7 @@ baseline_raster <- load_baseline_landUse(baseline_year)
 baseline_raster_extent <- crop_mask_raster(baseline_raster, extent_sp)
 
 # Apply land-use type mapping
-mapped_baseline<- terra::app(x = baseline_raster_extent, fun = map_values_to_landUse) # takes approx. ?
+mapped_baseline <- terra::classify(baseline_raster_extent, landUsematrix, include.lowest = TRUE)
 plot(mapped_baseline)
 
 # Save the mapped baseline raster
@@ -78,6 +120,53 @@ for (scenario_des in scenarios_des) {
   }
 }
 
+# Register parallel backend
+#num_cores <- min(parallel::detectCores() - 1, 10)  # Use up to 10 cores
+#cl <- makeCluster(num_cores)
+#registerDoParallel(cl)
+
+# Parallelized processing to map land-use types
+#foreach(year = years, .packages = c("terra")) %dopar% {
+#  for (scenario in scenarios) {
+#    # Construct the file path for the input raster
+#    input_file <- file.path(outputPathLandscapes, paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
+    
+    # Load the raster
+#    raster <- terra::rast(input_file)
+    
+#    mapped_raster <- terra::classify(raster, landUsematrix, include.lowest = TRUE)
+    
+    # Save the processed raster
+#    output_file <- file.path(outputPathLandscapes, paste0("MappedLandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
+#    writeRaster(mapped_raster, output_file, overwrite = TRUE)
+#  }
+#}
+# Stop the cluster
+#stopCluster(cl)
+
+# Create scenario stacks for each year
+#for (year in years) {
+  # Initialize a list to store rasters for the current year
+#  scenarios_list <- list()
+  
+#  for (scenario in scenarios) {
+    # Construct the file path for the processed raster
+#    raster_file <- file.path(outputPathLandscapes, paste0("MappedLandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
+    
+    # rasterize file
+#    scenarios_list[[paste0(scenario, "_", year)]] <- terra::rast(raster_file)
+#  }
+  
+  # Create a raster stack from the list of scenarios
+#  scenarios_stack <- terra::rast(scenarios_list)
+#  names(scenarios_stack) <- names(scenarios_list)
+  
+  # Save the scenario stack
+#  output_file <- file.path(outputPathLandscapes, paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent), ".tif"))
+#  writeRaster(scenarios_stack, output_file, overwrite = TRUE)
+#}
+
+
 library(foreach)
 library(doParallel)
 # Register parallel backend
@@ -94,7 +183,7 @@ mapped_rasters <- foreach(year = years, .combine = 'c', .packages = c("terra", "
   raster_stack <- terra::rast(raster_stack)
   
   # Apply land-use type mapping
-  mapped_scenarios <- terra::app(x = raster_stack, fun = map_values_to_landUse)
+  mapped_scenarios <- terra::classify(raster_stack, landUsematrix, include.lowest = TRUE)
   
   # Save the mapped raster stack to disk
   output_file <- file.path(outputPathLandscapes, paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent), ".tif"))
@@ -111,7 +200,74 @@ for (year in years) {
   LULC_scenarios_list[[as.character(year)]] <- load_mapped_landUse(year)
 }
 
+# Example plot
 #plot(LULC_scenarios_list$`2100`$ssp126_2100)
+
+# Register parallel backend
+#num_cores <- min(parallel::detectCores() - 1, 10)  # use up to 10 cores
+#cl <- makeCluster(num_cores)
+#registerDoParallel(cl)
+
+# Apply calculateRasterClass to the target year rasters
+# Loop through the years to process each layer (scenario)
+#for (year in years) {
+#  LULC_scenarios_list[[as.character(year)]] <- load_mapped_landUse(year)
+  
+  # Get the raster for the year
+#  target_raster <- LULC_scenarios_list[[year]]
+  
+  # Ensure the raster has the same number of layers as the scenarios
+  #if (nlyr(target_raster) != length(scenarios)) {
+  #  stop(paste("The raster for year", year, "does not have the same number of layers as the scenarios."))
+  #}
+  
+  # Dynamically assign scenario names to the raster layers
+#  scenario_rasters <- setNames(
+#    lapply(seq_along(scenarios), function(i) target_raster[[i]]),
+#    scenarios
+#  )
+  
+  # Create a list to store the processed rasters for this year
+#  processed_scenario_rasters <- list()
+  
+  # Process each scenario separately
+#  processes_scenarios <- foreach(scenario = names(scenario_rasters), .combine = 'c', .packages = c("terra")) %dopar% {
+    
+    # Get the raster for the scenario
+#    scenario_raster <- scenario_rasters[[scenario]]
+    # Extent
+ #   extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
+    #extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+    
+    # Ensure CRS consistency
+#    extent_crs <- sf::st_transform(extent_sf, crs = crs(scenario_rasters[[scenario]]))
+    
+    # Convert the sf to a spatial object
+#    extent_sp <- terra::vect(extent_crs)
+    
+    # Apply calculateRasterClass to classify the raster
+#    scenario_raster_classified <- calculateRasterClass(
+#      OriginalRaster = scenario_raster,  # Single-layer raster
+#      extent = extent_sp,
+#      target_resolution = target_resolution
+#    )
+    
+    # Save the processed raster
+#    output_file <- file.path(outputPathLandscapes, paste0("LandUseClass_", scenario, "_", year,"_", gsub(" ", "_", extent), ".tif"))
+#    terra::writeRaster(scenario_raster_classified, output_file, overwrite = TRUE)
+    
+    # Return the processed raster
+#    list(scenario = scenario_raster_classified)
+#  }
+  
+  # Update the LULC_scenarios_list with the processed rasters
+#  LULC_scenarios_list[[year]] <- processed_scenario_rasters
+#}
+
+# Stop the cluster after execution
+#stopCluster(cl)
+
+
 
 # Apply calculateRasterClass to the target year rasters
 # Loop through the years to process each layer (scenario)
@@ -133,8 +289,7 @@ for (year in names(LULC_scenarios_list)) {
   # Create a list to store the processed rasters for this year
   processed_scenario_rasters <- list()
   
-  # Process each scenario separately
-  for (scenario in names(scenario_rasters)) {
+    for (scenario in names(scenario_rasters)) {
     # Get the raster for the scenario
     scenario_raster <- scenario_rasters[[scenario]]
     
@@ -149,6 +304,8 @@ for (year in names(LULC_scenarios_list)) {
     output_file <- file.path(outputPathLandscapes, paste0("LandUseClass_", scenario, "_", year,"_", gsub(" ", "_", extent), ".tif"))
     terra::writeRaster(scenario_raster_classified, output_file, overwrite = TRUE)
     
+    # Return the processed raster
+    #list(scenario = scenario_raster_classified)
     # Store the processed raster in the list
     processed_scenario_rasters[[scenario]] <- scenario_raster_classified
   }
