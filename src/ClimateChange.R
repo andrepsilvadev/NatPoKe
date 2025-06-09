@@ -18,6 +18,9 @@ y_labels <- c("Annual Daily Mean Air Temperatures (°C)", "Annual Mean Precipita
 value_units <- c("°C", "kg m-2 year-1")
 years <- c("2011-2040", "2041-2070", "2071-2100") # first year/timeperiod will be used as a baseline for change calculation
 
+# Climate Models (GCMs)
+models <- c("gfdl-esm4", "ipsl-cm6a-lr", "mpi-esm1-2-hr", "mri-esm2-0", "ukesm1-0-ll")
+
 # Define the file paths
 basePathClim <- "~/data/data/CHELSA_gfdl-esm4_V.2.1"
 outputPathClim <- "~/data/data/CHELSA_gfdl-esm4_V.2.1/outputData"
@@ -50,16 +53,27 @@ for (scenario in scenarios) {
   for (variable in variables) {
     for (year in years) {
       # Load the raster
-      raster <- load_scenario_clim(scenario, variable, year)
+      #raster <- load_scenario_clim(scenario, variable, year)
+      
+      # Loop through the 5 models
+      for (model in models) {
+        # Dynamically construct the file path for the model raster
+        raster_file <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", yearOrigin, "_", model, "_", scenario, "_V.2.1.tif"))
+        # Load the raster
+        model_rasters[[model]] <- rast(raster_file)
+      }
+      
+      # Calculate the average of the 5 model rasters
+      averaged_raster <- mean(stack(model_rasters), na.rm = TRUE)
       
       # Get the original resolution from the raster
-      original_resolution <- res(raster)[1]
+      #original_resolution <- res(raster)[1]
       
       # Calculate the aggregation factor
-      aggregation_factor <- target_resolution / original_resolution
+      #aggregation_factor <- target_resolution / original_resolution
       
       # Aggregate the raster
-      raster_agg <- aggregate_raster(raster, aggregation_factor)
+      #raster_agg <- aggregate_raster(raster, aggregation_factor)
       
       # Ensure CRS consistency
       biome_sf <- st_transform(biome_sf, crs = crs(raster_agg))
