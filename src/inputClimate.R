@@ -2,7 +2,7 @@
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate climate input data (temperature and precipitation)
 ## for the ssp126 and ssp585 scenarios in various years##
-## Date: May 29th 2025 ##
+## Date: June 9th 2025 ##
 
 # Input variables -------------------------------------------
 yearsOrigin <- c("2011-2040", "2041-2070", "2071-2100") # original in time periods"2011-2040", "2041-2070", "2071-2100"
@@ -16,9 +16,8 @@ yearsMapping <- setNames(years, yearsOrigin)
 
 # Define the file paths
 basePathClim <- "~/data/data/CHELSA_gfdl-esm4_V.2.1"
-# add all five cliamte models and create the average values out of them
 
-# Create environmental input Data (climate) as training and prediction landscapes-------------------------------------------
+# Create environmental input Data (climate) as training landscapes-------------------------------------------
 # Create an empty list to store climate training Landscapes
 trainingLandscapesClim <- list()
 # Loop through the training landscapes
@@ -27,10 +26,10 @@ for (variable in variables) {
   raster <- load_baseline_clim(variable, baseline_yearOrigin)
   
   # Ensure CRS consistency
-  extent_crs <- st_transform(extent_sf, crs = crs(raster))
+  extent_crs <- sf::st_transform(extent_sf, crs = crs(raster))
   
   # Convert the sf to a spatial object
-  extent_sp <- vect(extent_crs)
+  extent_sp <- terra::vect(extent_crs)
   
   # Crop and mask the raster
   raster_extent <- crop_mask_raster(raster, extent_sp)
@@ -49,14 +48,82 @@ output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_",
 terra::writeRaster(trainingLandscapesClim, output_file, overwrite = TRUE)
 
 # Test the rasters
-#plot(trainingLandscapesClim)
+plot(trainingLandscapesClim)
 
-# layer all raster and average results
+# Create environmental input Data (climate) as prediction landscapes-------------------------------------------
+# Function to calculate the average for a given scenario, year, and variable
+# to save computation time this could be saved as netCDF (terra::writeCDF)
+average_climate_models <- function(scenario, yearOrigin, variable) {
+  # Initialize a list to store rasters for all models
+  model_rasters <- list()
+  
+  # Loop through the models
+  for (model in models) {
+    # Construct the file path for the raster
+    raster_file <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", yearOrigin, "_", model, "_", scenario, "_V.2.1.tif"))
+    
+    # Check if the file exists
+    if (!file.exists(raster_file)) {
+      warning(paste("File not found:", raster_file))
+      next
+    }
+    
+    # Load the raster
+    model_rasters[[model]] <- terra::rast(raster_file)
+  }
+  
+  # Combine the rasters into a SpatRaster stack
+  model_stack <- terra::rast(model_rasters)
+  
+  # Calculate the average using terra::app
+  averaged_raster <- terra::app(model_stack, fun = mean, na.rm = TRUE)
+  
+  # Rename the layer
+  names(averaged_raster) <- variable
+  
+  # Save the averaged raster to disk
+  output_file <- file.path(outputPathLandscapes, paste0("AverageCHELSA",variable, "_", scenario, "_", yearOrigin, ".tif"))
+  terra::writeRaster(averaged_raster, output_file, overwrite = TRUE)
+  
+  return(averaged_raster)
+}
+
+# Register parallel backend
+num_cores <- min(parallel::detectCores() - 1, 10)  # Use up to 10 cores
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
+
+# Create an empty list to store all processed rasters
+all_rasters <- list()
+
+# Parallelized loop using foreach
+foreach(scenario = scenarios, .combine = 'c', .packages = c("terra", "sf")) %:%
+  foreach(yearOrigin = yearsOrigin, .combine = 'c') %dopar% {
+    # Create a list for each scenario-year combination
+    raster_list <- list()
+    
+    for (variable in variables) {
+      # Load averaged raster of climate models
+      raster <- average_climate_models(scenario, yearOrigin, variable)
+      
+      # Store the processed raster in the list
+      raster_list[[variable]] <- raster
+    }
+    
+    # Combine the rasters for this scenario and year into a SpatRaster stack
+    combined_raster <- terra::rast(raster_list)
+    
+    # Return the combined raster as a list element
+    list(paste0(scenario, "_", yearOrigin) = combined_raster)
+  }
+
+# Stop the cluster
+stopCluster(cl)
+
 
 # Create an empty list to store prediction landscapes
 predictionLandscapesClim <- list()
 
-# Loop through the prediction landscapes
 for (scenario in scenarios) {
   for (yearOrigin in yearsOrigin) {
     
@@ -64,25 +131,20 @@ for (scenario in scenarios) {
     raster_list <- list()
     
     for (variable in variables) {
-      # Load the raster
-      #raster <- load_scenario_clim(scenario, variable, yearOrigin)
+      # Load averaged raster of climate models
+      raster <- load_average_scenario_clim(scenario, yearOrigin, variable)
       
-      # Initialize a list to store rasters from all models
-      model_rasters <- list()
+      # Extent
+      #extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
       
-      # Loop through the 5 models
-      for (model in models) {
-        # Dynamically construct the file path for the model raster
-        raster_file <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", yearOrigin, "_", model, "_", scenario, "_V.2.1.tif"))
-        # Load the raster
-        model_rasters[[model]] <- rast(raster_file)
-      }
+      # Ensure CRS consistency
+      #extent_crs <- sf::st_transform(extent_sf, crs = crs(raster))
       
-      # Calculate the average of the 5 model rasters
-      averaged_raster <- mean(stack(model_rasters), na.rm = TRUE)
+      # Convert the sf to a spatial object
+      #extent_sp <- terra::vect(extent_crs)
       
       # Crop and mask the raster
-      raster_extent <- crop_mask_raster(averaged_raster, extent_sp)
+      raster_extent <- crop_mask_raster(raster, extent_sp)
       
       # Store the processed raster in the list
       raster_list[[variable]] <- raster_extent
@@ -112,4 +174,4 @@ for (scenario in scenarios) {
 
 # Print the structure of the final list
 #print(predictionLandscapesClim)
-#plot(predictionLandscapesClim[["ssp126_2100"]])
+#plot(predictionLandscapesClim[["ssp126_2071-2100"]])
