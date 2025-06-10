@@ -6,9 +6,12 @@ A research pipeline to explore how nature policy interventions affect keystone s
 The project leverages process-based modeling (via [metaRange](https://metarange.github.io/metaRange/#)) and resilience metrics to evaluate ecological responses under various policy scenarios.
 
 
-> 🚧 **Under active development** 🚧 
-<br>
-
+> 🚧 **Under active development** 🚧<br>
+>
+> For questions, clarifications, or collaborations regarding this project, please contact:<br>
+**André P. Silva**<br>
+> [Institution or Department Name]<br>
+> Email: [your.email@example.com]
 
 
 ## Repository Overview
