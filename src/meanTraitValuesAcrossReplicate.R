@@ -43,3 +43,22 @@ for (sp in species_names) {
     }
   }
 }
+
+# # Import all abundance rasters for Alces alces
+# alces_abundance_files <- list.files(
+#   path = dirout,
+#   pattern = "Alcesalces_abundance_meanAcrossReplicates.*\\.tif$",
+#   full.names = TRUE
+# )
+# 
+# alces_abundance_rasters_list <- lapply(alces_abundance_files, rast)
+# 
+# # Set layer names as the base filename (without extension)
+# names(alces_abundance_rasters_list) <- tools::file_path_sans_ext(basename(alces_abundance_files))
+# 
+# # Combine all rasters into a single SpatRaster
+# alces_abundance_rasters <- rast(alces_abundance_rasters_list)
+# 
+# plot(alces_abundance_rasters[[100:125]])
+# # Check the layer names
+# print(names(alces_abundance_rasters))
