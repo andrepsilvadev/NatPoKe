@@ -51,52 +51,15 @@ terra::writeRaster(trainingLandscapesClim, output_file, overwrite = TRUE)
 plot(trainingLandscapesClim)
 
 # Create environmental input Data (climate) as prediction landscapes-------------------------------------------
-# Function to calculate the average for a given scenario, year, and variable
-# to save computation time this could be saved as netCDF (terra::writeCDF)
-average_climate_models <- function(scenario, yearOrigin, variable) {
-  # Initialize a list to store rasters for all models
-  model_rasters <- list()
-  
-  # Loop through the models
-  for (model in models) {
-    # Construct the file path for the raster
-    raster_file <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", yearOrigin, "_", model, "_", scenario, "_V.2.1.tif"))
-    
-    # Check if the file exists
-    if (!file.exists(raster_file)) {
-      warning(paste("File not found:", raster_file))
-      next
-    }
-    
-    # Load the raster
-    model_rasters[[model]] <- terra::rast(raster_file)
-  }
-  
-  # Combine the rasters into a SpatRaster stack
-  model_stack <- terra::rast(model_rasters)
-  
-  # Calculate the average using terra::app
-  averaged_raster <- terra::app(model_stack, fun = mean, na.rm = TRUE)
-  
-  # Rename the layer
-  names(averaged_raster) <- variable
-  
-  # Save the averaged raster to disk
-  output_file <- file.path(outputPathLandscapes, paste0("AverageCHELSA",variable, "_", scenario, "_", yearOrigin, ".tif"))
-  terra::writeRaster(averaged_raster, output_file, overwrite = TRUE)
-  
-  return(averaged_raster)
-}
-
 # Register parallel backend
 num_cores <- min(parallel::detectCores() - 1, 10)  # Use up to 10 cores
 cl <- makeCluster(num_cores)
 registerDoParallel(cl)
 
 # Create an empty list to store all processed rasters
-all_rasters <- list()
+#all_rasters <- list()
 
-# Parallelized loop using foreach
+# Create raster of averaged GCMs in a paralleled loop
 foreach(scenario = scenarios, .combine = 'c', .packages = c("terra", "sf")) %:%
   foreach(yearOrigin = yearsOrigin, .combine = 'c') %dopar% {
     # Create a list for each scenario-year combination
@@ -104,22 +67,21 @@ foreach(scenario = scenarios, .combine = 'c', .packages = c("terra", "sf")) %:%
     
     for (variable in variables) {
       # Load averaged raster of climate models
-      raster <- average_climate_models(scenario, yearOrigin, variable)
+      raster <- average_climate_models(outputPathLandscapes, scenario, yearOrigin, variable)
       
       # Store the processed raster in the list
       raster_list[[variable]] <- raster
     }
     
     # Combine the rasters for this scenario and year into a SpatRaster stack
-    combined_raster <- terra::rast(raster_list)
+    #combined_raster <- terra::rast(raster_list)
     
     # Return the combined raster as a list element
-    list(paste0(scenario, "_", yearOrigin) = combined_raster)
+    #list(paste0(scenario, "_", yearOrigin) = combined_raster)
   }
 
 # Stop the cluster
 stopCluster(cl)
-
 
 # Create an empty list to store prediction landscapes
 predictionLandscapesClim <- list()
@@ -132,7 +94,7 @@ for (scenario in scenarios) {
     
     for (variable in variables) {
       # Load averaged raster of climate models
-      raster <- load_average_scenario_clim(scenario, yearOrigin, variable)
+      raster <- load_average_scenario_clim(outputPathLandscapes, scenario, yearOrigin, variable)
       
       # Extent
       #extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
@@ -172,6 +134,9 @@ for (scenario in scenarios) {
   }
 }
 
+# Remove all data from memory/global Environment
+rm()
+gc()
 # Print the structure of the final list
 #print(predictionLandscapesClim)
 #plot(predictionLandscapesClim[["ssp126_2071-2100"]])
