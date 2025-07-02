@@ -5,12 +5,14 @@
 
 # Settings & libraries -----------------------------------------------------------------
 source("~/NatPoKe9/src/libraries.R") # libraries
+#install.packages("bigmemory")
+#library(bigmemory)
 # When using the pipeline for the first time run taxaOcccurence.R and adapt species and user-login for GBIF Database:
 #source("~/NatPoKe9/src/TaxaOccurence.R") # downloads taxa occurences from GBIF Database
 source("~/NatPoKe9/src/customFunctions2.R") # functions
 source("~/NatPoKe9/src/SDM.R") # function to format data and SDM
 
-# Format training and prediction Landscape -----------------------------------------------------------------
+# Define scenraios and environmental variables -----------------------------------------------------------------
 # Define input variables
 scenarios <- c("ssp126", "ssp585") # define socio-economic pathways
 scenarios_des <- c("rcp26_ssp1", "rcp85_ssp5") # scenario names in land-use raster
@@ -21,11 +23,11 @@ scenario_name_mapping <- c(
   "rcp26_ssp1" = "ssp126",
   "rcp85_ssp5" = "ssp585")
 
-#Define climatologies
+# Define climatologies
 variables <- c("bio1", # mean annual air temperature
                "bio10", # mean daily mean air temperatures of the warmest quarter
                "bio11", # mean daily mean air temperatures of the coldest quarter
-               "bio12", # annual precipitation amount
+               "bio12", # mean annual precipitation amount
                "bio16", # mean monthly precipitation amount of the wettest quarter
                "bio17") # mean monthly precipitation amount of the driest quarter
 
@@ -54,6 +56,7 @@ if (!dir.exists(outputPathLandscapes)) {
   dir.create(outputPathLandscapes, recursive = TRUE)
 }
 
+# Format training and prediction Landscape -----------------------------------------------------------------
 source("~/NatPoKe9/src/inputClimate.R") # format and reads input climate raster landscapes, adapt: scenarios, years & variables
 source("~/NatPoKe9/src/inputLandUse.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
 source("~/NatPoKe9/src/inputElev.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
@@ -66,13 +69,6 @@ trainingLandscapesClim <- terra::rast(trainingLandscapesClim)
 trainingLandscapesLandUse <- terra::rast(trainingLandscapesLandUse)
 trainingLandscapesElev <- terra::rast(trainingLandscapesElev)
 
-#plot(trainingLandscapesLandUse)
-
-# Print extents
-#print(terra::ext(trainingLandscapesClim))
-#print(terra::ext(trainingLandscapesLandUse))
-#print(terra::ext(trainingLandscapesElev))
-
 # Resample the extent of the training landscapes to the land-use training Landscape
 trainingLandscapesClim <- terra::resample(trainingLandscapesClim, trainingLandscapesLandUse)
 trainingLandscapesElev <- terra::resample(trainingLandscapesElev, trainingLandscapesLandUse)
@@ -84,16 +80,19 @@ trainingLandscapes <- c(trainingLandscapesElev, trainingLandscapesLandUse, train
 output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif"))
 writeRaster(trainingLandscapes, output_file, overwrite = TRUE)
 
-# load trainingLandscapes
-trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif"))
-trainingLandscapes <- terra::rast(trainingLandscapes)
+# Create a list to store the merged prediction landscapes in parallelization
+# Register parallel backend
+#num_cores <- min(parallel::detectCores() - 1, 10)  # Use up to 10 cores
+#cl <- makeCluster(num_cores)
+#registerDoParallel(cl)
 
-# Plot the merged training landscape
-plot(trainingLandscapes)
-
-
-# Create a list to store the merged prediction landscapes
+# Create an empty list to store merged prediction landscapes
 predictionLandscapes <- list()
+
+# Parallelized loop using foreach
+#foreach(scenario = scenarios, .combine = 'c', .packages = c("terra", "sf")) %:%
+#  foreach(year = years, .combine = 'c') %dopar% {
+
 # Loop through scenarios and years
 for (scenario in scenarios) {
   for (year in years) {
@@ -120,31 +119,102 @@ for (scenario in scenarios) {
     predictionLandscapes[[paste0(scenario, "_", year)]] <- merged_prediction
   }
 }
+# Stop the cluster
+#stopCluster(cl)
+
+# Load formatted training and prediction Landscape -----------------------------------------------------------------
+# load trainingLandscapes
+trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif")) # with Antarctica
+#trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_woAntarctica", baseline_year, ".tif")) # without Antarctica
+trainingLandscapes <- terra::rast(trainingLandscapes)
+
+# Load predictionLandscapes and crop to defined extent
+predictionLandscapes <- list()
+# Loop through scenarios and years
+for (scenario in scenarios) {
+  for (year in years) {
+    raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapes_", scenario, "_", year, ".tif"))# with Antarctica
+    #raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapes_woAntarctica", scenario, "_", year, ".tif"))# without Antarctica
+    raster <- terra::rast(raster_path)
+    #raster <- crop_mask_raster(raster, extent_sp)
+    #output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapes_woAntarctica", scenario, "_", year, ".tif"))
+    #writeRaster(raster, output_file, overwrite = TRUE)
+    
+    predictionLandscapes[[paste0(scenario, "_", year)]] <- raster
+  }
+}
+rm(raster)
+
+# Check variable correlation and select suitable variables for the landscapes -----------------------------------------------------------------
+# Calculate the correlation matrix for all layers in the trainingLandscapes with Pearson's correlation coefficient
+#cor_matrix <- terra::layerCor(trainingLandscapes, fun = "cor", use = "complete.obs", maxcell = 0.5*ncell(trainingLandscapes), na.rm = TRUE) #pearson correlation coefficient
+#print(cor_matrix)
+#write.csv(cor_matrix, file = "~/data/output/cor_matrix.csv", row.names = TRUE)
+#cor_mat <- cor_matrix$correlation
+
+# Plot the correlation coefficients as percentages
+#png(filename = file.path(outputPathLandscapes, "CorrelationMatrix.png"),  width = 2000, height = 1500, res = 300)
+#corrplot::corrplot.mixed(
+#  cor_mat, tl.pos = 'lt', tl.cex = 0.6, number.cex = 0.5, addCoefasPercent = TRUE, tl.col = "black")
+#dev.off()
+
+# Find highly correlated pairs (absolute correlation > 0.7) and select suitable variables
+#high_cor_pairs <- which(abs(cor_mat) > 0.7 & upper.tri(cor_mat), arr.ind = TRUE)
+
+# Print pairs
+#for(i in seq_len(nrow(high_cor_pairs))) {
+#  cat(
+#    rownames(cor_mat)[high_cor_pairs[i, 1]], "and",
+#    colnames(cor_mat)[high_cor_pairs[i, 2]],
+#    "correlation:",
+#    round(cor_mat[high_cor_pairs[i, 1], high_cor_pairs[i, 2]], 2), "\n"
+#  )
+#}
+
+# Variable Selection, removing highly correlated variables from training and prediction Landscapes
+vars_to_remove <- c("Elevation", "bio10", "bio11", "bio16", "bio17")
+
+# Subset trainingLandscapes to remove unwanted variables
+trainingLandscapes <- trainingLandscapes[[!names(trainingLandscapes) %in% vars_to_remove]]
+
+# Subset each predictionLandscapes raster to remove unwanted variables
+for (name in names(predictionLandscapes)) {
+  predictionLandscapes[[name]] <- predictionLandscapes[[name]][[!names(predictionLandscapes[[name]]) %in% vars_to_remove]]
+}
 
 # Example: Plot a merged prediction landscape
-plot(predictionLandscapes[["ssp126_2030"]])
+#plot(predictionLandscapes[["ssp126_2030"]])
 
+# Format species occurrence input data -----------------------------------------------------------------
 
-# Format species occurence input data -----------------------------------------------------------------
+# Test species for Iberian peninsula
+#targetSpecies <- "Lynx pardinus"
+
 source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data based on TaxaOccurence.R output
 
-# Select input values for species and extent
-#targetSpecies <- c("Alces alces", "Canis lupus")
-targetSpecies <- "Martes foina"
+# Load the filtered occurrence data
+#SpeciesPresences <- readr::read_csv(
+#  paste0("~/data/data/trait_datasets/speciesDataInput_", species_group, extent, "_PresenceGrid.csv"))
+#head(SpeciesPresences)
 
-# Select all species in speciesDataOcc as target species
-#targetSpecies <- unique(speciesDataOcc$species)
+# Select in SoeciesPresences as target species
+#targetSpecies <- unique(SpeciesPresences$species) # all species
+#targetSpecies <- c("Alces alces", "Canis lupus", "Tragelaphus scriptus")
+targetSpecies <- species_groups[[1]]
 
-# Format species occurence to true presence and NAs with corresponding coordinates
-speciesData <- formatInputDataFrame(
-  speciesData = speciesDataOcc,
-  targetSpecies = targetSpecies, 
-  landscape = trainingLandscapes)
-head(speciesData)
+# Format species occurrence to true presence and NAs with corresponding coordinates for all cells of the trainingLandscape
+#speciesDataInput <- formatInputDataFrame(
+#  speciesData = speciesDataOcc,
+#  targetSpecies = targetSpecies, 
+#  landscape = trainingLandscapes) #trainingLandscapes$bio1
+#head(speciesDataInput)
+
+# set working directory for maxent.jar file
+setwd("/mnt/data/jorinde")
 
 # Run the SDMensembleMultiSpecies function globally -----------------------------------------------------------------
 results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
-                                   speciesData = speciesData,
+                                   speciesData = SpeciesPresences, #speciesDataOcc
                                    trainingLandscapes = trainingLandscapes,
                                    predictionLandscapes = predictionLandscapes,
                                    extent = extent)
