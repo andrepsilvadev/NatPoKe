@@ -139,3 +139,46 @@ plot(result_stack[[1]], main = "Binary Raster for Class 1")
 plot(result_stack[[2]], main = "Aggregated Raster for Class 2")
 plot(result_stack[[3]], main = "Aggregated Raster for Class 3")
 print(res(result_stack))
+
+
+
+
+# Testing to Format species occurrence to true presence and NAs with corresponding coordinates
+# 1. Create a small raster (3x3 grid)
+r <- rast(nrows = 3, ncols = 3, xmin = 0, xmax = 3, ymin = 0, ymax = 3)
+values(r) <- 1:9
+plot(r, main = "Small Raster")
+
+# 2. Create fake species occurrence data (coordinates and species)
+speciesDataOcctest <- data.frame(
+  species = c("sp1", "sp1", "sp2"),
+  decimalLongitude = c(0.5, 2.5, 1.5),
+  decimalLatitude  = c(0.5, 2.5, 1.5)
+)
+points(speciesDataOcctest$decimalLongitude, speciesDataOcctest$decimalLatitude, col = "red", pch = 19)
+
+# 3. Assign each occurrence to a raster cell
+speciesDataOcctest$cell <- cellFromXY(r, speciesDataOcctest[, c("decimalLongitude", "decimalLatitude")])
+
+# 4. Create a presence/absence grid for all cells and both species
+all_cellstest <- data.frame(cell = 1:ncell(r))
+coordstest <- xyFromCell(r, all_cellstest$cell)
+all_cellstest$x <- coordstest[,1]
+all_cellstest$y <- coordstest[,2]
+species_listtest <- unique(speciesDataOcctest$species)
+
+presence_matrixtest <- sapply(species_listtest, function(sp) {
+  pres_cells <- speciesDataOcctest$cell[speciesDataOcctest$species == sp]
+  as.integer(all_cellstest$cell %in% pres_cells)
+})
+presence_matrixtest[presence_matrixtest == 0] <- NA
+
+speciesDataInputtest <- data.frame(
+  x = all_cellstest$x,
+  y = all_cellstest$y,
+  cell = all_cellstest$cell,
+  presence_matrixtest
+)
+colnames(speciesDataInputtest)[-(1:3)] <- species_listtest
+
+print(speciesDataInputtest)
