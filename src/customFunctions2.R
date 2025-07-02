@@ -1,14 +1,14 @@
 ## Name: CustomFunctions2.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Loads all developed customised functions for LandUseChange.R, ClimateChange.R, inputClimate.R, inputLandUse.R##
-## Date: May 29th 2025 ##
+## Date: June 9th 2025 ##
 
 #####################################
 # General Functions
 #####################################
 # Functions to load and modify rasters-------------------------------------------
 # Function to load and select the biome shapefile
-load_select_biome <- function(biome_name) {
+load_biome <- function(biome_name) {
   biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
   biome_sf[biome_sf$BIOME_NAME == biome_name, ]
 }
@@ -58,14 +58,15 @@ load_select_continents <- function(continent_names) {
 }
 
 # Function to intersect biome with continents
-intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
+#intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
+intersect_extent_continents <- function(extent_sf, continent_geoms) {
   # Validate and fix geometries
-  biome_sf <- st_make_valid(biome_sf)
+  extent_sf <- st_make_valid(extent_sf)
   continent_geoms <- lapply(continent_geoms, st_make_valid)
   
   # Perform intersection and handle empty geometries
   biome_continents <- setNames(lapply(continent_geoms, function(continent_geom) {
-    result <- st_intersection(biome_sf, continent_geom)
+    result <- st_intersection(extent_sf, continent_geom)
     if (is.null(result) || nrow(result) == 0) {
       return(NULL)  # Return NULL if no intersection
     }
@@ -104,40 +105,77 @@ load_scenario_clim <- function(scenario, variable, year) {
   file_path <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", year, "_gfdl-esm4_", scenario, "_V.2.1.tif"))
   rast(file_path)}
 
-load_average_scenario_clim <- function(scenario, year, variable){
-  file_path <- file.path(outputPathLandscapes, paste0("AverageCHELSA",variable, "_", scenario, "_", yearOrigin, ".tif"))
+load_average_scenario_clim <- function(outputPath, scenario, year, variable){
+  file_path <- file.path(outputPath, paste0("AverageCHELSA",variable, "_", scenario, "_", yearOrigin, ".tif"))
   terra::rast(file_path)}
 
 # Function to aggregate rasters
-aggregate_raster <- function(raster, aggregation_factor) {
-  aggregate(raster, aggregation_factor, fun = mean)
+#aggregate_raster <- function(raster, aggregation_factor) {
+#  aggregate(raster, aggregation_factor, fun = mean)
+#}
+
+# Function to calculate the average for a given scenario, year, and variable
+# to save computation time this could be saved as netCDF (terra::writeCDF)
+average_climate_models <- function(outputPath, scenario, yearOrigin, variable) {
+  # Initialize a list to store rasters for all models
+  model_rasters <- list()
+  
+  # Loop through the models
+  for (model in models) {
+    # Construct the file path for the raster
+    raster_file <- file.path(basePathClim, scenario, paste0("CHELSA_", variable, "_", yearOrigin, "_", model, "_", scenario, "_V.2.1.tif"))
+    
+    # Check if the file exists
+    if (!file.exists(raster_file)) {
+      warning(paste("File not found:", raster_file))
+      next
+    }
+    
+    # Load the raster
+    model_rasters[[model]] <- terra::rast(raster_file)
+  }
+  
+  # Combine the rasters into a SpatRaster stack
+  model_stack <- terra::rast(model_rasters)
+  
+  # Calculate the average using terra::app
+  averaged_raster <- terra::app(model_stack, fun = mean, na.rm = TRUE)
+  
+  # Rename the layer
+  names(averaged_raster) <- variable
+  
+  # Save the averaged raster to disk
+  output_file <- file.path(outputPath, paste0("AverageCHELSA",variable, "_", scenario, "_", yearOrigin, ".tif"))
+  terra::writeRaster(averaged_raster, output_file, overwrite = TRUE)
+  
+  return(averaged_raster)
 }
 
 # Function to stack rasters
-stack_clim_rasters <- function(variable, year) {
-  scenarios_list <- list(
-    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name_short)),
-    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name_short))
-  )
+#stack_clim_rasters <- function(variable, year) {
+#  scenarios_list <- list(
+#    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name_short)),
+#    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name_short))
+#  )
   
   # Assign names to the list elements
-  names(scenarios_list) <- c(paste0(scenario_names[1], "_", year), paste0(scenario_names[2], "_", year))
+#  names(scenarios_list) <- c(paste0(scenario_names[1], "_", year), paste0(scenario_names[2], "_", year))
   
   # Create a raster stack from the list of scenarios
-  scenarios_stack <- rast(scenarios_list)
+#  scenarios_stack <- rast(scenarios_list)
   
   # Assign names to the raster stack layers
-  names(scenarios_stack) <- names(scenarios_list)
+#  names(scenarios_stack) <- names(scenarios_list)
   
   # Save the raster stack
-  stack_output_file <- file.path(outputPathLandscapes, paste0("scenarios_stack_", variable, "_", year, "_", biome_name_short, ".tif"))
-  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
+#  stack_output_file <- file.path(outputPathLandscapes, paste0("scenarios_stack_", variable, "_", year, "_", biome_name_short, ".tif"))
+#  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
   # Assign the raster stack to a variable in the environment
-  assign(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
+#  assign(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
   
-  return(scenarios_stack)
-}
+#  return(scenarios_stack)
+#}
 
 # Function to extract mean values from a raster stack
 extract_mean_values <- function(raster_stack, years, value_type) {
@@ -155,29 +193,32 @@ extract_mean_values <- function(raster_stack, years, value_type) {
 # Functions to vizualize results -------------------------------------------
 # Function to create plots
 plot_timeChanges <- function(mean_values_df, value_type, y_label) {
-  ggplot(mean_values_df, aes(x = Year, y = Mean_Value, color = Scenario, group = Scenario)) +
+  ggplot(mean_values_df, aes(x = Year, y = Mean, color = Scenario, group = Scenario)) +
     geom_line() +
     geom_point() +
-    scale_color_manual(values = scenario_colors) +
+    scale_color_manual(values = scenario_colors,
+                       guide = guide_legend(direction = "horizontal")
+                       ) +
     labs(
       x = "Year",
       y = y_label
     ) +
     theme_minimal()+
     theme(
-      axis.title.x = element_text(size = 14, margin = margin(t = 10)),  # Increase gap for x-axis title
-      axis.title.y = element_text(size = 14, margin = margin(r = 10)),   # Increase gap for y-axis title
+      axis.title.x = element_text(size = 14, margin = ggplot2::margin(t = 10)),  # Increase gap for x-axis title
+      axis.title.y = element_text(size = 14, margin = ggplot2::margin(r = 10)),   # Increase gap for y-axis title
       legend.title = element_text(size = 14),
-      legend.text = element_text(size = 12)
+      legend.text = element_text(size = 12),
+      legend.position = "bottom" 
     )
 }
 
 # Function to calculate changes
-calculate_change <- function(raster_future, raster_present) {
-  raster_future - raster_present
-}
+#calculate_change <- function(raster_future, raster_present) {
+#  raster_future - raster_present
+#}
 
-plot_ClimatespatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value) {
+plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_label, min_value, max_value) {
   # Convert raster to data frame
   raster_df <- as.data.frame(raster, xy = TRUE)
   colnames(raster_df)[3] <- "value"  # Percentage change (%)
@@ -190,37 +231,53 @@ plot_ClimatespatialChanges <- function(raster, biome_geom, color_ramp, fill_labe
     dplyr::filter(sovereignt != "France")  # Exclude France as a sovereign state
   
   # Ensure CRS consistency
-  biome_geom <- st_transform(biome_geom, crs = st_crs(countries))
-  countries <- st_transform(countries, crs = st_crs(biome_geom))
+  extent_geom <- st_transform(extent_geom, crs = st_crs(countries))
+  countries <- st_transform(countries, crs = st_crs(extent_geom))
   
   # Validate geometries
   countries <- st_make_valid(countries)
-  biome_geom <- st_make_valid(biome_geom)
+  extent_geom <- st_make_valid(extent_geom)
   
   # Identify countries overlapping with the biome
-  overlapping_indices <- st_intersects(countries, biome_geom, sparse = TRUE)
+  overlapping_indices <- st_intersects(countries, extent_geom, sparse = TRUE)
   overlapping_countries <- countries[lengths(overlapping_indices) > 0, ]
   
   # Create the plot
   plot <- ggplot(raster_df) +
+    # Add extent boundary
+    geom_sf(data = extent_geom, aes(color = "Area"), show.legend = FALSE, fill = "lightgrey", size = 0.2) +
     # Add country boundaries
-    geom_sf(data = overlapping_countries, aes(color = "Country Boundaries"), fill = NA, size = 0.2) +
-    # Add biome boundary
-    geom_sf(data = biome_geom, aes(color = "Biome"), fill = "lightgrey", size = 0.2) +
+    geom_sf(data = overlapping_countries, aes(color = "Country Boundaries"), show.legend = FALSE, fill = NA, size = 0.2) +
     # Add raster data
     geom_tile(data = raster_df, aes(x = x, y = y, fill = value)) +
     # Define the color scale for the raster
     scale_fill_gradientn(name = fill_label, 
-                         colors = color_ramp(seq(min_value, max_value, length.out = 101)), 
+                         colors = color_ramp(seq(min_value, max_value, length.out = 101)),
                          limits = c(min_value, max_value), 
-                         na.value = "grey") +
-    # Define the color scale for the biome and country boundaries
+                         breaks = c(min_value, 0, max_value), 
+                         labels = c(min_value, 0, max_value), 
+                         na.value = "grey",
+                         guide = guide_colorbar(
+                           direction = "horizontal",
+                           title.position = "left",      # Title to the left of the colorbar
+                           label.position = "bottom",    # Labels below the colorbar
+                           title.vjust = 0.5,            # Center the title vertically
+                           barwidth = unit(6, "cm"),     # Adjust as needed
+                           barheight = unit(0.5, "cm")   # Adjust as needed
+                           ) # remove if vertically display
+                         ) +
+    # Define the color scale for the extent area and country boundaries
     scale_color_manual(
-      name = "Legend",
-      values = c("Biome" = "lightgrey", "Country Boundaries" = "darkgrey"),
-      breaks = c("Biome", "Country Boundaries"),  # Ensure these match the aes(color = ...) values
-      labels = c("Biome", "Country Boundaries")
+      name = NULL,
+      values = c("Country Boundaries" = "black", "Area" = "lightgrey"),
+      breaks = c("Country Boundaries", "Area"),  # Ensure these match the aes(color = ...) values
+      labels = c("Country Boundaries", "Area"),
+      guide = guide_legend(direction = "horizontal")
     ) +
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal"  # <--- Ensures legends are in a horizontal box
+    )+
     # Add labels and theme
     labs(x = "Longitude", y = "Latitude") +
     theme_minimal() +
@@ -228,7 +285,7 @@ plot_ClimatespatialChanges <- function(raster, biome_geom, color_ramp, fill_labe
       axis.title = element_text(size = 18),
       axis.text = element_text(size = 14),
       plot.title = element_blank(),
-      legend.title = element_text(size = 22, margin = margin(b = 10)),
+      legend.title = element_text(size = 22, margin = ggplot2::margin(b = 10)),
       legend.text = element_text(size = 18),
       legend.key.height = unit(1, "cm"),  # Increase the height of the color ramp
       legend.spacing = unit(1, "cm")
@@ -253,13 +310,13 @@ load_scenario_landUse <- function(scenario, year) {
   rast(file_path)
 }
 # Mapped baseline raster
-load_mapped_baseline_landUse <- function(baseline_year){
-  mapped_baseline_path <- file.path(outputPathLandscapes, paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent), ".tif"))
+load_mapped_baseline_landUse <- function(outputPath, baseline_year){
+  mapped_baseline_path <- file.path(outputPath, paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent), ".tif"))
   rast(mapped_baseline_path)
 }
 # Mapped raster stacks
-load_mapped_landUse <- function(year) {
-  mapped_file_path <- file.path(outputPathLandscapes, paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent), ".tif"))
+load_mapped_landUse <- function(outputPath, year, extent) {
+  mapped_file_path <- file.path(outputPath, paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent), ".tif"))
   if (file.exists(mapped_file_path)) {
     mapped_raster_stack <- rast(mapped_file_path)
     assign(paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent)), mapped_raster_stack, envir = .GlobalEnv)
@@ -293,28 +350,29 @@ load_mapped_landUse <- function(year) {
 #  return(scenarios_stack)
 #}
 
-#stack_rasters <- function(year, scenarios, extent, outputPathLandscapes) {
-#  scenarios_list <- list()
+# Function to stack rasters
+stack_rasters <- function(year, scenarios, extent, outputPathLandscapes) {
+  scenarios_list <- list()
   
-#  for (scenario in scenarios) {
+  for (scenario in scenarios) {
     # Dynamically construct the raster file path
-#    raster_file <- file.path(outputPathLandscapes, paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
+    raster_file <- file.path(outputPathLandscapes, paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
     
     # rasterize file
-#    scenarios_list[[paste0(scenario, "_", year)]] <- terra::rast(raster_file)
-#  }
+    scenarios_list[[paste0(scenario, "_", year)]] <- terra::rast(raster_file)
+  }
   
   # Create a raster stack from the list of scenarios
-#  scenarios_stack <- terra::rast(scenarios_list)
-#  names(scenarios_stack) <- names(scenarios_list)
+  scenarios_stack <- terra::rast(scenarios_list)
+  names(scenarios_stack) <- names(scenarios_list)
   
   # Save the raster stack to disk
-#  stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
-#  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
+  stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
+  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
   # Return the raster stack
-#  return(scenarios_stack)
-#}
+  return(scenarios_stack)
+}
 
 # Define the mapping function of ESA LULC types (37) to the 7 (SEALS) LULC types
 #map_values_to_landUse <- function(x) {
@@ -364,7 +422,8 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
 # Function to process the mapped scenarios and apply the function to calculate percentages
 process_and_map_scenarios <- function(year) {
   # Load the raster stack for the years
-  mapped_raster_stack <- get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", extent)))
+  #mapped_raster_stack <- get(paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent))) #get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", extent))
+  mapped_raster_stack <- mapped_scenarios[[as.character(year)]]
   
   # Calculate land use percentages
   scenarios_percentages_list <- list()
@@ -446,15 +505,17 @@ replace_numbers_with_names_nested <- function(nested_list, types, names) {
   return(nested_list)
 }
 
-# Function to calculate percentage changes for each land-use classes for scenarios
-calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, years) {
+# Function to calculate percentage changes for each land-use class for scenarios
+calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, scenarios, years) {
   percentage_change_rasters_list <- list()
   
   for (year in years) {
-    percentage_change_rasters_list[[year]] <- list()
+    percentage_change_rasters_list[[as.character(year)]] <- list()
     
-    for (scenario in names(target_year_rasters_list[[year]])) {
-      target_raster <- target_year_rasters_list[[year]][[scenario]]
+    for (scenario in scenarios) {
+      # Access the raster using the combined key
+      key <- paste0(scenario, "_", year)
+      target_raster <- target_year_rasters_list[[key]]
       
       # Create a list to store percentage changes for each land-use class
       percentage_change_classes <- list()
@@ -467,11 +528,38 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
         percentage_change <- (target_raster_class - base_raster) / base_raster * 100
         percentage_change_classes[[class]] <- percentage_change
       }
-      percentage_change_rasters_list[[year]][[scenario]] <- percentage_change_classes
+      percentage_change_rasters_list[[as.character(year)]][[scenario]] <- percentage_change_classes
     }
   }
   return(percentage_change_rasters_list)
 }
+
+# Function to calculate percentage changes for each land-use classes for scenarios
+#calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, years) {
+#  percentage_change_rasters_list <- list()
+  
+#  for (year in years) {
+#    percentage_change_rasters_list[[year]] <- list()
+    
+#    for (scenario in names(target_year_rasters_list[[year]])) {
+#      target_raster <- target_year_rasters_list[[year]][[scenario]]
+      
+      # Create a list to store percentage changes for each land-use class
+#      percentage_change_classes <- list()
+      
+#      for (class in names(base_year_raster)) {
+#        base_raster <- base_year_raster[[class]]
+#        target_raster_class <- target_raster[[class]]
+        
+        # Calculate the percentage change
+#        percentage_change <- (target_raster_class - base_raster) / base_raster * 100
+#        percentage_change_classes[[class]] <- percentage_change
+#      }
+#      percentage_change_rasters_list[[year]][[scenario]] <- percentage_change_classes
+#    }
+#  }
+#  return(percentage_change_rasters_list)
+#}
 
 # Functions to vizualize results -------------------------------------------
 # Function to create individual plots for each scenario, class, and year
@@ -501,10 +589,10 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
   
   # Create the plot
   plot <- ggplot(raster_df) +
+    # Add biome boundary
+    geom_sf(data = biome_geom, aes(color = "Area"), fill = "lightgrey", size = 0.2) +
     # Add country boundaries
     geom_sf(data = overlapping_countries, aes(color = "Country Boundaries"), fill = NA, size = 0.2) +
-    # Add biome boundary
-    geom_sf(data = biome_geom, aes(color = "Biome"), fill = "lightgrey", size = 0.2) +
     # Add raster data
     geom_tile(data = raster_df, aes(x = x, y = y, fill = value)) +
     # Define the color scale for the raster
@@ -512,14 +600,15 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
       name = fill_label,
       colors = color_ramp(seq(-100, 100, length.out = 101)),
       limits = c(min_value, max_value),
-      na.value = "grey"
+      na.value = "grey",
+      guide = guide_colorbar(direction = "horizontal") # remove if vertically display
     ) +
     # Define the color scale for the biome and country boundaries
     scale_color_manual(
       name = "Legend",
-      values = c("Biome" = "lightgrey", "Country Boundaries" = "darkgrey"),
-      breaks = c("Biome", "Country Boundaries"),  # Ensure these match the aes(color = ...) values
-      labels = c("Biome", "Country Boundaries")
+      values = c("Country Boundaries" = "black", "Area" = "lightgrey"),
+      breaks = c("Country Boundaries", "Area"),  # Ensure these match the aes(color = ...) values
+      labels = c("Country Boundaries", "Area")
     ) +
     # Add labels and theme
     labs(x = "Longitude", y = "Latitude") +
