@@ -80,7 +80,7 @@ terra::writeRaster(mapped_baseline, output_file, overwrite = TRUE)
 assign(paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent)), mapped_baseline, envir = .GlobalEnv)
 
 # Load the mapped raster stack for the baseline year
-mapped_baseline <- load_mapped_baseline_landUse(baseline_year)
+mapped_baseline <- load_mapped_baseline_landUse(outputPathLandscape, baseline_year)
 
 # Apply calculateRasterClass to the baseline raster to create raster classes for the land use types
 trainingLandscapesLandUse <- calculateRasterClass(
@@ -120,12 +120,12 @@ for (scenario_des in scenarios_des) {
   }
 }
 
+# Parallelized processing to map land-use types
 # Register parallel backend
 #num_cores <- min(parallel::detectCores() - 1, 10)  # Use up to 10 cores
 #cl <- makeCluster(num_cores)
 #registerDoParallel(cl)
 
-# Parallelized processing to map land-use types
 #foreach(year = years, .packages = c("terra")) %dopar% {
 #  for (scenario in scenarios) {
 #    # Construct the file path for the input raster
@@ -176,7 +176,8 @@ registerDoParallel(cl)
 
 # Loop through the years to create raster stacks and map land-use types
 mapped_rasters <- foreach(year = years, .combine = 'c', .packages = c("terra", "sf")) %dopar% {
-  #raster_stack <- stack_rasters(year, scenarios, extent, outputPathLandscapes)
+  # Create raster stacks for years
+  raster_stack <- stack_rasters(year, scenarios, extent, outputPathLandscapes)
   
   # Load the raster stack for the year
   raster_stack <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
@@ -197,7 +198,7 @@ stopCluster(cl)
 # Load the mapped raster stacks for the target years
 LULC_scenarios_list <- list()
 for (year in years) {
-  LULC_scenarios_list[[as.character(year)]] <- load_mapped_landUse(year)
+  LULC_scenarios_list[[as.character(year)]] <- load_mapped_landUse(outputPathLandscape, year)
 }
 
 # Example plot
@@ -267,10 +268,8 @@ for (year in years) {
 # Stop the cluster after execution
 #stopCluster(cl)
 
-
-
 # Apply calculateRasterClass to the target year rasters
-# Loop through the years to process each layer (scenario)
+# Loop through the years to process each layer (scenario) (takes approx 8h per landscape on a global scale)
 for (year in names(LULC_scenarios_list)) {
   # Get the raster for the year
   target_raster <- LULC_scenarios_list[[year]]
@@ -335,6 +334,9 @@ for (scenario in scenarios) {
   }
 }
 
+# Remove all data from memory/global Environment
+rm()
+gc()
 # Example plot
 #plot(predictionLandscapesLandUse$ssp126_2100)
 
