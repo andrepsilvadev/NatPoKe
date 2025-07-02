@@ -11,6 +11,9 @@ basePathElev <- "~/data/data/wc2.1_30s_elev/wc2.1_30s_elev.tif" # Path to the el
 elevation_raster <- terra::rast(basePathElev)
 
 # Crop and mask the elevation raster to the global terrestrial extent
+# Ensure CRS consistency
+extent_crs <- sf::st_transform(extent_sf, crs = crs(elevation_raster))
+extent_sp <- terra::vect(extent_crs)
 elevation_raster <- crop_mask_raster(elevation_raster, extent_sp) # extent_sp defined in inputClimate.R
 names(elevation_raster) <- "Elevation"
 
@@ -19,6 +22,7 @@ trainingLandscapesElev <- elevation_raster
 output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesElev_", baseline_year, ".tif"))
 terra::writeRaster(trainingLandscapesElev, output_file, overwrite = TRUE)
 
+#Example plot
 #plot(trainingLandscapesElev)
 
 # Create prediction landscapes -------------------------------------------
@@ -37,5 +41,8 @@ for (scenario in scenarios) {
   }
 }
 
+# Remove all data from memory/global Environment
+rm()
+gc()
 # Print the structure of the final list
 #print(predictionLandscapesElev)
