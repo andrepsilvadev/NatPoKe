@@ -1,7 +1,7 @@
 ## Name: SDM.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: SDM main function with true species occurence in R ##
-## Date: May 22nd 2025 ##
+## Date: July 3rd 2025 ##
 
 # Functions to format Data and SDM -----------------------------------------------------------------
 
@@ -99,15 +99,15 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     myRespXY <- speciesData[, c('x', 'y')]        # Coordinates for the species
     
     # Format the training data, only at presence and NAs
-    myRespXYvect <- terra::vect(myRespXY, geom = c("x", "y"), crs = crs(trainingLandscapes))
-    trainingData <- terra::extract(trainingLandscapes, myRespXYvect)[, -1]
+#    myRespXYvect <- terra::vect(myRespXY, geom = c("x", "y"), crs = crs(trainingLandscapes))
+#    trainingData <- terra::extract(trainingLandscapes, myRespXYvect)[, -1]
     
     # Calculate the number of presence point for the current species
     num_presence <- sum(myResp ==1, na.rm = TRUE) # counts presence points
     
     # Format Data with only true presences
     myBiomodData <- BIOMOD_FormatingData(resp.var = myResp,
-                                         expl.var = trainingData, #trainingLandscapes, # only values for presence / NA points
+                                         expl.var = trainingLandscapes, #trainingData includes only values for presence / NA points
                                          resp.xy = myRespXY,
                                          resp.name = species) 
     # Store the formatted data
@@ -157,7 +157,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     
     # Format data with true presence and generate pseudo-absence sets
     myBiomodData.PA <- BIOMOD_FormatingData(resp.var = myResp,
-                                            expl.var = trainingData, #trainingLandscapes,
+                                            expl.var = trainingLandscapes, #trainingData,
                                             resp.xy = myRespXY,
                                             resp.name = species,
                                             PA.nb.rep = 2,  # Two sets of pseudo-absences
@@ -180,8 +180,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, speciesData, trainingLandscap
     # Run single models
     myBiomodModelOut <- BIOMOD_Modeling(bm.format = myBiomodData.PA, 
                                         modeling.id = paste0("Model_", species),
-                                        models = c('ANN', 'RF', 'XGBOOST'), # 'MAXENT' needs to be added, but did not work on the server
-                                        models.pa = list(#MAXENT = "PA1", # needs to be added, uses the first pseudo-absence set
+                                        models = c('MAXENT', 'ANN', 'RF', 'XGBOOST'), # 'MAXENT' did not work on the server
+                                        models.pa = list(MAXENT = "PA1", # uses the first pseudo-absence set
                                                          ANN = "PA2", # use the second PA set
                                                          RF = "PA2",
                                                          XGBOOST = "PA2"),
