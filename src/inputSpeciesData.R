@@ -14,10 +14,14 @@
 species_group <- "mammalsWTrait"
 speciesData <- read.csv(file = paste0("~/data/data/trait_datasets/GBIF_",species_group, "_30+occurrences_", extent,".csv"))
 
-# Mammal occurrence with trait data set, subset for Iberian peninsula #NOT DONE YET
-#species_group <- "mammals"
-#speciesData <- read.csv("~/data/data/trait_datasets/GBIF_mammals_30+occurrences_Iberian peninsula.csv")
-#print(head(speciesData))
+# Mammal occurrence for Iberian peninsula subset with trait data availability
+mammalTrait<- unique(speciesData$species)
+
+speciesDataIP <- read.csv("~/data/data/trait_datasets/GBIF_mammals_30+occurrences_Iberian peninsula.csv")
+print(head(speciesDataIP))
+
+speciesData <- speciesDataIP %>% dplyr::filter(species %in% mammalTrait)
+unique(speciesData$species)
 
 # Birds occurrence subset, Iberian peninsula
 #species_group <- "birds"
@@ -68,25 +72,24 @@ all_cells$y <- coords[,2]
 
 # Get list of target species
 #species_list <- unique(speciesDataOcc$species) # all species
-#targetSpecies <- c("Alces alces", "Canis lupus", "Tragelaphus scriptus")
-#species_list <- intersect(unique(speciesDataOcc$species), targetSpecies)
+# Test with 3 species
+targetSpecies <- c("Alces alces", "Canis lupus", "Tragelaphus scriptus")
+species_list <- intersect(unique(speciesDataOcc$species), targetSpecies)
 
 # Group species in 10 by number of occurences (Balanced Groups)
-species_counts <- speciesDataOcc %>%
-  count(species) %>%
-  arrange(desc(n))
+#species_counts <- speciesDataOcc %>%
+#  count(species) %>%
+#  arrange(desc(n))
 
-species_list <- species_counts$species
-group_size <- 5
-n_groups <- ceiling(length(species_list) / group_size)
-
-species_groups <- split(species_list, 
-                        rep(1:n_groups, each = group_size, length.out = length(species_list)))
-
+#species_list <- species_counts$species
+#group_size <- 5
+#n_groups <- ceiling(length(species_list) / group_size)
+#species_groups <- split(species_list, 
+#                        rep(1:n_groups, each = group_size, length.out = length(species_list)))
 
 # create data frames for each species group
-targetSpecies <- species_groups[[1]]
-species_list <- intersect(unique(speciesDataOcc$species), targetSpecies)
+#targetSpecies <- species_groups[[1]]
+#species_list <- intersect(unique(speciesDataOcc$species), targetSpecies)
 
 # For each species, mark presence (1) in the cell, NA otherwise
 presence_matrix <- sapply(species_list, function(sp) {
@@ -122,14 +125,3 @@ readr::write_csv(
 rm(all_cells, coords, presence_matrix, speciesDataOcc, speciesDataInput)
 gc()
 
-
-
-# Check the mammal trait data set with Spain mammals
-mammalTrait<- readr::read_csv(
-  paste0("~/data/data/trait_datasets/mammalTraits_2025-02-03.csv")
-)
-
-unique(mammalTrait$Species)
-#targetSpecies <- spain species
-mammalstraitSpain <- intersect(unique(mammalTrait$species), targetSpecies)
-# subset by species, dont worry about biome doubles
