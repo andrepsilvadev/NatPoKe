@@ -45,7 +45,7 @@ sps_names <- unique(sps$Species)
 # Safe as Excel sheet if needed
 #writexl::write_xlsx(sps_threatened, path = paste0("~/data/data/trait_datasets/SpeciesIUCNCategory", species_group, extent,".xlsx"))
 
-# Overlay IUCN data with extent e.g. Iberian peninsula, take list of intersection
+# Overlay IUCN data with extent e.g. Spain and Portugal, take list of intersection
 #extent = "Iberian peninsula"
 #extent_name <- "Iberian peninsula"
 #extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
@@ -88,10 +88,10 @@ d <- occ_download_get(
 # with the download key we can go directly to gbif and download the folder with
 # the data without running the script again
 # Mammals global: '0030856-250525065834625'
-# Mammals globale with Trait data: '0064707-250525065834625'
+# Mammals global with Trait data: '0064707-250525065834625'
 # Mammals global test species: '0050651-250525065834625'
-# Mammals threatened subset Iberian peninsula: '0042465-250525065834625'
-# Birds threatened subset Iberian peninsula: '0042559-250525065834625'
+# Mammals threatened subset Spain & Portugal: '0042465-250525065834625'
+# Birds threatened subset Spain & Portugal: '0042559-250525065834625'
 
 # import download to current session
 gbif_data <- occ_download_import(d)
