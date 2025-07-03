@@ -1,7 +1,7 @@
 ## Name: InputSpeciesData.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: Cleans species occurrence data, one species per grid cell, filters by year ##
-## Date: May 22nd, 2025 ##
+## Date: July 3rd, 2025 ##
 
 # Define and load species occurence data -----------------------------------------------------------------
 # Mammal occurrences
@@ -16,12 +16,10 @@ speciesData <- read.csv(file = paste0("~/data/data/trait_datasets/GBIF_",species
 
 # Mammal occurrence for Iberian peninsula subset with trait data availability
 mammalTrait<- unique(speciesData$species)
-
 speciesDataIP <- read.csv("~/data/data/trait_datasets/GBIF_mammals_30+occurrences_Iberian peninsula.csv")
-print(head(speciesDataIP))
-
+#print(head(speciesDataIP))
 speciesData <- speciesDataIP %>% dplyr::filter(species %in% mammalTrait)
-unique(speciesData$species)
+#unique(speciesData$species) #check species
 
 # Birds occurrence subset, Iberian peninsula
 #species_group <- "birds"
