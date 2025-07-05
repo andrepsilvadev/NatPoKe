@@ -1,12 +1,12 @@
-## Name: ClimateChangeTimePeriods.R ##
+## Name: ClimateChange.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate spatial explicit temperature and precipitation change in a given Biome
 ## for the ssp126 and ssp585 scenarios in various time periods ##
-## Date: March 28th 2025 ##
+## Date: May 4th 2025 ##
 
 # Settings & libraries -------------------------------------------
-source("./src/libraries.R") # libraries
-source("./src/customFunctions.R") # functions
+source("~/NatPoKe9/src/libraries.R") # libraries
+source("~/NatPoKe9/src/customFunctions.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
@@ -39,226 +39,6 @@ biome_name_short <- "Boreal Biome"
 continent_names <- c("North America", "Europe")
 continent_title <- c("North America", "Europe & Asia")
 
-# Functions - later add them to CustomFunctions.R -------------------------------------------
-# Function to load rasters
-load_raster <- function(scenario, variable, year) {
-  file_path <- file.path(base_path, scenario, paste0("CHELSA_", variable, "_", year, "_gfdl-esm4_", scenario, "_V.2.1.tif"))
-  rast(file_path)
-}
-
-# Function to aggregate rasters
-aggregate_raster <- function(raster, aggregation_factor) {
-  aggregate(raster, aggregation_factor, fun = mean)
-}
-
-# Function to load and select the biome shapefile
-load_select_biome <- function(biome_name) {
-  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
-  biome_sf[biome_sf$BIOME_NAME == biome_name, ]
-}
-
-# Function to crop and mask rasters
-crop_mask_raster <- function(raster, biome_sp) {
-  mask(crop(raster, biome_sp), biome_sp)
-}
-
-# Function to stack rasters
-stack_rasters <- function(variable, year) {
-  scenarios_list <- list(
-    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name_short)),
-    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name_short))
-  )
-  
-  # Assign names to the list elements
-  names(scenarios_list) <- c(paste0(scenario_names[1], "_", year), paste0(scenario_names[2], "_", year))
-  
-  # Create a raster stack from the list of scenarios
-  scenarios_stack <- rast(scenarios_list)
-  
-  # Assign names to the raster stack layers
-  names(scenarios_stack) <- names(scenarios_list)
-  
-  # Save the raster stack
-  stack_output_file <- file.path(output_path, paste0("scenarios_stack_", variable, "_", year, "_", biome_name_short, ".tif"))
-  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
-  
-  # Assign the raster stack to a variable in the environment
-  assign(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
-  
-  return(scenarios_stack)
-}
-
-# Function to extract mean values from a raster stack
-extract_mean_values <- function(raster_stack, years, value_type) {
-  mean_values <- sapply(1:nlyr(raster_stack), function(i) {
-    mean(values(raster_stack[[i]]), na.rm = TRUE)
-  })
-  data.frame(
-    Year = years,
-    Scenario = names(raster_stack),
-    Mean_Value = mean_values,
-    Value_Type = value_type
-  )
-}
-
-# Function to create plots
-plot_timeChanges <- function(mean_values_df, value_type, y_label) {
-  ggplot(mean_values_df, aes(x = Year, y = Mean_Value, color = Scenario, group = Scenario)) +
-    geom_line() +
-    geom_point() +
-    scale_color_manual(values = scenario_colors) +
-    labs(
-      x = "Year",
-      y = y_label
-    ) +
-    theme_minimal()+
-    theme(
-      axis.title.x = element_text(size = 14, margin = margin(t = 10)),  # Increase gap for x-axis title
-      axis.title.y = element_text(size = 14, margin = margin(r = 10)),   # Increase gap for y-axis title
-      legend.title = element_text(size = 14),
-      legend.text = element_text(size = 12)
-    )
-}
-
-# Function to load and select continents
-load_select_continents <- function(continent_names) {
-  continents <- ne_countries(scale = "medium", returnclass = "sf")
-  
-  # Initialize an empty list to store merged continents
-  merged_continents <- list()
-  
-  # Handle merged "Central & South America"
-  if ("Central & South America" %in% continent_names) {
-    central_south_america <- continents %>%
-      dplyr::filter(subregion %in% c("Central America", "South America", "Caribbean")) %>%
-      summarise(geometry = st_union(geometry)) %>%
-      mutate(continent = "Central & South America")
-    
-    # Ensure column consistency
-    missing_columns <- setdiff(names(continents), names(central_south_america))
-    for (col in missing_columns) {
-      central_south_america[[col]] <- NA  # Add missing columns with NA values
-    }
-    central_south_america <- central_south_america[names(continents)]  # Reorder columns to match `continents`
-    
-    # Add to merged continents
-    merged_continents[["Central & South America"]] <- central_south_america
-    
-    # Remove "Central & South America" from the continent names
-    continent_names <- setdiff(continent_names, "Central & South America")
-  }
-  
-  # Filter the remaining continents
-  remaining_continents <- continents %>%
-    dplyr::filter(continent %in% continent_names)
-  
-  # Combine merged and remaining continents
-  all_continents <- do.call(rbind, c(merged_continents, list(remaining_continents)))
-  
-  # Return the final dataset
-  return(all_continents)
-}
-
-
-intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
-  # Validate and fix geometries
-  biome_sf <- st_make_valid(biome_sf)
-  continent_geoms <- lapply(continent_geoms, st_make_valid)
-  
-  # Perform intersection and handle empty geometries
-  biome_continents <- setNames(lapply(continent_geoms, function(continent_geom) {
-    result <- st_intersection(biome_sf, continent_geom)
-    if (is.null(result) || nrow(result) == 0) {
-      return(NULL)  # Return NULL if no intersection
-    }
-    return(result)
-  }), names(continent_geoms))
-  
-  return(biome_continents)
-}
-
-# Function to crop and mask the rasters to the continents
-crop_and_mask_continent <- function(raster, continent_geom) {
-  mask(crop(raster, continent_geom), continent_geom)
-}
-
-# Function to crop the biome boundaries to the continents
-crop_biome_to_continent <- function(biome, continent_geom) {
-  st_intersection(biome, continent_geom)
-}
-
-# Function to calculate changes
-calculate_change <- function(raster_future, raster_present) {
-  raster_future - raster_present
-}
-
-# Function to extract the legend from a ggplot object
-extract_legend <- function(plot) {
-  gtable <- ggplotGrob(plot)
-  legend <- gtable$grobs[which(sapply(gtable$grobs, function(x) x$name) == "guide-box")][[1]]
-  return(legend)
-}
-
-plot_ClimatespatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value) {
-  # Convert raster to data frame
-  raster_df <- as.data.frame(raster, xy = TRUE)
-  colnames(raster_df)[3] <- "value"  # Percentage change (%)
-  
-  # Load country boundaries
-  countries <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
-  
-  # Exclude sovereign states and keep only relevant territories
-  countries <- countries %>%
-    dplyr::filter(sovereignt != "France")  # Exclude France as a sovereign state
-  
-  # Ensure CRS consistency
-  biome_geom <- st_transform(biome_geom, crs = st_crs(countries))
-  countries <- st_transform(countries, crs = st_crs(biome_geom))
-  
-  # Validate geometries
-  countries <- st_make_valid(countries)
-  biome_geom <- st_make_valid(biome_geom)
-  
-  # Identify countries overlapping with the biome
-  overlapping_indices <- st_intersects(countries, biome_geom, sparse = TRUE)
-  overlapping_countries <- countries[lengths(overlapping_indices) > 0, ]
-  
-  # Create the plot
-  plot <- ggplot(raster_df) +
-    # Add country boundaries
-    geom_sf(data = overlapping_countries, aes(color = "Country Boundaries"), fill = NA, size = 0.2) +
-    # Add biome boundary
-    geom_sf(data = biome_geom, aes(color = "Biome"), fill = "lightgrey", size = 0.2) +
-    # Add raster data
-    geom_tile(data = raster_df, aes(x = x, y = y, fill = value)) +
-    # Define the color scale for the raster
-      scale_fill_gradientn(name = fill_label, 
-                           colors = color_ramp(seq(min_value, max_value, length.out = 101)), 
-                           limits = c(min_value, max_value), 
-                           na.value = "grey") +
-    # Define the color scale for the biome and country boundaries
-    scale_color_manual(
-      name = "Legend",
-      values = c("Biome" = "lightgrey", "Country Boundaries" = "darkgrey"),
-      breaks = c("Biome", "Country Boundaries"),  # Ensure these match the aes(color = ...) values
-      labels = c("Biome", "Country Boundaries")
-    ) +
-    # Add labels and theme
-    labs(x = "Longitude", y = "Latitude") +
-    theme_minimal() +
-    theme(
-      axis.title = element_text(size = 18),
-      axis.text = element_text(size = 14),
-      plot.title = element_blank(),
-      legend.title = element_text(size = 22, margin = margin(b = 10)),
-      legend.text = element_text(size = 18),
-      legend.key.height = unit(1, "cm"),  # Increase the height of the color ramp
-      legend.spacing = unit(1, "cm")
-    ) +
-    coord_sf()  # Use coord_sf() for spatial data
-  
-  return(plot)
-}
 
 # Prepare the climate scenarios rasters for further calculations and graphical representation -------------------------------------------
 # Load the selected biome
@@ -303,7 +83,7 @@ for (scenario in scenarios) {
 # Loop through the variables and years to create raster stacks
 for (variable in variables) {
   for (year in years) {
-    stack_rasters(variable, year)
+    stack_clim_rasters(variable, year)
   }
 }
 
@@ -406,7 +186,7 @@ for (variable in variables) {
       
       # Crop and mask to continents
       change_rasters <- lapply(continent_geoms, function(continent_geom) {
-        crop_and_mask_continent(change_raster, continent_geom)
+        crop_mask_continent(change_raster, continent_geom)
       })
       
       # Assign the cropped/masked rasters to variables dynamically
