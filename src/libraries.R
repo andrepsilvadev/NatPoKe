@@ -1,5 +1,5 @@
 ## Name: libraries ##
-## Authors: Andre P. Silva ##
+## Authors: Andre P. Silva  & Inês Silva ##
 ## Description: Includes all libraries needed to run the repository ##
 
 library(easypackages)
@@ -42,6 +42,27 @@ easypackages::packages(
   "metaRange",
   
   # data manipulation & visulisation
+<<<<<<< HEAD
+    "dplyr",
+    "tidyverse",
+    "ggplot2",
+    "ggh4x",
+    "stringr",
+    "grr",
+    "tibble",
+    "tidyterra",
+    "tidyr",
+    "rphylopic",
+    "viridis",
+    "circlize",
+    "grid",
+    "gridExtra",
+    "patchwork",
+    "RColorBrewer",
+     "crayon",
+  "HomeRange",
+  "naniar",
+=======
   "dplyr",
   "tidyverse",
   "ggplot2",
@@ -57,5 +78,6 @@ easypackages::packages(
   "gridExtra",
   "patchwork",
   "RColorBrewer",
+>>>>>>> f36af6ce763c384417882cb3644611dd39df5c82
   
   prompt = FALSE)

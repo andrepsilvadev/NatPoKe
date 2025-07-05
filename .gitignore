@@ -1,0 +1,9 @@
+# Ignore R session files
+.Rproj.user
+.Rhistory
+.RData
+.Rproj
+
+# Ignore deleteLater folder
+src/deprecatedScripts/
+data/Ecoregions2017/

@@ -23,8 +23,9 @@ This .html file contains all the additional figures that will compose the Supple
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 library(here)
 source(here("src", "libraries.R"))
-source(here("src", "speciesResilienceMetricsFigures.R"))
-source(here("src", "communityMetricsFigures.R"))
+source(here("src", "customFunctions.R"))
+source(here("src", "speciesResilienceMetrics.R"))
+source(here("src", "communityMetrics.R"))
 ```
 
 # Multi-species abundance over-time
@@ -66,37 +67,34 @@ TNIND_per_year <- ggplot(data = TNIND_yr, aes(x = timestep, y = TNIND, group = s
 TNIND_per_year
 ```
 
-# Species richness
+# Model Validation
 
+To determine whether the model accurately represents the behavior of the system (Aumann, 2007), we applied model validation analysis as follows:
 
-STILL NEED TO GET TO THIS - NOT SURE IT MAKES ANY SENSE TO HAVE A PLOT OVER TIME. DID ANDRÉ MEAN A SPATIALLY EXPLICIT MAP??
+> This relies on a previously on a user defined function (`validateModel1.2()`) that compares estimated values from our model simulation with an external data source, which in this case came from Santini et al. 2022, providing insights into the model's accuracy.
 
+1.  first, it prepares the independent density data, from Santini et al. 2022, filtering it to match our target species and formatting it accordingly;
 
-# Model Validation multi-species
+2.  then it searches the given output directory for .tif files matching the pattern for each target species and the given validation Year (to facilitate debugging, it prints a message saying which raster was used for which species, and warns if some are missing).
 
+3.  afterwards, it loads and stacks the rasters and converts the created stack into a dataframe with species as a column, enabling cell-by-cell analysis.
 
-# Multispecies model validation
+4.  since the expected datasets are very large (continental range scale), the function randomly samples 300 abundance values per species from the abundance dataset using `sample()`.
 
-TEST IF FUNCTION CAN REALLY GO THROUGH MULTIPLE DIRECTORIES TO FIND ALL TARGET SPECIES RASTERS.
-I THINK IT WORKS BUT I STILL HAVEN'T TESTED!!
+5.  subsequently, the function converts predicted abundance to predicted density (individuals per km²), by dividing the abundance values per cell with modelling resolution.
 
+6.  finally, the function returns a list containing both the processed independent density estimates and the calculated model-predicted densities, facilitating the comparison and validation of the model's performance.
 
-Model validation here relies on a previously set user defined function that compares estimated values from our model simulation with an external data source, which in this case came from Santini et al. 2022.
+> This analysis needs to be done per region, or else errors will appear due to different extent rasters and the same species occurring in more than one region at a time.
+>
+> **Suggestion:** Save each model run per biome and region in a different folder feed each one separately to the function. plot each results and then, if it is necessary to visualize all plots together use the [patchwork package](https://patchwork.data-imaginist.com/articles/patchwork.html) to do that.
 
-The `validateModel1.2()` function evaluates the performance of our model abundance estimates. It facilitates a direct comparison between model-predicted densities and independent density estimates, providing insights into the model's accuracy. The function:
-
-1.  prepares the independent density data, filtering it to match the target species and formatting it
-
-2.  then it goes through user-specified directories, searching for and reading raster files for species abundance for the specified year. These rasters are then stacked and transformed into a data frame, enabling cell-by-cell analysis. (it also prints a message saying which raster was used for which species) and warns if some are missing.
-
-3.  subsequently, the function calculates the mean predicted abundance for each cell, effectively summarizing the model's output. This information is then joined with the species-specific modeling resolution data, allowing for the calculation of estimated densities. Finally, the function returns a list containing both the processed independent density estimates and the calculated model-predicted densities, facilitating the comparison and validation of the model's performance.
-
-```{r model validation function, warning=FALSE, message=FALSE}
+```{r, eval=FALSE}
 validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
   # Compares mean density estimated by model per cell with
   # predicted density from independent model extract predicted abundance
   # and join with observed abundance
-  # THIS FUNCTION WAS ADAPTED FROM ANDRÉS CODE TO WORK THROUGH MULTIPLE DIRECTORIES (dirouts).
+  # 1. Loads rasters - 2. Sample ~300 random cells per species - 3. Calculate predicted densities - 4. Returns a comparison-ready list
   
   ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
   independentDensity <- independentDensity %>%
@@ -160,10 +158,24 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
     }
   }) %>% bind_rows()
   
+  # sample 300 abundance values for each species
+  species_df_sampled <- species_df %>%
+    group_by(species) %>%
+    group_modify(~ {
+      df <- .x
+      if (nrow(df) >= 300) {
+        df[sample(nrow(df), 300), ]
+      } else {
+        df  # keep all if there are fewer values than 300
+      }
+    }) %>%
+    ungroup()
+  
+  
   # format raster's dataframe for validation
-  predicted <- species_df %>%
+  predicted <- species_df_sampled %>%
     dplyr::filter(species %in% targetspecies) %>%
-    dplyr::group_by(species, x, y) %>%
+    dplyr::group_by(species, x, y) %>% # if there are ever replicates involved
     dplyr::summarise(
       meanNInd = mean(abundance, na.rm = TRUE),
       .groups = "drop"
@@ -173,7 +185,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   spData2 <- spData %>%
     dplyr::select(Species, ModellingRes) %>%
     rename(species = Species) %>%
-    mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
+    #mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
     as.data.frame()
   
   estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
@@ -186,38 +198,160 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
 }
 ```
 
-```{r multi-species validation, fig.dim=c(8,6), warning=FALSE, message=FALSE}
-#load external data
+At this stage we have 5 different runs, one for each biome region comparison, so we need to run the `validateModel1.2()` 5 times (Boreal forests in Europe, Boreal forests in North America, Tropical forests in South Asia, Tropical forests in Africa, Tropical forests in Asia).
+
+```{r Europe model Validation, warning=FALSE, message=FALSE}
 # (2) independentDensity
 santini2022 <- read_excel("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
   # santini's dataframe has species names with spaces but metaRange does not like spaces
   # remove spaces again
   mutate(Species = str_replace_all(Species, " ", ""))
 
-# (4) spData
-spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+# validation for Boreal forests in Europe
+validation_Europe <- validateModel1.2(targetspecies = c("Alcesalces", "Canislupus", "Cervuselaphus", "Damadama", "Lynxlynx", "Rangifertarandus", "Susscrofa"),
+                 independentDensity = santini2022,
+                 dirouts = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Outputs",
+                 spData = read.csv(file.path("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/26Mar2025_Europe/Inputs", "metaRangeSpeciesDataframe.csv")),
+                 validationYear = 101)
 
+europe_labels <- setNames(pretty_species_names(unique(validation_Europe$estimatedDensity$species)),
+                        unique(validation_Europe$estimatedDensity$species))
 
-# applying the function
-validation_lists <- validateModel1.2(targetspecies = target_species,
-                       independentDensity = santini2022,
-                       dirouts = dirout,
-                       spData = spData,
-                       validationYear = 101)
-# plotting the results
-ggplot(validation_lists$independentDensity, aes(x = "", y = meanDensity)) +
+europe_plot <- ggplot(validation_Europe$independentDensity, aes(x = "", y = meanDensity)) +
   geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
-  geom_point(data = validation_lists$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
-  facet_wrap(~ species, scales = "free_y") + 
+  geom_point(data = validation_Europe$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+  facet_wrap(~ species, scales = "free_y", labeller = labeller(species = europe_labels)) + 
   ylab("Independent density estimate (individuals/km2)") +
   xlab(" ") +
-  ggtitle("Model validation - estimated densities in red") + 
+  ggtitle("Europe") + 
   theme_minimal() +
   theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(face = "italic"),
+        plot.title = element_text(hjust = 0.5))
+europe_plot
 ```
 
+```{r North America Model Validation, warning=FALSE, message=FALSE}
+# validation for boreal forests in North America
+validation_NorthAmerica <- validateModel1.2(targetspecies = c("Lynxrufus", "Odocoileusvirginianus"),
+                 independentDensity = santini2022,
+                 dirouts = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Outputs",
+                 spData = read.csv(file.path("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_NorthAmerica/Inputs", "metaRangeSpeciesDataframe.csv")),
+                 validationYear = 101)
+
+northamerica_labels <- setNames(pretty_species_names(unique(validation_NorthAmerica$estimatedDensity$species)),
+                        unique(validation_NorthAmerica$estimatedDensity$species))
+
+northamerica_plot <- ggplot(validation_NorthAmerica$independentDensity, aes(x = "", y = meanDensity)) +
+  geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+  geom_point(data = validation_NorthAmerica$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+  facet_wrap(~ species, scales = "free_y", labeller = labeller(species = northamerica_labels)) + 
+  ylab("Independent density estimate (individuals/km2)") +
+  xlab(" ") +
+  ggtitle("North America") + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(face = "italic"),
+        plot.title = element_text(hjust = 0.5))
+northamerica_plot
+```
+
+```{r South America model Validation, warning=FALSE, message=FALSE}
+# validation for Tropical forests in South Asia
+validation_SouthAmerica <- validateModel1.2(targetspecies = c("Callithrixjacchus", "Nasuanasua", "Pumaconcolor"),
+                 independentDensity = santini2022,
+                 dirouts = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Outputs",
+                 spData = read.csv(file.path("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_SouthAmerica/Inputs", "metaRangeSpeciesDataframe.csv")),
+                 validationYear = 101)
+
+southamerica_labels <- setNames(pretty_species_names(unique(validation_SouthAmerica$estimatedDensity$species)),
+                        unique(validation_SouthAmerica$estimatedDensity$species))
+
+southamerica_plot <- ggplot(validation_SouthAmerica$independentDensity, aes(x = "", y = meanDensity)) +
+  geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+  geom_point(data = validation_SouthAmerica$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+  facet_wrap(~ species, scales = "free_y", labeller = labeller(species = southamerica_labels)) + 
+  ylab("Independent density estimate (individuals/km2)") +
+  xlab(" ") +
+  ggtitle("South America") + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(face = "italic"),
+        plot.title = element_text(hjust = 0.5))
+southamerica_plot
+```
+
+```{r Africa, warning=FALSE, message=FALSE}
+# validation for Tropical forests in Africa
+validation_Africa <- validateModel1.2(targetspecies = c("Crocutacrocuta", "Pantheraleo"),
+                 independentDensity = santini2022,
+                 dirouts = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Outputs",
+                 spData = read.csv(file.path("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Africa/Inputs", "metaRangeSpeciesDataframe.csv")),
+                 validationYear = 101)
+
+africa_labels <- setNames(pretty_species_names(unique(validation_Africa$estimatedDensity$species)),
+                        unique(validation_Africa$estimatedDensity$species))
+
+africa_plot <- ggplot(validation_Africa$independentDensity, aes(x = "", y = meanDensity)) +
+  geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+  geom_point(data = validation_Africa$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+  facet_wrap(~ species, scales = "free_y", labeller = labeller(species = africa_labels)) + 
+  ylab("Independent density estimate (individuals/km2)") +
+  xlab(" ") +
+  ggtitle("Africa") + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(face = "italic"),
+        plot.title = element_text(hjust = 0.5))
+africa_plot
+```
+
+```{r Asia Model Validation, warning=FALSE, message=FALSE}
+# validation for Tropical forests in Asia
+validation_Asia <- validateModel1.2(targetspecies = c("Pantheratigris", "Susscrofa"),
+                 independentDensity = santini2022,
+                 dirouts = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Outputs",
+                 spData = read.csv(file.path("C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs/27Mar2025_Asia/Inputs", "metaRangeSpeciesDataframe.csv")),
+                 validationYear = 101)
+
+asia_labels <- setNames(pretty_species_names(unique(validation_Asia$estimatedDensity$species)),
+                        unique(validation_Asia$estimatedDensity$species))
+
+asia_plot <- ggplot(validation_Asia$independentDensity, aes(x = "", y = meanDensity)) +
+  geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+  geom_point(data = validation_Asia$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+  facet_wrap(~ species, scales = "free_y", labeller = labeller(species = asia_labels)) + 
+  ylab("Independent density estimate (individuals/km2)") +
+  xlab(" ") +
+  ggtitle("Asia") + 
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(face = "italic"),
+        plot.title = element_text(hjust = 0.5))
+asia_plot
+```
 
 # Sensitivity Analysis
 
-NÃO QUERIA NADA VOLTAR AQUI MAS OK..
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+source(here("src", "updatedSensitivityAnalysis.R"))
+```
+
+If running this analysis separately from the remaining scripts make sure the right objects are set in the beginning (target_scenario, target_biome, target_region, target_species) and the directories to each run is also correctly set (baseline, and how many sensitivity runs are necessary).
+
+1.  for the **baseline data** run a for loop to build a dataframe with the abundance values of all target species per cell. Then summarise the data to be per species and produce whichever metric we are interested in, in this case the mean number of individuals per cell (the total number of individuals in the landscape is also included but not used). rename the column here to include the word "baseline".
+
+2.  then run a user defined function to do a similar procedure to step 1 but for each sensitivity run directory, where a dataframe with the same columns as the baseline one is created per directory given. Again summarise the data to be per species and produce whichever metric we are interested in, the mean number of individuals per cell.
+
+3.  combine the two dataframes together and calculate the proportion between each sensitivity runs mean number of individuals per cell and the baseline.
+
+4.  finaly select columns and format data for plotting and plot the data in a boxplot with each species values represented as a point on top of it
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+sensitivity_plot
+```

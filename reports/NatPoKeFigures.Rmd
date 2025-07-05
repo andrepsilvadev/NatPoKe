@@ -32,24 +32,24 @@ Using the metaRange simulations' outputs for mammal species we can produce multi
 
 Here we modeled a total of `r length(unique(TNIND_yr$species))` species, including:
 
-| Biome                                              | Region        | Species                |
-|----------------------------------|-------------------|-------------------|
-| **Boreal Forests/ Taiga**                          | North America | Lynx rufus             |
-|                                                    |               | Odocoileus virginianus |
-|                                                    | Europe        | Alces alces            |
-|                                                    |               | Canis lupus            |
-|                                                    |               | Cervus elaphus         |
-|                                                    |               | Dama dama              |
-|                                                    |               | Lynx lynx              |
-|                                                    |               | Rangifer tarandus      |
-|                                                    |               | Sus scrofa             |
-| **Tropical & Subtropical Moist Broadleaf Forests** | South America | Callithrix jacchus     |
-|                                                    |               | Nasua nasua            |
-|                                                    |               | Puma concolor          |
-|                                                    | Africa        | Crocuta crocuta        |
-|                                                    |               | Panthera leo           |
-|                                                    | Asia          | Panthera tigris        |
-|                                                    |               | Sus scrofa             |
+| Biome | Region | Species |
+|----|----|----|
+| **Boreal Forests/ Taiga** | North America | Lynx rufus |
+|  |  | Odocoileus virginianus |
+|  | Europe | Alces alces |
+|  |  | Canis lupus |
+|  |  | Cervus elaphus |
+|  |  | Dama dama |
+|  |  | Lynx lynx |
+|  |  | Rangifer tarandus |
+|  |  | Sus scrofa |
+| **Tropical & Subtropical Moist Broadleaf Forests** | South America | Callithrix jacchus |
+|  |  | Nasua nasua |
+|  |  | Puma concolor |
+|  | Africa | Crocuta crocuta |
+|  |  | Panthera leo |
+|  | Asia | Panthera tigris |
+|  |  | Sus scrofa |
 
 : Species modeled and where
 
@@ -688,9 +688,6 @@ europe_funct + inset_element(europe_plot, 0.6, 0.7, 1, 1)
 ```
 
 ## Species richness
-
-
-
 
 
 # Annex

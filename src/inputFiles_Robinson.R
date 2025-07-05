@@ -9,16 +9,18 @@
 # Step 1 # Define area and species
 ##########
 # select target species
-target_species <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv")) %>% 
+species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
+
+target_species <- species_traits %>% 
   dplyr::pull(Species)
 
 # match target region and CRS
 # match target region and CRS
-targetRegionCRS <- ifelse(target_region == "Europe", "EPSG:3035",
-                          ifelse(target_region == "North America", "EPSG:10598",
-                                 ifelse(target_region == "Africa", "EPSG:27701",
-                                        ifelse(target_region == "South America", "EPSG:10603",
-                                               ifelse(target_region == "Asia", "EPSG:10594",
+targetRegionCRS <- ifelse(target_region == "Europe", "ESRI:54030",
+                          ifelse(target_region == "North America", "ESRI:54030",
+                                 ifelse(target_region == "Africa", "ESRI:54030",
+                                        ifelse(target_region == "South America", "ESRI:54030",
+                                               ifelse(target_region == "Asia", "ESRI:54030",
                                                       NA)))))
 
 ##########
@@ -90,7 +92,8 @@ duplicate_layers <- function(raster, times) {
   # layers 3 to end - suitability decreases progressivly by 1%
   new_layer <- raster
   for (i in 3:times) {
-    new_layer <- new_layer * 0.99  # Reduce by 1% each time
+    new_layer <- new_layer * 0.99
+    new_layer <- terra::clamp(new_layer, lower = 0, upper = 1)  # cap at 1.0
     replicated[[i]] <- new_layer
   }
   return(rast(replicated))
@@ -171,6 +174,8 @@ landscapes <- list.files(path = dirinput,
 print("Reprojecting and converting meters to km")
 
 for (landscape in landscapes) {
+  # Print message indicating which raster is being processed
+  message("Processing: ", landscape)
   
   # load raster
   r <- rast(landscape)
@@ -193,14 +198,25 @@ for (landscape in landscapes) {
   # Apply modified CRS
   #crs(r_raster) <- new_crs
   
-  # set target resolution
-  target_resolution <- 10 # km
-  # # aggregate raster by Modelling resolution to match species
-  agregated_raster <- raster::aggregate(x = r_raster, fact = ceiling(target_resolution/res(r_raster)[1]), fun = mean)
+  # Extract species name from file name (assuming it's before the first underscore or period)
+  species_name <- tools::file_path_sans_ext(basename(landscape)) # Remove extension
+  species_name <- gsub("_.*", "", species_name) # Remove everything after the first underscore
+  
+  # Get the corresponding modeling resolution
+  #species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name]/sqrt(species_traits$CellResolution[species_traits$Species == species_name]))
+  species_fact <- ceiling(10/sqrt(species_traits$CellResolution[species_traits$Species == species_name]))
+  
+  # aggregate raster by Modelling resolution to match species
+  agregated_raster <- raster::aggregate(x = r_raster, fact = species_fact, fun = mean)
   extent(agregated_raster) <- extent(r_raster)
   
+  # set target resolution
+  #target_resolution <- 10 # km
+  # # aggregate raster by Modelling resolution to match species
+  # agregated_raster <- raster::aggregate(x = r_raster, fact = species_fact, fun = mean)
+  # extent(agregated_raster) <- extent(r_raster)
+  
   # Convert back to SpatRaster while keeping all layers
-  #r_km <- rast(agregated_raster)
   #r_km <- rast(agregated_raster)
   
   #r_km[is.na(r_km)] <- 0
@@ -214,7 +230,7 @@ for (landscape in landscapes) {
   # remove unecessary objects
   #rm(r, r_utm, r_raster, orig_crs, new_crs, r_km, output_filename)
 }
-rm(landscape, landscape_SW)
+
 
 
 ##########
@@ -228,7 +244,7 @@ res(species1) # checking initial resolution
 ## at this stage all species shoudl still have the same landscape resolution
 
 ## checking reprojection & conversion to km
-species1_reprojected <- rast(file.path(dirinput, paste0(target_species[2], "_suitability_cropped_modified_reprojectedKm.tif")))
+species1_reprojected <- rast(file.path(dirinput, paste0(target_species[1], "_suitability_cropped_modified_reprojectedKm.tif")))
 plot(species1_reprojected) 
 res(species1_reprojected) # checking new resolution
 

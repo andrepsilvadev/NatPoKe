@@ -1,228 +1,135 @@
-########################
-# MODEL VALIDATION FIG #
-######### MIS ##########
-# 24 Jan 2025
+########################################
+# VALIDATING ALL SPECIES FROM ALL RUNS #
+########################################
+# Inês Silva
+# 27 April 2025
 
-# GOAL: Compare mean species densities estimated from two sources.
+runs_path <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs"
 
+# Define multiple pairs of input and output directories
+directory_pairs <- list(
+  # Europe
+  EuropeSSP1 = c(input = file.path(runs_path, "23April_Europe/Inputs"), output = file.path(runs_path, "23April_Europe/Outputs")),
+  EuropeSSP5 = c(input = file.path(runs_path, "26Mar2025_Europe/Inputs"), output = file.path(runs_path, "26Mar2025_Europe/Outputs")),
+  # North America
+  NorthAmericaSSP1 = c(input = file.path(runs_path, "23April_NorthAmerica/Inputs"), output = file.path(runs_path, "23April_NorthAmerica/Outputs")),
+  NorthAmericaSSP5 = c(input = file.path(runs_path, "27Mar2025_NorthAmerica/Inputs"), output = file.path(runs_path, "27Mar2025_NorthAmerica/Outputs")),
+  # South America
+  SouthAmericaSSP1 = c(input = file.path(runs_path, "23April_SouthAmerica/Inputs"), output = file.path(runs_path, "23April_SouthAmerica/Outputs")),
+  SouthAmericaSSP5 = c(input = file.path(runs_path, "27Mar2025_SouthAmerica/Inputs"), output = file.path(runs_path, "27Mar2025_SouthAmerica/Outputs")),
+  # Africa
+  AfricaSSP1 = c(input = file.path(runs_path, "23April_Africa/Inputs"), output = file.path(runs_path, "23April_Africa/Outputs")),
+  AfricaSS5 = c(input = file.path(runs_path, "27Mar2025_Africa/Inputs"), output = file.path(runs_path, "27Mar2025_Africa/Outputs")),
+  # Asia
+  AsiaSSP1 = c(input = file.path(runs_path, "23April_Asia/Inputs"), output = file.path(runs_path, "23April_Asia/Outputs")),
+  AsiaSSP5 = c(input = file.path(runs_path, "27Mar2025_Asia/Inputs"), output = file.path(runs_path, "27Mar2025_Asia/Outputs"))
+  )
 
-# WHAT IS MODEL VALIDATION?
-# Model validation is the process of determining whether the model accurately
-# represents the behavior of the system (Aumann, 2007). Model validity should be
-# evaluated both operationally (i.e., by determining if model output agrees with
-# observed data) and conceptually (i.e., by determining whether the theory and
-# assumptions underlying the model are justifiable; Sargent, 1984; Rykiel, 1996).
+# start an empty list (for results dfs)
+plot_data_list <- list()
 
-# Kerr LA, Goethel DR. Simulation Modeling as a Tool for Synthesis of Stock Identification Information. In: Stock Identification Methods, 2014, 501-533
-
-start.time <- Sys.time() # start the clock
-# packages
-library(readxl)
-library(stringr)
-library(tidyr)
-library(dplyr)
-library(ggplot2)
-library(terra)
-library(data.table)
-
-###################
-# DATASETS NEEDED #
-###################
-
-# To validate the metaRange model we need:
-  # (1) targetspecies: Vector of species names for which the validation will be performed
-  # (2) independentDensity: dataframe containing species density estimates from an Santini 2022
-  # (3) estimatedDensity: dataframe containing species abundance data derived from the model output
-  # (4) spData: dataframe with species traits (with ModellingRes) to calculate density from abundance
-        # for now, 20250130, ModellingRes will be the pixel size of one of the rasters BUT THIS WILL CHANGE WHENEVER SOMEONE THINKS OF THIS
-  # (5) validationYear: The specific year (or time step) used for validation
-
-# (1) targetspecies
-species_names <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>% 
-  dplyr::pull(Species)
-
-# (2) independentDensity
-santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>% 
-  # santini's dataframe has species names with spaces but metaRange does not like spaces
-  # remove spaces again
-  mutate(Species = str_replace_all(Species, " ", ""))
-
-# (3) estimatedDensity
-#estimatedDensity <- fread(file.path(dirout, paste0("metaRangeOutputs", runname, ".csv"))) 
-
-abundance_files <- list()
-resampled_rasters <- list()
-for (target_sps in species_names) {
+# go through each pair of directories
+for (name in names(directory_pairs)) {
+  dirs <- directory_pairs[[name]]
+  dirinput <- dirs[["input"]]
+  dirout <- dirs[["output"]]
   
-  # list all abundance rasters for the target species
-  abundance_files[target_sps] <- list.files(path = dirout,
-             pattern = paste0("101_", target_sps, "_abundance\\.tif$"), full.names = TRUE)
+  # (1) get targetspecies
+  species_names <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>%
+    dplyr::pull(Species)
   
-  # read all abundance rasters for the species
-  abundance_rasters <- lapply(abundance_files, rast)
+  # (2) get independentDensity
+  santini2022 <- read_excel("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/SRIT_ANDRE/external_data/geb13476-sup-0002-tables1.xls") %>%
+    mutate(Species = str_replace_all(Species, " ", ""))
   
-  # stack all rasters into one
-  abundance_stack <- terra::rast(unlist(abundance_rasters))
+  # (3) get spData (modelling resolution)
+  spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+  
+  
+  # (4) apply the function for the current pair of directories
+  aa <- validateModel1.2(targetspecies = species_names,
+                         independentDensity = santini2022,
+                         dirouts = dirout,
+                         spData = spData,
+                         validationYear = 101)
+  
+  # store results in list
+  if (
+      is.list(aa) && !is.null(aa$independentDensity) && !is.null(aa$estimatedDensity) &&
+      is.data.frame(aa$independentDensity) && is.data.frame(aa$estimatedDensity)) {
+    plot_data_list[[name]] <- list(independentDensity = aa$independentDensity,
+                                   estimatedDensity = aa$estimatedDensity,
+                                   name = name) # Store the data and the name
+  } else {
+    cat("Warning: 'aa' for", name, "SOMETHING WENT WRONG! Check origin data or function.\n")
+  }
 }
 
-# convert raster stack to df
-species_df <- lapply(1:nlyr(abundance_stack), function(i){
-  as.data.frame(abundance_stack[[i]], xy = TRUE) %>% 
-    # create column with species names
-    mutate(species = names(abundance_stack[[i]])) %>% 
-    # be carefull here if for some reason column change order
-    rename_at(3, ~"abundance")
-})
+# check results
+plot_data_list$EuropeSSP1
 
-# combine list of dataframes into one
-estimatedDensity <- bind_rows(species_df)
-
-
-# import a raster to get cell size
-size <- res(terra::rast(file.path(dirinput, "Cervuselaphus_suitability_cropped_modified_reprojectedKm.tif")))
-
-# (4) spData
-spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) 
-#IF WE WANT TO GO BACK TO THE ORIGINAL IDEA OF USING SANTINI'S "MEASUREMENTS" OF PREDICTED DENSITIES
-# to get the PredMd which is Starting density per cell (individuals/cell) from santini 2022
-#left_join(dplyr::select(santini2022, Species, PredMd), by = c("species" = "Species")) %>%
-# create ModellingRes variable
-#mutate(ModellingRes = ceiling(sqrt(2/as.numeric(PredMd)))) # change to a specific value 
-# ADD NOTE TO USE VALUES FROM SPEPS TRAITS DATASET
-
-# (5) validationYear
-# defined directly in the function
-
-#############################
-# MODEL VALIDATION FUNCTION #
-#############################
-
-# this model validation uses independent estimates
-# André's comments are in lowercase letters within the function
-
-validateModel1.1 <- function(
-    targetspecies, independentDensity, estimatedDensity, spData, validationYear) {
-  # compares mean density estimated by model per cell with
-  # predicted density from independent model extract predicted abundance 
-  # and join with observed abundance
-  # based on validateModel1 from MechSpatCons but uses estimated
-  # number of individuals from rangeshifter output dataframe
-  # instead from raster
+# plot model validation for each dataset
+for (plot_data in plot_data_list) {
+  # independent estimates
+  independent_density <- plot_data$independentDensity
+  # model outputs
+  estimated_density <- plot_data$estimatedDensity
+  # name
+  plot_name <- plot_data$name
   
-  ## species density estimates by an independent source (akin to observed density)
-  independentDensity <- independentDensity %>% 
-    dplyr::filter(Species %in% targetspecies) %>%
-    dplyr::select(Species, lw95, lw75, PredMd, up75, up95) %>%
-    mutate(
-      lw95 = as.numeric(lw95),
-      lw75 = as.numeric(lw75),
-      PredMd = as.numeric(PredMd), # Predicted population density (individuals/km2)
-      up75 = as.numeric(up75),
-      up95 = as.numeric(up95)) %>%
-    rename(
-      species = Species,
-      meanDensity = PredMd
-    )
+  # actual plot
+  plot_output <- ggplot(independent_density, aes(x = "", y = meanDensity)) +
+    geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
+    geom_point(data = estimated_density, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+    facet_wrap(~ species, scales = "free_y", labeller = labeller(species = pretty_species_names)) +
+    ylab(expression("Independent density estimate (individuals/km"^2*")")) +
+    xlab(" ") +
+    ggtitle(" ") +
+    theme_minimal() +
+    theme(axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          strip.text = element_text(face = "italic"))
   
-  ## species density estimated by metaRange
-  predicted <- estimatedDensity %>%
-    dplyr::filter(species %in% species_names) %>%
-    #dplyr::filter(timestep %in% validationYear) %>% # validate model at the equilibrium (burn-in years)
-    dplyr::group_by(species, x,y) %>%
-    dplyr::summarise(
-      meanNInd = mean(abundance),
-      .groups = 'drop') %>%
-    as.data.frame()
+  print(plot_output) # see the plot
   
-  spData2 <- spData %>%
-    dplyr::select(Species, ModellingRes) %>%
-    rename(species = Species) %>%
-    mutate(ModellingRes = ifelse(ModellingRes == size[1], ModellingRes, size[1])) %>% 
-    as.data.frame()
-  
-  estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
-    mutate(estimatedDensity = meanNInd/ModellingRes)
-  
-  ## compare observed with predicted density
-  list <- list(independentDensity, estimatedDensityJoin)
-  names(list) <- c("independentDensity", "estimatedDensity")
-  return(list)
+  # to save the plots
+ # ggsave(filename = paste0("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/figures_20250427/SupplementaryFigure_validation_plot_", plot_name, ".png"),
+  #       plot_output, # plot
+   #      bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200,
+         #compression = "lzw"
+    #     ) # image parameters
 }
 
 
+################################################################################
+############# IF WE WANT TO HAVE ALL SPECIES IN THE SAME PLOT ##################
 
-# applying the function
-validationList <- validateModel1.1(
-  targetspecies = species_names,
-  independentDensity = santini2022,
-  estimatedDensity = estimatedDensity,
-  spData = spData,
-  validationYear = 101
-) 
+# empty lists
+all_estimated <- list()
+all_independent <- list()
 
-#########################
-# MODEL VALIDATION PLOT #
-#########################
+# get all dfs together
+for (data in plot_data_list) {
+  all_estimated[[data$name]] <- data$estimatedDensity
+  all_independent[[data$name]] <- data$independentDensity
+}
 
-# since names do have a species in between words to look nice we have to replace names before plotting
-names_replace <- c("Alcesalces" = "Alces alces",
-                   "Lynxlynx" = "Lynx lynx", 
-                   "Cervuselaphus" = "Cervus elaphus",
-                   "Rangifertarandus" = "Rangifer tarandus", 
-                   "Susscrofa" = "Sus scrofa",
-                   "Canislupus" = "Canis lupus",
-                   "Damadama" = "Dama dama")
+# bind everything together
+combined_estimated <- dplyr::bind_rows(all_estimated, .id = "Dataset")
+combined_independent <- dplyr::bind_rows(all_independent, .id = "Dataset")
 
-validationList <- lapply(validationList, function(df) {
-  df$species <- names_replace[df$species]
-  return(df)
-})
-
-## ONE PLOT WITH ALL SPECIES ##
-
-pvalidation1 <- ggplot(validationList$independentDensity, aes(species)) +
-  geom_boxplot(
-    aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95),
-    stat = "identity") +
-  ylim(0, 8)+
-  geom_point(data = validationList$estimatedDensity,
-             aes(x = species, y = estimatedDensity),
-             color = "red",
-             position = "jitter",
-             size = 1) +
-  ylab("Independent density estimate") +
-  xlab("Species") +
-  ggtitle(label = "Model validation - estimated densities in red") + 
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-#pvalidation1
-
-# saving the plot
-ggsave(filename = file.path(dirout, paste0("ModelValidation", runname, ".tiff")),
-       plot = pvalidation1,
-       bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
-
-
-## ONE FACET PER SPECIES - BETTER OPTION ##
-
-pvalidation2 <- ggplot(validationList$independentDensity, aes(x = "", y = meanDensity)) +
+# ployt everyone form everywhere
+ggplot(combined_independent, aes(x = "", y = meanDensity)) +
   geom_boxplot(aes(ymin = lw95, lower = lw75, middle = meanDensity, upper = up75, ymax = up95), stat = "identity") +
-  geom_point(data = validationList$estimatedDensity, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
-  facet_wrap(~ species, scales = "free_y") + 
-  ylab("Independent density estimate (individuals/km2") +
+  geom_point(data = combined_estimated, aes(x = "", y = estimatedDensity), color = "red", position = position_jitter(width = 0.2), size = 1) +
+  facet_wrap(Dataset ~ species, scales = "free_y", labeller = labeller(species = pretty_species_names)) +
+  ylab(expression("Independent density estimate (individuals/km"^2*")")) +
   xlab(" ") +
-  ggtitle("Model validation - estimated densities in red") + 
+  ggtitle(paste("Model validation", plot_name, "scenario")) +
   theme_minimal() +
   theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+        axis.ticks.x = element_blank(),
+        strip.text = element_text(face = "italic"))
 
-# saving the plot
-ggsave(filename = file.path(dirout, paste0("ModelValidation2", runname, ".tiff")),
-       plot = pvalidation2,
-       bg = 'white', width = 300, height = 230, units = "mm", dpi = 1200, compression = "lzw")
-
-end.time <- Sys.time() # end the clock
-time.taken <- round(end.time - start.time) # calculate time taken to run the complete script
-time.taken
 
 
