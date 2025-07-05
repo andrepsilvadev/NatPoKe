@@ -15,22 +15,11 @@
 
 <br>
 
-<<<<<<< HEAD
 **Input data preparation**
-=======
-```
-metaRangeSpeciesDataframe.R <- transforms a species traits dataframe into an input dataframe for metaRange
-inputFiles.R <- download global suitability raster files for multiple species from SRIT Database google drive
-TaxaOccurence.R <- download taxa occurrence of multiple species from GBIF Database
-inputSpeciesData.R <- cleans species occurrence data, one species per grid cell, filters by year
-inputClimate.R <- calculates environmental input data (bioclimates) in various time periods, builds training and prediction landscapes
-
-```
->>>>>>> f36af6ce763c384417882cb3644611dd39df5c82
 
   - `mammalMetaRangeSpeciesDataframe.R` - format traget species traits, from a .csv file in the [data folder](https://github.com/andrepsilvadev/NatPoKe/blob/6bca303d6b0c17e94915c44f5e6323e978c0763e/data/mammalTraits_2025-03-17.csv), into an input dataframe ready to use within the metaRange model.
 
-<<<<<<< HEAD
+
   - `inputFiles.R` - download and crop global suitability raster files for multiple species in a designated biome and region, from the SRIT Database google drive *THIS WILL PROBABLY BE DEPRECATED IN THE NEAR FUTURE*
  
   - `TaxaOccurence.R` <- download taxa occurrence of multiple species from GBIF Database
@@ -38,12 +27,6 @@ inputClimate.R <- calculates environmental input data (bioclimates) in various t
   - `inputSpeciesData.R` <- cleans species occurrence data, one species per grid cell, filters by year
   
   - `inputClimate.R` <- calculates environmental input data (bioclimates) in various time periods, builds training and prediction landscapes
-=======
-```
-OLDmammalModel.R <- this is the current running metaRange model script for mammals (20250214) it will be replaced with a more accurate version SOON
-SMD.R <- Main function for species distribution modelling for multiple true species occurrences
-```
->>>>>>> f36af6ce763c384417882cb3644611dd39df5c82
 
 <br>
 
@@ -55,7 +38,6 @@ SMD.R <- Main function for species distribution modelling for multiple true spec
    
 <br>
 
-<<<<<<< HEAD
 **Output Manipulation & Visualizations**
 
   - `ClimateChange.R` <- calculates spatially explicit bioclimatic changes in biomes
@@ -85,14 +67,3 @@ SMD.R <- Main function for species distribution modelling for multiple true spec
   - `updatedSensitivityAnalysis.R` - performs a sensitivity analysis from additional runs where model parameter are changed by x% to see if response variables (e.g. abundance) are affected
 
 [![Models: Mammals](https://img.shields.io/badge/_Models-🦣_Mammals-yellow?style=flat&labelColor=grey)](#mammals-model) [![🕊 Birds](https://img.shields.io/badge/🐦_Birds-blue?style=flat)](#birds-model) [![🌳 Trees](https://img.shields.io/badge/🌳_Trees-green?style=flat)](#trees-model) \# extra button for the future
-=======
-```
-speciesResilienceMetrics.R <- calculates stability metrics, such as impact, recovery, time to impact and time to recovery, and builds figures per taxa and scenario
-communityMetricsFigures.R <- calculates community metrics, such as species richness, Shannon diversity and Functional diversity indexes, and builds figures over time
-spatiallyExplicitMaps.R <- takes metrics calulated in the communityMetricsFigures.R and builds maps showing the change in these indexes per taxa
-ClimateChange.R <- calculates spatially explicit bioclimatic changes in biomes
-LandUseChange.R <- calculates land-use changes over time and spatially explicit changes in percent
-SDMRun.R <- creates outputs of species distribution modeling, Species presence points, Evaluation plots for ensemble model evaluation, current and future suitability landscapes for multiple species
-```
->>>>>>> f36af6ce763c384417882cb3644611dd39df5c82
-
