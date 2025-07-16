@@ -1,7 +1,7 @@
 ## Name: CustomFunctions2.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Loads all developed customised functions for LandUseChange.R, ClimateChange.R, inputClimate.R, inputLandUse.R##
-## Date: June 9th 2025 ##
+## Date: July 15th 2025 ##
 
 #####################################
 # General Functions
@@ -46,6 +46,21 @@ load_select_continents <- function(continent_names) {
     continent_names <- setdiff(continent_names, "Central & South America")
   }
   
+  # Handle merged "Europe & Asia"
+  if ("Europe & Asia" %in% continent_names) {
+    europe_asia <- continents %>%
+      dplyr::filter(continent %in% c("Europe")) %>%
+      summarise(geometry = st_union(geometry)) %>%
+      mutate(continent = "Europe & Asia")
+    missing_columns <- setdiff(names(continents), names(europe_asia))
+    for (col in missing_columns) {
+      europe_asia[[col]] <- NA
+    }
+    europe_asia <- europe_asia[names(continents)]
+    merged_continents[["Europe & Asia"]] <- europe_asia
+    continent_names <- setdiff(continent_names, "Europe & Asia")
+  }
+  
   # Filter the remaining continents
   remaining_continents <- continents %>%
     dplyr::filter(continent %in% continent_names)
@@ -77,9 +92,9 @@ intersect_extent_continents <- function(extent_sf, continent_geoms) {
 }
 
 # Function to crop and mask the rasters to the continents
-crop_mask_continent <- function(raster, continent_geom) { # technically not needed, merge with crop_mask_raster
-  mask(crop(raster, continent_geom), continent_geom)
-}
+#crop_mask_continent <- function(raster, continent_geom) { # technically not needed, merge with crop_mask_raster
+#  mask(crop(raster, continent_geom), continent_geom)
+#}
 
 # Function to crop the biome boundaries to the continents
 crop_biome_to_continent <- function(biome, continent_geom) {
@@ -157,23 +172,23 @@ average_climate_models <- function(outputPath, scenario, yearOrigin, variable) {
 #    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name_short)),
 #    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name_short))
 #  )
-  
-  # Assign names to the list elements
+
+# Assign names to the list elements
 #  names(scenarios_list) <- c(paste0(scenario_names[1], "_", year), paste0(scenario_names[2], "_", year))
-  
-  # Create a raster stack from the list of scenarios
+
+# Create a raster stack from the list of scenarios
 #  scenarios_stack <- rast(scenarios_list)
-  
-  # Assign names to the raster stack layers
+
+# Assign names to the raster stack layers
 #  names(scenarios_stack) <- names(scenarios_list)
-  
-  # Save the raster stack
+
+# Save the raster stack
 #  stack_output_file <- file.path(outputPathLandscapes, paste0("scenarios_stack_", variable, "_", year, "_", biome_name_short, ".tif"))
 #  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
-  
-  # Assign the raster stack to a variable in the environment
+
+# Assign the raster stack to a variable in the environment
 #  assign(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
-  
+
 #  return(scenarios_stack)
 #}
 
@@ -198,7 +213,7 @@ plot_timeChanges <- function(mean_values_df, value_type, y_label) {
     geom_point() +
     scale_color_manual(values = scenario_colors,
                        guide = guide_legend(direction = "horizontal")
-                       ) +
+    ) +
     labs(
       x = "Year",
       y = y_label
@@ -264,8 +279,8 @@ plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_lab
                            title.vjust = 0.5,            # Center the title vertically
                            barwidth = unit(6, "cm"),     # Adjust as needed
                            barheight = unit(0.5, "cm")   # Adjust as needed
-                           ) # remove if vertically display
-                         ) +
+                         ) # remove if vertically display
+    ) +
     # Define the color scale for the extent area and country boundaries
     scale_color_manual(
       name = NULL,
@@ -328,29 +343,6 @@ load_mapped_landUse <- function(outputPath, year, extent) {
 
 # Functions to modify rasters-------------------------------------------
 # Function to stack rasters
-#stack_rasters <- function(year) {
-#  scenarios_list <- list()
-#  for (scenario in scenarios) {
-#    raster_name <- paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent))
-#    if (exists(raster_name)) {
-#      scenarios_list[[paste0(scenario, "_", year)]] <- get(raster_name)
-#    }
-#  }
-  
-  # Create a raster stack from the list of scenarios
-#  scenarios_stack <- rast(scenarios_list)
-#  names(scenarios_stack) <- names(scenarios_list)
-  
-#  stack_output_file <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
-#  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
-  
-  # Assign the raster stack to a variable in the environment
-#  assign(paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent)), scenarios_stack, envir = .GlobalEnv)
-  
-#  return(scenarios_stack)
-#}
-
-# Function to stack rasters
 stack_rasters <- function(year, scenarios, extent, outputPathLandscapes) {
   scenarios_list <- list()
   
@@ -374,27 +366,6 @@ stack_rasters <- function(year, scenarios, extent, outputPathLandscapes) {
   return(scenarios_stack)
 }
 
-# Define the mapping function of ESA LULC types (37) to the 7 (SEALS) LULC types
-#map_values_to_landUse <- function(x) {
-#  value_to_landUse <- list(
-#    "190" = 1,  # Urban
-#    "10" = 2, "11" = 2, "12" = 2, "20" = 2, "30" = 2, "40" = 2,   # Cropland
-#    "130" = 3,  # Pasture/Grassland
-#    "50" = 4, "60" = 4, "61" = 4, "62" = 4, "70" = 4, "71" = 4, "72" = 4, "80" = 4, "81" = 4, "82" = 4, "90" = 4, "100" = 4, "151" = 4, "160" = 4, "170" = 4, # Forest
-#    "110" = 5, "120" = 5, "121" = 5, "122" = 5, "140" = 5, "150" = 5, "152" = 5, "153" = 5, "180" = 5,  # Non-forest vegetation
-#    "210" = 6,  # Water
-#    "200" = 7, "201" = 7, "202" = 7, "220" = 7  # Barren or Other
-#  )
-#  sapply(x, function(val) {
-#    if (val %in% names(value_to_landUse)) {
-#      return(value_to_landUse[[as.character(val)]])
-#    } else {
-#      return(NA)  # Handles values that do not map to any land-use type
-#    }
-#  })
-#}
-
-
 # Functions to analyze rasters-------------------------------------------
 # Function to calculate the percentages for each land-use type
 calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_names, time) {
@@ -413,17 +384,22 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
   # Create a data frame with the results
   percentage_df <- data.frame(
     time = time,
-    landUse = landUse_names, # I took variable away, the same as landuse
+    landUse = landUse_names,
     value = landUse_percentages
   )
   return(percentage_df)
 }
 
 # Function to process the mapped scenarios and apply the function to calculate percentages
-process_and_map_scenarios <- function(year) {
+process_and_map_scenarios <- function(year, use_continent = FALSE, continent = NULL) {
   # Load the raster stack for the years
-  #mapped_raster_stack <- get(paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent))) #get(paste0("Mapped_LandUseChange_scenarioStack_", year, "_", gsub(" ", "_", extent))
-  mapped_raster_stack <- mapped_scenarios[[as.character(year)]]
+  #mapped_raster_stack <- get(paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent))) 
+  #mapped_raster_stack <- continent_scenarios[[continent]][[as.character(year)]]
+  if (use_continent && !is.null(continent)) {
+    mapped_raster_stack <- continent_scenarios[[continent]][[as.character(year)]]
+  } else {
+    mapped_raster_stack <- mapped_scenarios[[as.character(year)]]
+  }
   
   # Calculate land use percentages
   scenarios_percentages_list <- list()
@@ -451,7 +427,7 @@ calculateRasterClass <- function(OriginalRaster, extent, target_resolution) {
   raster <- mask(crop(OriginalRaster, extent), extent)
   
   # Define the unique land-use classes and remove NAs
-  land_use_classes <- terra::freq(raster)[,2] #unique(values(raster))
+  land_use_classes <- terra::freq(raster)[,2]
   land_use_classes <- na.omit(land_use_classes)
   
   # Function to create binary raster for each land-use class
@@ -537,21 +513,21 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
 # Function to calculate percentage changes for each land-use classes for scenarios
 #calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, years) {
 #  percentage_change_rasters_list <- list()
-  
+
 #  for (year in years) {
 #    percentage_change_rasters_list[[year]] <- list()
-    
+
 #    for (scenario in names(target_year_rasters_list[[year]])) {
 #      target_raster <- target_year_rasters_list[[year]][[scenario]]
-      
-      # Create a list to store percentage changes for each land-use class
+
+# Create a list to store percentage changes for each land-use class
 #      percentage_change_classes <- list()
-      
+
 #      for (class in names(base_year_raster)) {
 #        base_raster <- base_year_raster[[class]]
 #        target_raster_class <- target_raster[[class]]
-        
-        # Calculate the percentage change
+
+# Calculate the percentage change
 #        percentage_change <- (target_raster_class - base_raster) / base_raster * 100
 #        percentage_change_classes[[class]] <- percentage_change
 #      }
@@ -563,7 +539,7 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
 
 # Functions to vizualize results -------------------------------------------
 # Function to create individual plots for each scenario, class, and year
-plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value) {
+plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_label, min_value, max_value, coord_limits = NULL) {
   # Convert raster to data frame
   raster_df <- as.data.frame(raster, xy = TRUE)
   colnames(raster_df)[3] <- "value"  # Percentage change (%)
@@ -601,15 +577,28 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
       colors = color_ramp(seq(-100, 100, length.out = 101)),
       limits = c(min_value, max_value),
       na.value = "grey",
-      guide = guide_colorbar(direction = "horizontal") # remove if vertically display
+      guide = guide_colorbar(
+        direction = "horizontal",
+        title.position = "left",      # Title to the left of the colorbar
+        title.theme = element_text(size = 18,  margin = ggplot2::margin(b = 10)),  # increase size here
+        label.position = "bottom",    # Labels below the colorbar
+        title.vjust = 0.5,            # Center the title vertically
+        barwidth = unit(6, "cm"),     # Adjust as needed
+        barheight = unit(1, "cm")   # Adjust as needed
+      )
     ) +
     # Define the color scale for the biome and country boundaries
     scale_color_manual(
-      name = "Legend",
+      name = NULL,
       values = c("Country Boundaries" = "black", "Area" = "lightgrey"),
       breaks = c("Country Boundaries", "Area"),  # Ensure these match the aes(color = ...) values
-      labels = c("Country Boundaries", "Area")
+      labels = c("Country Boundaries", "Area"),
+      guide = guide_legend(direction = "horizontal")
     ) +
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal"  # <--- Ensures legends are in a horizontal box
+    )+
     # Add labels and theme
     labs(x = "Longitude", y = "Latitude") +
     theme_minimal() +
@@ -620,10 +609,13 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
       legend.title = element_text(size = 22, margin = ggplot2::margin(b = 10)),
       legend.text = element_text(size = 18),
       legend.key.height = unit(1, "cm"),  # Increase the height of the color ramp
-      legend.spacing = unit(1, "cm")
+      legend.spacing = unit(0.5, "cm")
     ) +
-    coord_sf()  # Use coord_sf() for spatial data
-  
+    if (!is.null(coord_limits)) {
+      coord_sf(xlim = coord_limits$xlim, ylim = coord_limits$ylim, expand = FALSE)
+    } else {
+      coord_sf()
+    }
   return(plot)
 }
 
