@@ -1,20 +1,29 @@
 ## TaxaOccurrence.R ##
 ## Jorinde-M. Rieger ##
 ## Description: Downloads taxa occurence for multiple species from GBIF Database ##
-## June 11th, 2025 ##
+## July 16th, 2025 ##
 
+# Define input species -----------------------------------------------------------------
 # Use IUCN species names and ranges
 # downloaded manually, later find a way to download automatically through R
-#sps <- sf::st_read("~/data/data/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp")
-#species_group <- "mammals"
-#sps_names <- unique(sps$sci_name)
+sps <- sf::st_read("~/data/data/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp") 
+species_group <- "mammals"
+sps_names <- unique(sps$sci_name)
 
 # Mammals trait data set in Boreal and Tropical biome
-sps<- readr::read_csv(
-  paste0("~/data/data/trait_datasets/mammalTraits_2025-02-03.csv")
-)
-species_group <- "mammalsWTrait"
-sps_names <- unique(sps$Species)
+#sps<- readr::read_csv(paste0("~/data/data/trait_datasets/mammalTraits_2025-02-03.csv"))
+#species_group <- "mammalsWTrait"
+#sps_names <- unique(sps$Species)
+
+# Mammals selected for NatPoKe project based on trait and occruence data
+species_group <- "NatPoKeMammals"
+sps_names <- c("Sus scrofa", "Vulpes vulpes", "Alces alces", "Canis latrans", "Lynx rufus", "Martes americana", "Taxidea taxus", "Ursus americanus", 
+               "Leontopithecus caissara", "Leopardus pardalis", "Nasua nasua", "Aepyceros melampus", "Colobus angolensis", "Daubentonia madagascariensis",
+               "Diceros bicornis", "Erythrocebus patas", "Gorilla beringei", "Gorilla gorilla", "Orycteropus afer", "Pan paniscus", "Pan troglodytes",
+               "Papio anubis", "Papio ursinus", "Cervus nippon", "Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii", "Pongo pygmaeus",
+               "Lynx lynx", "Ursus arctos", "Canis lupus", "Rangifer tarandus", "Puma concolor", "Bison bison", "Ursus arctos", "Panthera onca",
+               "Crocuta crocuta", "Mandrillus sphinx", "Panthera pardus", "Syncerus caffer", "Acinonyx jubatus", "Panthera leo", "Connochaetes taurinus",
+               "Loxodonta africana", "Acinonyx jubatus", "Panthera tigris")
 
 # for testing only
 #species_group <- "testMammals"
@@ -37,6 +46,7 @@ sps_names <- unique(sps$Species)
 #sps_threatened <- sps %>%
 #  filter(category %in% threatened_status)
 
+# Subset bird species
 #sps_threatened <- sps%>%
 #  filter(RL.Category %in% threatened_status)
 #sps_names <- unique(sps_threatened$Scientific.name)
@@ -50,9 +60,14 @@ sps_names <- unique(sps$Species)
 #extent_name <- "Iberian peninsula"
 #extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
 #sf::sf_use_s2(FALSE) # disable s2
-#sps_extent <- sf::st_intersection(sps_threatened, extent_sf) # or sps_threatened
+#sps_extent <- sf::st_intersection(sps_threatened, extent_sf)
+#sf::sf_use_s2(TRUE)
 #length(unique(sps_extent$sci_name))
-#sps_names <- unique(sps_extent$sci_name) #Macaca sylvanus is non-native species
+#sps_names <- unique(sps_extent$sci_name) 
+
+# Inspect species and REMOVE or ADD species manually
+#sps_names <- sps_names[sps_names != "Macaca sylvanus"] # REMOVE Macaca sylvanus is non-native species
+#sps_names <- c(sps_names, "Galemys pyrenaicus") # ADD Galemys pyrenaicus
 
 # Safe as Excel sheet if needed
 #writexl::write_xlsx(sps_extent, path = paste0("~/data/data/trait_datasets/SpeciesIUCNCategory", species_group, extent,".xlsx"))
@@ -76,11 +91,11 @@ test <- occ_download( # creates key
   email = "jorinde.rieger@su.se") # ADD EMAIL ASSOCIATE WITH ACCOUNT HERE
 
 # check if download is finished
-occ_download_wait('0064707-250525065834625') # ADD download key from "test"
+occ_download_wait('0092599-250525065834625') # ADD download key from "test"
 
 # retrieve the download from GBIF to local computer
 d <- occ_download_get(
-  key = '0064707-250525065834625', # Exchange with download key "test"
+  key = '0092599-250525065834625', # Exchange with download key "test"
   path = "~/data/data/trait_datasets", 
   overwrite = TRUE
 )
@@ -89,8 +104,10 @@ d <- occ_download_get(
 # the data without running the script again
 # Mammals global: '0030856-250525065834625'
 # Mammals global with Trait data: '0064707-250525065834625'
+# Mammals selected for NatPoKe:
+# Birds selected for NatPoKe:
 # Mammals global test species: '0050651-250525065834625'
-# Mammals threatened subset Spain & Portugal: '0042465-250525065834625'
+# Mammals threatened subset Spain & Portugal: '0092599-250525065834625'
 # Birds threatened subset Spain & Portugal: '0042559-250525065834625'
 
 # import download to current session
