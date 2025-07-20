@@ -42,7 +42,6 @@ easypackages::packages(
   "metaRange",
   
   # data manipulation & visulisation
-<<<<<<< HEAD
     "dplyr",
     "tidyverse",
     "ggplot2",
@@ -60,24 +59,6 @@ easypackages::packages(
     "patchwork",
     "RColorBrewer",
      "crayon",
-  "HomeRange",
-  "naniar",
-=======
-  "dplyr",
-  "tidyverse",
-  "ggplot2",
-  "ggtext",
-  "stringr",
-  "tibble",
-  "tidyterra",
-  "tidyr",
-  "rphylopic",
-  "viridis",
-  "circlize",
-  "grid",
-  "gridExtra",
-  "patchwork",
-  "RColorBrewer",
->>>>>>> f36af6ce763c384417882cb3644611dd39df5c82
-  
+     "HomeRange",
+     "naniar",  
   prompt = FALSE)
