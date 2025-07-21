@@ -34,7 +34,12 @@ for (variable in variables) {
   # Crop and mask the raster
   raster_extent <- crop_mask_raster(raster, extent_sp)
   
-  trainingLandscapesClim[[variable]] <- raster_extent
+  # Aggregate to target resolution
+  input_resolution <- res(raster_extent)[1]  # Assuming square cells, take the resolution of the first dimension
+  aggregation_factor <- round(target_resolution / input_resolution)
+  raster_agg <- aggregate(raster_extent, fact = aggregation_factor, fun = mean)
+  
+  trainingLandscapesClim[[variable]] <- raster_agg
 }
 
 # Convert the list into a SpatRaster stack
@@ -44,7 +49,7 @@ trainingLandscapesClim <- terra::rast(trainingLandscapesClim)
 names(trainingLandscapesClim) <- variables
 
 # Save the trainingLandscape with the adapted baseline year
-output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, ".tif"))
+output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, "_5km.tif"))
 terra::writeRaster(trainingLandscapesClim, output_file, overwrite = TRUE)
 
 # Test the rasters
@@ -108,8 +113,13 @@ for (scenario in scenarios) {
       # Crop and mask the raster
       raster_extent <- crop_mask_raster(raster, extent_sp)
       
+      # Aggregate to target resolution
+      input_resolution <- res(raster_extent)[1]  # Assuming square cells, take the resolution of the first dimension
+      aggregation_factor <- round(target_resolution / input_resolution)
+      raster_agg <- aggregate(raster_extent, fact = aggregation_factor, fun = mean)
+      
       # Store the processed raster in the list
-      raster_list[[variable]] <- raster_extent
+      raster_list[[variable]] <- raster_agg
     }
     
     # Convert the list of rasters into a SpatRaster stack
@@ -129,7 +139,7 @@ for (scenario in scenarios) {
     year <- yearsMapping[yearOrigin]
     
     # Save the prediction landscape
-    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, ".tif"))
+    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, "_5km.tif"))
     terra::writeRaster(predictionLandscapesClim[[paste0(scenario, "_", yearOrigin)]], output_file, overwrite = TRUE)
   }
 }
