@@ -4,21 +4,19 @@
 ## Date: July 3rd, 2025 ##
 
 # Define and load species occurence data -----------------------------------------------------------------
-# Mammal occurrences
-#species_group <- "mammals"
-#speciesData <- read.csv(
-#  "~/data/data/trait_datasets/GBIF_mammal_30+occurrences.csv") # all targeted mammals
-#print(head(speciesData))
+# Mammal occurrences with NatPoKe species selection
+species_group <- "NatPoKeMammals"
+speciesData <- read.csv(file = paste0("~/data/data/trait_datasets/GBIF_",species_group, "_30+occurrences_", gsub(" ", "_", extent),".csv"))
 
 # Mammal occurrences that has trait data sets
-species_group <- "mammalsWTrait"
-speciesData <- read.csv(file = paste0("~/data/data/trait_datasets/GBIF_",species_group, "_30+occurrences_", extent,".csv"))
+#species_group <- "mammalsWTrait"
+#speciesData <- read.csv(file = paste0("~/data/data/trait_datasets/GBIF_",species_group, "_30+occurrences_", gsub(" ", "_", extent),".csv"))
 
 # Mammal occurrence for Iberian peninsula subset with trait data availability
-mammalTrait<- unique(speciesData$species)
-speciesDataIP <- read.csv("~/data/data/trait_datasets/GBIF_mammals_30+occurrences_Iberian peninsula.csv")
+#mammalTrait<- unique(speciesData$species)
+#speciesDataIP <- read.csv("~/data/data/trait_datasets/GBIF_mammals_30+occurrences_Iberian peninsula.csv")
 #print(head(speciesDataIP))
-speciesData <- speciesDataIP %>% dplyr::filter(species %in% mammalTrait)
+#speciesData <- speciesDataIP %>% dplyr::filter(species %in% mammalTrait)
 #unique(speciesData$species) #check species
 
 # Birds occurrence subset, Iberian peninsula
@@ -61,7 +59,7 @@ speciesDataOcc <- removeSpeciesDuplicatesbyCellID(speciesData) # Remove duplicat
 #                 file = paste0("~/data/data/trait_datasets/GBIF_", species_group, extent, "_OccPerCell.csv"))
 rm(speciesData)
 
-# Format species occurrence to true presence and NAs with corresponding coordinates
+# Format species occurrence to true presence and NAs with corresponding coordinates -----------------------------------------------------------------
 # Get all cell indices and coordinates from the raster
 all_cells <- data.frame(cell = 1:terra::ncell(env_raster))
 coords <- terra::xyFromCell(env_raster, all_cells$cell)
@@ -73,21 +71,6 @@ all_cells$y <- coords[,2]
 # Test with 3 species
 targetSpecies <- c("Alces alces", "Canis lupus", "Tragelaphus scriptus")
 species_list <- intersect(unique(speciesDataOcc$species), targetSpecies)
-
-# Group species in 10 by number of occurences (Balanced Groups)
-#species_counts <- speciesDataOcc %>%
-#  count(species) %>%
-#  arrange(desc(n))
-
-#species_list <- species_counts$species
-#group_size <- 5
-#n_groups <- ceiling(length(species_list) / group_size)
-#species_groups <- split(species_list, 
-#                        rep(1:n_groups, each = group_size, length.out = length(species_list)))
-
-# create data frames for each species group
-#targetSpecies <- species_groups[[1]]
-#species_list <- intersect(unique(speciesDataOcc$species), targetSpecies)
 
 # For each species, mark presence (1) in the cell, NA otherwise
 presence_matrix <- sapply(species_list, function(sp) {
@@ -106,8 +89,8 @@ speciesDataInput <- data.frame(
 colnames(speciesDataInput)[-(1:3)] <- species_list
 
 # Filter presence only data
-SpeciesPresences <- speciesDataInput %>%
-  filter(if_any(all_of(targetSpecies), ~ . == 1))
+#SpeciesPresences <- speciesDataInput %>%
+#  filter(if_any(all_of(targetSpecies), ~ . == 1))
 #head(SpeciesPresences)
 
 # Save the presence/absence grid for SDM input
