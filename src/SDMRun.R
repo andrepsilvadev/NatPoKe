@@ -1,16 +1,16 @@
 ## Name: SDMRun.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: Creates output of SDM results in R ##
-## Date: May 29th 2025 ##
+## Date: July 17th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
-source("~/NatPoKe9/src/libraries.R") # libraries
+source("~/data/NatPoKe1/src/libraries.R") # libraries
 #install.packages("bigmemory")
 #library(bigmemory)
 # When using the pipeline for the first time run taxaOcccurence.R and adapt species and user-login for GBIF Database:
-#source("~/NatPoKe9/src/TaxaOccurence.R") # downloads taxa occurences from GBIF Database
-source("~/NatPoKe9/src/customFunctions2.R") # functions
-source("~/NatPoKe9/src/SDM.R") # function to format data and SDM
+#source("~/data/NatPoKe1/src/TaxaOccurence.R") # downloads taxa occurences from GBIF Database
+source("~/data/NatPoKe1/src/customFunctions2.R") # functions
+source("~/data/NatPoKe1/src/SDM.R") # function to format data and SDM
 
 # Define scenraios and environmental variables -----------------------------------------------------------------
 # Define input variables
@@ -36,7 +36,8 @@ years <- c(2030, 2050, 2100)
 baseline_year <- 2015
 
 # Define the target resolution (based on climate inputs)
-target_resolution <- 0.008333333 # 1km resolution
+target_resolution <- 0.04166 # approx. 5km resolution
+  #0.008333333 1km resolution
 
 # Test with Iberian penisula extent
 #extent = "Iberian peninsula"
@@ -62,9 +63,9 @@ source("~/NatPoKe9/src/inputLandUse.R") # format and reads input land-use raster
 source("~/NatPoKe9/src/inputElev.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
 
 # Define file paths and load training landscapes, if needed
-trainingLandscapesClim <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, ".tif"))
-trainingLandscapesLandUse <- file.path(outputPathLandscapes,paste0("trainingLandscapesLandUse_",  baseline_year, ".tif"))
-trainingLandscapesElev <- file.path(outputPathLandscapes, paste0("trainingLandscapesElev_",  baseline_year, ".tif"))
+trainingLandscapesClim <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, "_5km.tif"))
+trainingLandscapesLandUse <- file.path(outputPathLandscapes,paste0("trainingLandscapesLandUse_",  baseline_year, "_5km.tif"))
+trainingLandscapesElev <- file.path(outputPathLandscapes, paste0("trainingLandscapesElev_",  baseline_year, "_5km.tif"))
 trainingLandscapesClim <- terra::rast(trainingLandscapesClim)
 trainingLandscapesLandUse <- terra::rast(trainingLandscapesLandUse)
 trainingLandscapesElev <- terra::rast(trainingLandscapesElev)
@@ -77,29 +78,29 @@ trainingLandscapesElev <- terra::resample(trainingLandscapesElev, trainingLandsc
 trainingLandscapes <- c(trainingLandscapesElev, trainingLandscapesLandUse, trainingLandscapesClim)
 
 # Save the merged training landscape
-output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif"))
+output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, "_5km.tif"))
 writeRaster(trainingLandscapes, output_file, overwrite = TRUE)
 
 # Create a list to store the merged prediction landscapes in parallelization
 # Register parallel backend
-#num_cores <- min(parallel::detectCores() - 1, 10)  # Use up to 10 cores
-#cl <- makeCluster(num_cores)
-#registerDoParallel(cl)
+num_cores <- min(parallel::detectCores() - 1, 10)  # Use up to 10 cores
+cl <- makeCluster(num_cores)
+registerDoParallel(cl)
 
 # Create an empty list to store merged prediction landscapes
 predictionLandscapes <- list()
 
 # Parallelized loop using foreach
-#foreach(scenario = scenarios, .combine = 'c', .packages = c("terra", "sf")) %:%
-#  foreach(year = years, .combine = 'c') %dopar% {
+foreach(scenario = scenarios, .combine = 'c', .packages = c("terra", "sf")) %:%
+  foreach(year = years, .combine = 'c') %dopar% {
 
 # Loop through scenarios and years
-for (scenario in scenarios) {
-  for (year in years) {
+#for (scenario in scenarios) {
+#  for (year in years) {
     # Define file paths for climate and land-use prediction landscapes & load them in the environment, if needed
-    predictionLandscapesClim <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, ".tif"))
-    predictionLandscapesLandUse <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
-    predictionLandscapesElev <- file.path(outputPathLandscapes, paste0("predictionLandscapesElev_", scenario, "_", year, ".tif"))
+    predictionLandscapesClim <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, "_5km.tif"))
+    predictionLandscapesLandUse <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, "_5km.tif"))
+    predictionLandscapesElev <- file.path(outputPathLandscapes, paste0("predictionLandscapesElev_", scenario, "_", year, "_5km.tif"))
     predictionLandscapesClim <- terra::rast(predictionLandscapesClim)
     predictionLandscapesLandUse <- terra::rast(predictionLandscapesLandUse)
     predictionLandscapesElev <- terra::rast(predictionLandscapesElev)
@@ -112,28 +113,28 @@ for (scenario in scenarios) {
     merged_prediction <- c(predictionLandscapesElev, predictionLandscapesLandUse, predictionLandscapesClim)
     
     # Save the merged prediction landscape
-    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapes_", scenario, "_", year, ".tif"))
+    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapes_", scenario, "_", year, "_5km.tif"))
     writeRaster(merged_prediction, output_file, overwrite = TRUE)
     
     # Store the merged prediction landscape in the list
     predictionLandscapes[[paste0(scenario, "_", year)]] <- merged_prediction
   }
-}
+#}
 # Stop the cluster
-#stopCluster(cl)
+stopCluster(cl)
 
 # Load formatted training and prediction Landscape -----------------------------------------------------------------
 # load trainingLandscapes
-trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, ".tif")) # with Antarctica
+trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, "_5km.tif")) # with Antarctica
 #trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_woAntarctica", baseline_year, ".tif")) # without Antarctica
 trainingLandscapes <- terra::rast(trainingLandscapes)
 
-# Load predictionLandscapes and crop to defined extent
+# Load predictionLandscapes and crop to defined extent if needed
 predictionLandscapes <- list()
 # Loop through scenarios and years
 for (scenario in scenarios) {
   for (year in years) {
-    raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapes_", scenario, "_", year, ".tif"))# with Antarctica
+    raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapes_", scenario, "_", year, "_5km.tif"))# with Antarctica
     #raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapes_woAntarctica", scenario, "_", year, ".tif"))# without Antarctica
     raster <- terra::rast(raster_path)
     #raster <- crop_mask_raster(raster, extent_sp)
