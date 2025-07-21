@@ -80,7 +80,7 @@ terra::writeRaster(mapped_baseline, output_file, overwrite = TRUE)
 assign(paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent)), mapped_baseline, envir = .GlobalEnv)
 
 # Load the mapped raster stack for the baseline year
-mapped_baseline <- load_mapped_baseline_landUse(outputPathLandscape, baseline_year)
+mapped_baseline <- load_mapped_baseline_landUse(outputPathLandscapes, baseline_year)
 
 # Apply calculateRasterClass to the baseline raster to create raster classes for the land use types
 trainingLandscapesLandUse <- calculateRasterClass(
@@ -93,7 +93,7 @@ trainingLandscapesLandUse <- calculateRasterClass(
 trainingLandscapesLandUse <- replace_numbers_with_names(trainingLandscapesLandUse, LULC_Types, LULC_Types_names)
 
 # Save the processed baseline raster
-output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year, ".tif")) # add extent name if needed "gsub(" ", "_", extent)"
+output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year, "_5km.tif")) # add extent name if needed "gsub(" ", "_", extent)"; add resolution
 terra::writeRaster(trainingLandscapesLandUse, output_file, overwrite = TRUE)
 
 #plot(trainingLandscapesLandUse)
@@ -198,7 +198,7 @@ stopCluster(cl)
 # Load the mapped raster stacks for the target years
 LULC_scenarios_list <- list()
 for (year in years) {
-  LULC_scenarios_list[[as.character(year)]] <- load_mapped_landUse(outputPathLandscape, year)
+  LULC_scenarios_list[[as.character(year)]] <- load_mapped_landUse(outputPathLandscapes, year, extent)
 }
 
 # Example plot
@@ -326,7 +326,7 @@ for (scenario in scenarios) {
     loaded_raster <- replace_numbers_with_names(loaded_raster, LULC_Types, LULC_Types_names)
     
     # Save the processed raster
-    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
+    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, "_5km.tif"))
     terra::writeRaster(loaded_raster, output_file, overwrite = TRUE)
     
     # Store the raster in the list
