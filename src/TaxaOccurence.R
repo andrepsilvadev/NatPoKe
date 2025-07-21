@@ -6,16 +6,11 @@
 # Define input species -----------------------------------------------------------------
 # Use IUCN species names and ranges
 # downloaded manually, later find a way to download automatically through R
-sps <- sf::st_read("~/data/data/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp") 
-species_group <- "mammals"
-sps_names <- unique(sps$sci_name)
+#sps <- sf::st_read("~/data/data/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp") 
+#species_group <- "mammals"
+#sps_names <- unique(sps$sci_name)
 
-# Mammals trait data set in Boreal and Tropical biome
-#sps<- readr::read_csv(paste0("~/data/data/trait_datasets/mammalTraits_2025-02-03.csv"))
-#species_group <- "mammalsWTrait"
-#sps_names <- unique(sps$Species)
-
-# Mammals selected for NatPoKe project based on trait and occruence data
+# Mammals selected for NatPoKe project based on trait and occurrence data
 species_group <- "NatPoKeMammals"
 sps_names <- c("Sus scrofa", "Vulpes vulpes", "Alces alces", "Canis latrans", "Lynx rufus", "Martes americana", "Taxidea taxus", "Ursus americanus", 
                "Leontopithecus caissara", "Leopardus pardalis", "Nasua nasua", "Aepyceros melampus", "Colobus angolensis", "Daubentonia madagascariensis",
@@ -91,11 +86,11 @@ test <- occ_download( # creates key
   email = "jorinde.rieger@su.se") # ADD EMAIL ASSOCIATE WITH ACCOUNT HERE
 
 # check if download is finished
-occ_download_wait('0092599-250525065834625') # ADD download key from "test"
+occ_download_wait('0021647-250717081556266') # ADD download key from "test"
 
 # retrieve the download from GBIF to local computer
 d <- occ_download_get(
-  key = '0092599-250525065834625', # Exchange with download key "test"
+  key = '0021647-250717081556266', # Exchange with download key "test"
   path = "~/data/data/trait_datasets", 
   overwrite = TRUE
 )
@@ -103,10 +98,10 @@ d <- occ_download_get(
 # with the download key we can go directly to gbif and download the folder with
 # the data without running the script again
 # Mammals global: '0030856-250525065834625'
-# Mammals global with Trait data: '0064707-250525065834625'
-# Mammals selected for NatPoKe:
+# Mammals selected for NatPoKe: '0021647-250717081556266'
 # Birds selected for NatPoKe:
 # Mammals global test species: '0050651-250525065834625'
+
 # Mammals threatened subset Spain & Portugal: '0092599-250525065834625'
 # Birds threatened subset Spain & Portugal: '0042559-250525065834625'
 
@@ -125,7 +120,7 @@ GBIF_sps <-
 # Write species occurences, with the subselection of variables
 write.csv(
   GBIF_sps[, c("species", "decimalLatitude", "decimalLongitude", "year")],
-  file = paste0("~/data/data/trait_datasets/GBIF_",species_group, "_30+occurrences_", extent,".csv"),
+  file = paste0("~/data/data/trait_datasets/GBIF_",species_group, "_30+occurrences_", gsub(" ", "_", extent),".csv"),
   row.names = FALSE
 )
 invisible(gc())
