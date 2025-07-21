@@ -5,8 +5,8 @@
 ## Date: July 15th 2025 ##
 
 # Settings & libraries -------------------------------------------
-source("~/NatPoKe9/src/libraries.R") # libraries
-source("~/NatPoKe9/src/customFunctions2.R") # functions
+source("~/data/NatPoKe1/src/libraries.R") # libraries
+source("~/data/NatPoKe1/src/customFunctions2.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
@@ -320,7 +320,7 @@ for (year in names(mapped_scenarios)) {
   }
 }
 
-# Calculate land use cover percentages and create a grafic
+# Calculate land use cover percentages and create a graphic
 LandUseCover <- list()
 if (exists("continent_scenarios") && length(continent_scenarios) > 0) {
   # Loop for continent-cropped rasters
@@ -374,6 +374,8 @@ if (exists("continent_scenarios") && length(continent_scenarios) > 0) {
   # For rasters without continent adjustments
   scenarios_percentages_df_list <- lapply(years, process_and_map_scenarios, use_continent = FALSE)
   scenarios_percentages_df <- do.call(rbind, scenarios_percentages_df_list)
+  # safe percentages in the list
+  LandUseCover[[continent]] <- scenarios_percentages_df
   
   # Clean and plot
   scenarios_percentages_df <- scenarios_percentages_df %>%
@@ -470,7 +472,8 @@ percentage_change_rasters_list <- calculate_percentage_changes(
   scenarios = scenarios,
   years = years
 )
-
+gc()
+rm(predictionLandscapesLandUse)
 # Create spatial distribution figures of land-use change -------------------------------------------
 
 # Crop and mask the percentage change rasters to the desired continents IF APPLICABLE
@@ -491,6 +494,8 @@ for (year in names(percentage_change_rasters_list)) {
     }
   }
 }
+rm(percentage_change_rasters_list)
+gc()
 
 # Create a custom color ramp with specified breakpoints
 custom_color_ramp <- colorRamp2(c(-100, 0, 100), c("blue", "yellow", "red"))
@@ -510,7 +515,7 @@ for (class in names(trainingLandscapesLandUse)) {
           coord_limits <- switch(
             continent,
             "North America" = list(xlim = c(-180, -40), ylim = c(20, 75)),
-            "Europe & Asia" = list(xlim = c(-40, 180), ylim = c(20, 75)),
+            "Europe & Asia" = list(xlim = c(-40, 200), ylim = c(20, 75)), #c(-40, 180), ylim = c(20, 75))
             NULL  # fallback
           )
           plot <- plot_landUse_spatialChanges(
@@ -638,7 +643,8 @@ for (class in names(trainingLandscapesLandUse)) {
     ggsave(
       filename = file.path(outputPathLandUse, paste0("LandUseSpatialChanges_", class, "_", year, "_", gsub(" ", "_", extent), ".png")),
       plot = final_plot,
-      width = 1640, height = 900, dpi = 300 # adjust according to plot arrangements
+      width = 15, height = 8, dpi = 300 # adjust according to plot arrangements
     )
   }
 }
+gc()
