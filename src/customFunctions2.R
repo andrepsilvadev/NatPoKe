@@ -392,9 +392,8 @@ calculate_landUse_percentages <- function(raster_stack, landUse_types, landUse_n
 
 # Function to process the mapped scenarios and apply the function to calculate percentages
 process_and_map_scenarios <- function(year, use_continent = FALSE, continent = NULL) {
+  
   # Load the raster stack for the years
-  #mapped_raster_stack <- get(paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent))) 
-  #mapped_raster_stack <- continent_scenarios[[continent]][[as.character(year)]]
   if (use_continent && !is.null(continent)) {
     mapped_raster_stack <- continent_scenarios[[continent]][[as.character(year)]]
   } else {
@@ -450,10 +449,10 @@ calculateRasterClass <- function(OriginalRaster, extent, target_resolution) {
   input_resolution <- res(raster)[1]  # Assuming square cells, take the resolution of the first dimension
   aggregation_factor <- round(target_resolution / input_resolution)
   
-  # Aggregate each binary raster by a factor of 10
+  # Aggregate each binary raster by aggregation factor
   aggregated_rasters <- list()
   for (class in names(binary_rasters)) {
-    aggregated_raster <- aggregate(binary_rasters[[class]], fact = aggregation_factor, fun = function(x) sum(x > 0, na.rm = TRUE)) # change aggregation faktor to 1km
+    aggregated_raster <- aggregate(binary_rasters[[class]], fact = aggregation_factor, fun = function(x) sum(x > 0, na.rm = TRUE)/length(x))
     masked_raster <- terra::mask(terra::crop(aggregated_raster, extent), extent)
     aggregated_rasters[[class]] <- masked_raster
   }
@@ -495,7 +494,7 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
       
       # Create a list to store percentage changes for each land-use class
       percentage_change_classes <- list()
-      
+
       for (class in names(base_year_raster)) {
         base_raster <- base_year_raster[[class]]
         target_raster_class <- target_raster[[class]]
