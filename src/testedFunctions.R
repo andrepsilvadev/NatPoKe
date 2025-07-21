@@ -115,7 +115,7 @@ calculateRasterClass <- function(OriginalRaster, extent, target_resolution) {
   # Aggregate each binary raster by a factor of 10
   aggregated_rasters <- list()
   for (class in names(binary_rasters)) {
-    aggregated_raster <- terra::aggregate(binary_rasters[[class]], fact = aggregation_factor, fun = function(x) sum(x > 0, na.rm = TRUE)) # change aggregation faktor to 1km
+    aggregated_raster <- terra::aggregate(binary_rasters[[class]], fact = aggregation_factor, fun = function(x) sum(x > 0, na.rm = TRUE)/length(x)) # add /length (x) for percentage
     masked_raster <- mask(crop(aggregated_raster, extent), extent)
     aggregated_rasters[[class]] <- masked_raster
   }
