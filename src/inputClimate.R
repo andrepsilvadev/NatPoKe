@@ -2,7 +2,7 @@
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate climate input data (temperature and precipitation)
 ## for the ssp126 and ssp585 scenarios in various years##
-## Date: June 9th 2025 ##
+## Date: July 22nd 2025 ##
 
 # Input variables -------------------------------------------
 yearsOrigin <- c("2011-2040", "2041-2070", "2071-2100") # original in time periods"2011-2040", "2041-2070", "2071-2100"
