@@ -51,8 +51,8 @@ sps_names <- c("Sus scrofa", "Vulpes vulpes", "Alces alces", "Canis latrans", "L
 #writexl::write_xlsx(sps_threatened, path = paste0("~/data/data/trait_datasets/SpeciesIUCNCategory", species_group, extent,".xlsx"))
 
 # Overlay IUCN data with extent e.g. Spain and Portugal, take list of intersection
-#extent = "Iberian peninsula"
-#extent_name <- "Iberian peninsula"
+#extent = "Spain and Portugal"
+#extent_name <- "Spain and Portugal"
 #extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
 #sf::sf_use_s2(FALSE) # disable s2
 #sps_extent <- sf::st_intersection(sps_threatened, extent_sf)
