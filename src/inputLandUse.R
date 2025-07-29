@@ -1,7 +1,7 @@
 ## Name: inputLandUse.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Applies functions to calculate land-use input data for the ssp126 and ssp585 scenarios in various years##
-## Date: June 26th 2025 ##
+## Date: July 22nd 2025 ##
 
 # Input variables -------------------------------------------
 # Define the file paths
