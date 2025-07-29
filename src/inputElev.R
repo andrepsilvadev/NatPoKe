@@ -1,7 +1,7 @@
 ## Name: inputElev.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Processes elevation data as input for training and prediction landscapes ##
-## Date: May 23rd 2025 ##
+## Date: July 22nd 2025 ##
 
 # Input variables -------------------------------------------
 # Define the file paths
