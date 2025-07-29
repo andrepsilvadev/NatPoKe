@@ -1,16 +1,18 @@
 ## Name: SDMRun.R ##
 ## Author: Jorinde-M. Rieger ##
 ## Description: Creates output of SDM results in R ##
-## Date: July 17th 2025 ##
+## Date: July 28th 2025 ##
 
 # Settings & libraries -----------------------------------------------------------------
+# set working directory for maxent.jar file
+#setwd("/mnt/data/jorinde")
 source("~/data/NatPoKe1/src/libraries.R") # libraries
 #install.packages("bigmemory")
 #library(bigmemory)
 # When using the pipeline for the first time run taxaOcccurence.R and adapt species and user-login for GBIF Database:
 #source("~/data/NatPoKe1/src/TaxaOccurence.R") # downloads taxa occurences from GBIF Database
 source("~/data/NatPoKe1/src/customFunctions2.R") # functions
-source("~/data/NatPoKe1/src/SDM.R") # function to format data and SDM
+source("~/data/NatPoKe1/src/SDMnew.R") # function to format data and SDM
 
 # Define scenraios and environmental variables -----------------------------------------------------------------
 # Define input variables
@@ -39,8 +41,8 @@ baseline_year <- 2015
 target_resolution <- 0.04166 # approx. 5km resolution
   #0.008333333 1km resolution
 
-# Test with Iberian penisula extent
-#extent = "Iberian peninsula"
+# Spaing and Portugal extent
+#extent = "Spain and Portugal"
 #extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
 #outputPathLandscapes <- "~/data/BoS/output/Landscapes"
 #if (!dir.exists(outputPathLandscapes)) {
@@ -58,9 +60,9 @@ if (!dir.exists(outputPathLandscapes)) {
 }
 
 # Format training and prediction Landscape -----------------------------------------------------------------
-source("~/NatPoKe9/src/inputClimate.R") # format and reads input climate raster landscapes, adapt: scenarios, years & variables
-source("~/NatPoKe9/src/inputLandUse.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
-source("~/NatPoKe9/src/inputElev.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
+source("~/data/NatPoKe1/src/inputClimate.R") # format and reads input climate raster landscapes, adapt: scenarios, years & variables
+source("~/data/NatPoKe1/src/inputLandUse.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
+source("~/data/NatPoKe1/src/inputElev.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
 
 # Define file paths and load training landscapes, if needed
 trainingLandscapesClim <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, "_5km.tif"))
@@ -124,10 +126,16 @@ foreach(scenario = scenarios, .combine = 'c', .packages = c("terra", "sf")) %:%
 stopCluster(cl)
 
 # Load formatted training and prediction Landscape -----------------------------------------------------------------
-# load trainingLandscapes
+# load trainingLandscapes at global extent
 trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_", baseline_year, "_5km.tif")) # with Antarctica
 #trainingLandscapes <- file.path(outputPathLandscapes, paste0("trainingLandscapes_woAntarctica", baseline_year, ".tif")) # without Antarctica
 trainingLandscapes <- terra::rast(trainingLandscapes)
+
+# Spain and Portugal extent
+extent = "Spain and Portugal"
+extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
+extent_crs <- sf::st_transform(extent_sf, crs = crs(raster)) # Ensure CRS consistency
+extent_sp <- terra::vect(extent_crs) # Convert the sf to a spatial object
 
 # Load predictionLandscapes and crop to defined extent if needed
 predictionLandscapes <- list()
@@ -135,12 +143,8 @@ predictionLandscapes <- list()
 for (scenario in scenarios) {
   for (year in years) {
     raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapes_", scenario, "_", year, "_5km.tif"))# with Antarctica
-    #raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapes_woAntarctica", scenario, "_", year, ".tif"))# without Antarctica
     raster <- terra::rast(raster_path)
-    #raster <- crop_mask_raster(raster, extent_sp)
-    #output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapes_woAntarctica", scenario, "_", year, ".tif"))
-    #writeRaster(raster, output_file, overwrite = TRUE)
-    
+    raster <- crop_mask_raster(raster, extent_sp)
     predictionLandscapes[[paste0(scenario, "_", year)]] <- raster
   }
 }
@@ -187,21 +191,109 @@ for (name in names(predictionLandscapes)) {
 #plot(predictionLandscapes[["ssp126_2030"]])
 
 # Format species occurrence input data -----------------------------------------------------------------
+# Select target species
+#targetSpecies <- c("Vulpes vulpes")
+# NatPoKe Mammals
+#targetSpecies <- c("Alces alces", "Bison bonasus", "Cervus elaphus", "Sus scrofa", "Vulpes vulpes", "Canis latrans",
+"Lynx rufus", "Martes americana", "Taxidea taxus", "Ursus americanus", "Leontopithecus caissara", # hase only 4 occurences
+"Leopardus pardalis", "Nasua nasua", "Aepyceros melampus", "Colobus angolensis", "Daubentonia madagascariensis",
+"Diceros bicornis", "Erythrocebus patas", "Gorilla beringei", "Gorilla gorilla", "Orycteropus afer",
+"Pan paniscus", "Pan troglodytes", "Papio anubis", "Papio ursinus", "Cervus nippon", "Cuon alpinus",
+"Felis chaus", "Macaca fuscata", "Pongo abelii", "Pongo pygmaeus", "Panthera tigris", "Lynx lynx",
+"Ursus arctos", "Canis lupus", "Rangifer tarandus", "Puma concolor", "Bison bison", "Panthera onca",
+"Crocuta crocuta", "Mandrillus sphinx", "Panthera pardus", "Syncerus caffer", "Acinonyx jubatus",
+"Panthera leo", "Connochaetes taurinus", "Loxodonta africana")
 
-# Test species for Iberian peninsula
-#targetSpecies <- "Lynx pardinus"
+# BoS Mammals
+targetSpecies <- c("Nyctalus lasiopterus", "Myotis capaccinii", "Galemys pyrenaicus", "Miniopterus schreibersii", "Oryctolagus cuniculus", 
+                   "Eliomys quercinus", "Rhinolophus mehelyi", "Nyctalus azoreum", "Pipistrellus maderensis",
+                   "Lepus castroviejoi", "Lynx pardinus", "Plecotus teneriffae", "Crocidura canariensis")
 
-source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data based on TaxaOccurence.R output
+#source("~/NatPoKe9/src/inputSpeciesData.R") # format and reads input data based on TaxaOccurence.R output
 
-# Load the filtered occurrence data
-#SpeciesPresences <- readr::read_csv(
-#  paste0("~/data/data/trait_datasets/speciesDataInput_", species_group, extent, "_PresenceGrid.csv"))
-#head(SpeciesPresences)
+# Format species occurrence to true presence and NAs with corresponding coordinates for all cells of the trainingLandscape
+#speciesDataInput <- formatInputDataFrame(
+#  speciesData = speciesDataOcc,
+#  targetSpecies = targetSpecies, 
+#  landscape = trainingLandscapes) #trainingLandscapes$bio1
+#head(speciesDataInput)
 
-# Select in SoeciesPresences as target species
-#targetSpecies <- unique(SpeciesPresences$species) # all species
-#targetSpecies <- c("Alces alces", "Canis lupus", "Tragelaphus scriptus")
-targetSpecies <- species_groups[[1]]
+# Function to remove species duplicates by cell ID
+removeSpeciesDuplicatesbyCellID <- function (dataframe) {
+  SpeciesDataOcc <- dataframe %>%
+    drop_na(cell) %>%
+    group_by(species, cell) %>%
+    slice_max(year, with_ties = FALSE) %>%  # Keep most recent record per species-cell
+    ungroup() %>%
+    distinct(species, cell, year, .keep_all = TRUE) %>%  # Ensure unique species-cell-year
+    arrange(species, cell, year)
+  # Format numeric columns to have at least 5 decimal digits
+  numeric_cols <- sapply(SpeciesDataOcc, is.numeric)
+  SpeciesDataOcc[numeric_cols] <- lapply(SpeciesDataOcc[numeric_cols], function(x) round(x, 5))
+  return(SpeciesDataOcc)
+}
+
+# Implement the for loop for single species apply to SDM function
+SDMresults <- list() # Initialize an empty list to store results for each species
+for (species in targetSpecies){
+  print(paste("Processing species:", species))
+  #Test species
+  #species <- "Vulpes vulpes" # Example species for testing
+  
+  # Select the species data for the current species (NatPoKe Mammals)
+  #species_group <- "NatPoKeMammals"
+  
+  # BoS Mammals
+  extent = "Spain and Portugal"
+  species_group <- "mammals"
+  
+  # Load the species data occurences
+  speciesData <- read.csv(file = paste0("data/trait_datasets/GBIF_",species_group, "_30+occurrences_", gsub(" ", "_", extent),".csv"))
+  #head(speciesData)
+  
+  # Select single species data
+  DataSingleSpecies <- speciesData %>%
+    dplyr::filter(species == !!species)
+  #head(DataSingleSpecies)
+  
+  # Remove NAs and filter out records older than 2015
+  DataSingleSpecies <- DataSingleSpecies %>%
+    drop_na(decimalLongitude,decimalLatitude, year)%>%
+    filter(year >= 2015)
+  #head(DataSingleSpecies)
+  
+  # Load raster to define grid cells
+  env_raster <- trainingLandscapes[[1]]
+  
+  # Extract cell ID for each occurrence
+  DataSingleSpecies$cell <- terra::cellFromXY(env_raster, cbind(DataSingleSpecies$decimalLongitude, DataSingleSpecies$decimalLatitude))
+  #head(DataSingleSpecies)
+  
+  # Keep only one occurrence per unique grid cell
+  speciesDataOcc <- removeSpeciesDuplicatesbyCellID(DataSingleSpecies) # Remove duplicate records per cell
+  #head(speciesDataOcc)
+  
+  speciesPresence <- speciesDataOcc %>%
+    mutate("{species}" := 1)%>%
+    rename(
+      x = decimalLongitude,
+      y = decimalLatitude
+    ) %>%
+    select(all_of(species), x, y) 
+  #head(speciesPresence)
+  
+  # Run the SDMensembleMultiSpecies function for the current species
+  results <- SDMensembleMultiSpecies(
+    targetSpecies = species,
+    speciesData = speciesPresence,
+    myExpl = trainingLandscapes,
+    myExplFuture = predictionLandscapes,
+    extent = extent
+  )
+  SDMresults[[species]] <- results  # Save results for each species
+}
+
+########
 
 # Format species occurrence to true presence and NAs with corresponding coordinates for all cells of the trainingLandscape
 #speciesDataInput <- formatInputDataFrame(
@@ -216,8 +308,8 @@ setwd("/mnt/data/jorinde")
 # Run the SDMensembleMultiSpecies function globally -----------------------------------------------------------------
 results <- SDMensembleMultiSpecies(targetSpecies = targetSpecies,
                                    speciesData = SpeciesPresences, #speciesDataOcc
-                                   trainingLandscapes = trainingLandscapes,
-                                   predictionLandscapes = predictionLandscapes,
+                                   myExpl = trainingLandscapes,
+                                   myExplFuture = predictionLandscapes,
                                    extent = extent)
 
 # Example of accessing the results
