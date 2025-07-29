@@ -1,7 +1,7 @@
 ## Name: CustomFunctions2.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Loads all developed customised functions for LandUseChange.R, ClimateChange.R, inputClimate.R, inputLandUse.R##
-## Date: July 15th 2025 ##
+## Date: July 22nd 2025 ##
 
 #####################################
 # General Functions
@@ -481,6 +481,35 @@ replace_numbers_with_names_nested <- function(nested_list, types, names) {
 }
 
 # Function to calculate percentage changes for each land-use class for scenarios
+#calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, scenarios, years) {
+#  percentage_change_rasters_list <- list()
+  
+#  for (year in years) {
+#    percentage_change_rasters_list[[as.character(year)]] <- list()
+    
+#    for (scenario in scenarios) {
+      # Access the raster using the combined key
+#      key <- paste0(scenario, "_", year)
+#      target_raster <- target_year_rasters_list[[key]]
+      
+      # Create a list to store percentage changes for each land-use class
+#      percentage_change_classes <- list()
+
+#      for (class in names(base_year_raster)) {
+#        base_raster <- base_year_raster[[class]]
+#        target_raster_class <- target_raster[[class]]
+        
+        # Calculate the percentage change
+#        percentage_change <- (target_raster_class - base_raster) / base_raster * 100
+#        percentage_change_classes[[class]] <- percentage_change
+#      }
+#      percentage_change_rasters_list[[as.character(year)]][[scenario]] <- percentage_change_classes
+#    }
+#  }
+#  return(percentage_change_rasters_list)
+#}
+
+# Function to calculate percentage changes for each land-use class for scenarios
 calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, scenarios, years) {
   percentage_change_rasters_list <- list()
   
@@ -488,19 +517,20 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
     percentage_change_rasters_list[[as.character(year)]] <- list()
     
     for (scenario in scenarios) {
-      # Access the raster using the combined key
       key <- paste0(scenario, "_", year)
       target_raster <- target_year_rasters_list[[key]]
-      
-      # Create a list to store percentage changes for each land-use class
       percentage_change_classes <- list()
-
+      
       for (class in names(base_year_raster)) {
         base_raster <- base_year_raster[[class]]
         target_raster_class <- target_raster[[class]]
         
-        # Calculate the percentage change
-        percentage_change <- (target_raster_class - base_raster) / base_raster * 100
+        # Calculate percentage change
+        percentage_change <-  terra::ifel(
+          base_raster == 0,
+          target_raster_class, # If base is 0, use target value
+          (target_raster_class - base_raster) / base_raster * 100 # Otherwise, percent change
+        )
         percentage_change_classes[[class]] <- percentage_change
       }
       percentage_change_rasters_list[[as.character(year)]][[scenario]] <- percentage_change_classes
