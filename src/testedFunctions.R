@@ -1,7 +1,7 @@
 ## Name: testedFunctions.R ##
 ## Authors: Jorinde-M. Rieger ##
 ## Description: tests functions and classifications ##
-## Date: June 4th 2025 ##
+## Date: July 22th 2025 ##
 
 # Testing classification of land-use classes -------------------------------------------
 library(terra)
@@ -67,10 +67,18 @@ plot(mapped_raster_test, main = "Reclassified Raster")
 
 # Testing calculateRasterClass function -------------------------------------------
 # Create a simple raster with 4x4 grid cells and land-use classes (1 to 3)
-test_raster <- rast(nrows = 4, ncols = 4, xmin = 0, xmax = 4, ymin = 0, ymax = 4)
-values(test_raster) <- c(
-  1, 1, 2, 2,
+base_raster <- rast(nrows = 4, ncols = 4, xmin = 0, xmax = 4, ymin = 0, ymax = 4)
+values(base_raster) <- c(
+  3, 3, 2, 2,
   1, 3, 3, 2,
+  2, 1, 1, 1,
+  3, 2, 2, 2
+)
+
+target_raster <- rast(nrows = 4, ncols = 4, xmin = 0, xmax = 4, ymin = 0, ymax = 4)
+values(target_raster) <- c(
+  1, 1, 2, 2,
+  1, 2, 3, 2,
   2, 3, 1, 1,
   3, 2, 2, 1
 )
@@ -79,7 +87,8 @@ values(test_raster) <- c(
 test_extent <- ext(0, 4, 0, 4)  # xmin, xmax, ymin, ymax
 
 # Plot the test raster
-plot(test_raster, main = "Test Raster")
+plot(base_raster, main = "Base Raster")
+plot(target_raster, main = "Target Raster")
 
 target_resolution <- 2  # Aggregation to 2x2 grid cells
 
@@ -126,20 +135,69 @@ calculateRasterClass <- function(OriginalRaster, extent, target_resolution) {
 }
 
 # Apply the function to the test raster
-result_stack <- calculateRasterClass(
-  OriginalRaster = test_raster,
+base_stack <- calculateRasterClass(
+  OriginalRaster = base_raster,
+  extent = test_extent,
+  target_resolution = target_resolution
+)
+
+target_stack <- calculateRasterClass(
+  OriginalRaster = target_raster,
   extent = test_extent,
   target_resolution = target_resolution
 )
 
 # Plot the resulting raster stack
-plot(result_stack, main = "Binary and Aggregated Rasters")
+plot(base_stack, main = "Binary and Aggregated Rasters")
+plot(target_stack, main = "Binary and Aggregated Rasters")
 
-plot(result_stack[[1]], main = "Binary Raster for Class 1")
-plot(result_stack[[2]], main = "Aggregated Raster for Class 2")
-plot(result_stack[[3]], main = "Aggregated Raster for Class 3")
+plot(base_stack[[2]], main = "Base Raster for Class 1")
+print(values(base_stack[[2]]))
+plot(target_stack[[2]], main = "Target Raster for Class 1")
+print(values(target_stack[[2]]))
+plot(target_stack[[3]], main = "Aggregated Raster for Class 3")
 print(res(result_stack))
 
+# Function to calculate percentage changes for each land-use class for scenarios
+calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, scenarios, years) {
+  percentage_change_rasters_list <- list()
+  
+  for (year in years) {
+    percentage_change_rasters_list[[as.character(year)]] <- list()
+    
+    for (scenario in scenarios) {
+      key <- paste0(scenario, "_", year)
+      target_raster <- target_year_rasters_list[[key]]
+      percentage_change_classes <- list()
+      
+      for (class in names(base_year_raster)) {
+        base_raster <- base_year_raster[[class]]
+        target_raster_class <- target_raster[[class]]
+        
+        # Adapted calculation:
+        percentage_change <-  terra::ifel(
+          base_raster == 0,
+          target_raster_class, # If base is 0, use target value
+          (target_raster_class - base_raster) / base_raster * 100 # Otherwise, percent change
+        )
+        percentage_change_classes[[class]] <- percentage_change
+      }
+      percentage_change_rasters_list[[as.character(year)]][[scenario]] <- percentage_change_classes
+    }
+  }
+  return(percentage_change_rasters_list)
+}
+
+percentage_change <- calculate_percentage_changes(
+  base_year_raster = base_stack,
+  target_year_rasters_list = list("test_2025" = target_stack),
+  scenarios = "test",
+  years = 2025
+)
+
+percentage_change_result <- percentage_change[["2025"]][["test"]][["2"]]
+plot(percentage_change_result)
+print(values(percentage_change_result))
 
 
 
