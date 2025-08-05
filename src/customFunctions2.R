@@ -1,36 +1,41 @@
 ## Name: CustomFunctions2.R ##
 ## Authors: Jorinde-M. Rieger ##
-## Description: Loads all developed customised functions for LandUseChange.R, ClimateChange.R, inputClimate.R, inputLandUse.R##
-## Date: July 22nd 2025 ##
+## Description: Loads all developed customised functions for LandUseChange.R, ClimateChange.R, inputClimate.R, inputLandUse.R, SDMRun.R ##
+## Date: August 5th 2025 ##
 
 #####################################
 # General Functions
 #####################################
 # Functions to load and modify rasters-------------------------------------------
-# Function to load and select the biome shapefile
-load_biome <- function(biome_name) {
-  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
-  biome_sf[biome_sf$BIOME_NAME == biome_name, ]
-}
-
 # Function to crop and mask rasters
 crop_mask_raster <- function(raster, biome_sp) {
   terra::mask(terra::crop(raster, biome_sp), biome_sp)
 }
 
+# Function to extract the legend from a ggplot object
+extract_legend <- function(plot) {
+  gtable <- ggplotGrob(plot)
+  legend <- gtable$grobs[which(sapply(gtable$grobs, function(x) x$name) == "guide-box")][[1]]
+  return(legend)
+}
+
+# Function to load and select the biome shapefile
+load_biome <- function(biome_name) {
+  biome_sf <- sf::st_read("data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
+  biome_sf[biome_sf$BIOME_NAME == biome_name, ]
+}
+
 # Function to load and select continents
 load_select_continents <- function(continent_names) {
-  continents <- ne_countries(scale = "medium", returnclass = "sf")
-  
-  # Initialize an empty list to store merged continents
-  merged_continents <- list()
+  continents <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+  merged_continents <- list() # Initialize an empty list to store merged continents
   
   # Handle merged "Central & South America"
   if ("Central & South America" %in% continent_names) {
     central_south_america <- continents %>%
       dplyr::filter(subregion %in% c("Central America", "South America", "Caribbean")) %>%
-      summarise(geometry = st_union(geometry)) %>%
-      mutate(continent = "Central & South America")
+      dplyr::summarise(geometry = st_union(geometry)) %>%
+      dplyr::mutate(continent = "Central & South America")
     
     # Ensure column consistency
     missing_columns <- setdiff(names(continents), names(central_south_america))
@@ -50,8 +55,8 @@ load_select_continents <- function(continent_names) {
   if ("Europe & Asia" %in% continent_names) {
     europe_asia <- continents %>%
       dplyr::filter(continent %in% c("Europe")) %>%
-      summarise(geometry = st_union(geometry)) %>%
-      mutate(continent = "Europe & Asia")
+      dplyr::summarise(geometry = st_union(geometry)) %>%
+      dplyr::mutate(continent = "Europe & Asia")
     missing_columns <- setdiff(names(continents), names(europe_asia))
     for (col in missing_columns) {
       europe_asia[[col]] <- NA
@@ -91,21 +96,9 @@ intersect_extent_continents <- function(extent_sf, continent_geoms) {
   return(biome_continents)
 }
 
-# Function to crop and mask the rasters to the continents
-#crop_mask_continent <- function(raster, continent_geom) { # technically not needed, merge with crop_mask_raster
-#  mask(crop(raster, continent_geom), continent_geom)
-#}
-
 # Function to crop the biome boundaries to the continents
 crop_biome_to_continent <- function(biome, continent_geom) {
   st_intersection(biome, continent_geom)
-}
-
-# Function to extract the legend from a ggplot object
-extract_legend <- function(plot) {
-  gtable <- ggplotGrob(plot)
-  legend <- gtable$grobs[which(sapply(gtable$grobs, function(x) x$name) == "guide-box")][[1]]
-  return(legend)
 }
 
 #####################################
@@ -123,11 +116,6 @@ load_scenario_clim <- function(scenario, variable, year) {
 load_average_scenario_clim <- function(outputPath, scenario, year, variable){
   file_path <- file.path(outputPath, paste0("AverageCHELSA",variable, "_", scenario, "_", yearOrigin, ".tif"))
   terra::rast(file_path)}
-
-# Function to aggregate rasters
-#aggregate_raster <- function(raster, aggregation_factor) {
-#  aggregate(raster, aggregation_factor, fun = mean)
-#}
 
 # Function to calculate the average for a given scenario, year, and variable
 # to save computation time this could be saved as netCDF (terra::writeCDF)
@@ -166,32 +154,6 @@ average_climate_models <- function(outputPath, scenario, yearOrigin, variable) {
   return(averaged_raster)
 }
 
-# Function to stack rasters
-#stack_clim_rasters <- function(variable, year) {
-#  scenarios_list <- list(
-#    get(paste0("ClimateChange_", scenarios[1],"_", variable, "_", year, "_", biome_name_short)),
-#    get(paste0("ClimateChange_", scenarios[2],"_", variable, "_", year, "_", biome_name_short))
-#  )
-
-# Assign names to the list elements
-#  names(scenarios_list) <- c(paste0(scenario_names[1], "_", year), paste0(scenario_names[2], "_", year))
-
-# Create a raster stack from the list of scenarios
-#  scenarios_stack <- rast(scenarios_list)
-
-# Assign names to the raster stack layers
-#  names(scenarios_stack) <- names(scenarios_list)
-
-# Save the raster stack
-#  stack_output_file <- file.path(outputPathLandscapes, paste0("scenarios_stack_", variable, "_", year, "_", biome_name_short, ".tif"))
-#  writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
-
-# Assign the raster stack to a variable in the environment
-#  assign(paste0("scenarios_stack_", variable, "_", year, "_", gsub(" ", "_", biome_name_short)), scenarios_stack, envir = .GlobalEnv)
-
-#  return(scenarios_stack)
-#}
-
 # Function to extract mean values from a raster stack
 extract_mean_values <- function(raster_stack, years, value_type) {
   mean_values <- sapply(1:nlyr(raster_stack), function(i) {
@@ -228,10 +190,6 @@ plot_timeChanges <- function(mean_values_df, value_type, y_label) {
     )
 }
 
-# Function to calculate changes
-#calculate_change <- function(raster_future, raster_present) {
-#  raster_future - raster_present
-#}
 
 plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_label, min_value, max_value) {
   # Convert raster to data frame
@@ -279,7 +237,7 @@ plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_lab
                            title.vjust = 0.5,            # Center the title vertically
                            barwidth = unit(6, "cm"),     # Adjust as needed
                            barheight = unit(0.5, "cm")   # Adjust as needed
-                         ) # remove if vertically display
+                         )
     ) +
     # Define the color scale for the extent area and country boundaries
     scale_color_manual(
@@ -316,7 +274,7 @@ plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_lab
 # Functions to load rasters-------------------------------------------
 # Baseline raster
 load_baseline_landUse <- function(baseline_year){
-  rast("~/data/data/stitched_lulc_esa_scenarios/lulc_esa_2015.tif")
+  rast("data/stitched_lulc_esa_scenarios/lulc_esa_2015.tif")
 }
 # Scenario Rasters
 load_scenario_landUse <- function(scenario, year) {
@@ -481,35 +439,6 @@ replace_numbers_with_names_nested <- function(nested_list, types, names) {
 }
 
 # Function to calculate percentage changes for each land-use class for scenarios
-#calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, scenarios, years) {
-#  percentage_change_rasters_list <- list()
-  
-#  for (year in years) {
-#    percentage_change_rasters_list[[as.character(year)]] <- list()
-    
-#    for (scenario in scenarios) {
-      # Access the raster using the combined key
-#      key <- paste0(scenario, "_", year)
-#      target_raster <- target_year_rasters_list[[key]]
-      
-      # Create a list to store percentage changes for each land-use class
-#      percentage_change_classes <- list()
-
-#      for (class in names(base_year_raster)) {
-#        base_raster <- base_year_raster[[class]]
-#        target_raster_class <- target_raster[[class]]
-        
-        # Calculate the percentage change
-#        percentage_change <- (target_raster_class - base_raster) / base_raster * 100
-#        percentage_change_classes[[class]] <- percentage_change
-#      }
-#      percentage_change_rasters_list[[as.character(year)]][[scenario]] <- percentage_change_classes
-#    }
-#  }
-#  return(percentage_change_rasters_list)
-#}
-
-# Function to calculate percentage changes for each land-use class for scenarios
 calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, scenarios, years) {
   percentage_change_rasters_list <- list()
   
@@ -525,12 +454,21 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
         base_raster <- base_year_raster[[class]]
         target_raster_class <- target_raster[[class]]
         
-        # Calculate percentage change
-        percentage_change <-  terra::ifel(
-          base_raster == 0,
-          target_raster_class, # If base is 0, use target value
-          (target_raster_class - base_raster) / base_raster * 100 # Otherwise, percent change
+        # Define a mask: include only where the class is present in either year
+        # Define presence mask
+        presence_mask <- (base_raster > 0 | target_raster_class > 0)
+        
+        # Mask both rasters
+        base_masked <- terra::mask(base_raster, presence_mask, maskvalues = FALSE)
+        target_masked <- terra::mask(target_raster_class, presence_mask, maskvalues = FALSE)
+        
+        # Calculate percentage change only in valid areas
+        percentage_change <- terra::ifel(
+          base_masked == 0,
+          target_masked * 100,
+          (target_masked - base_masked) / base_masked * 100
         )
+        
         percentage_change_classes[[class]] <- percentage_change
       }
       percentage_change_rasters_list[[as.character(year)]][[scenario]] <- percentage_change_classes
@@ -538,33 +476,6 @@ calculate_percentage_changes <- function(base_year_raster, target_year_rasters_l
   }
   return(percentage_change_rasters_list)
 }
-
-# Function to calculate percentage changes for each land-use classes for scenarios
-#calculate_percentage_changes <- function(base_year_raster, target_year_rasters_list, years) {
-#  percentage_change_rasters_list <- list()
-
-#  for (year in years) {
-#    percentage_change_rasters_list[[year]] <- list()
-
-#    for (scenario in names(target_year_rasters_list[[year]])) {
-#      target_raster <- target_year_rasters_list[[year]][[scenario]]
-
-# Create a list to store percentage changes for each land-use class
-#      percentage_change_classes <- list()
-
-#      for (class in names(base_year_raster)) {
-#        base_raster <- base_year_raster[[class]]
-#        target_raster_class <- target_raster[[class]]
-
-# Calculate the percentage change
-#        percentage_change <- (target_raster_class - base_raster) / base_raster * 100
-#        percentage_change_classes[[class]] <- percentage_change
-#      }
-#      percentage_change_rasters_list[[year]][[scenario]] <- percentage_change_classes
-#    }
-#  }
-#  return(percentage_change_rasters_list)
-#}
 
 # Functions to vizualize results -------------------------------------------
 # Function to create individual plots for each scenario, class, and year
@@ -648,3 +559,22 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
   return(plot)
 }
 
+
+#####################################
+#  Format species input data Functions for SDMRun.R #
+#####################################
+
+# Function to remove species duplicates by cell ID
+removeSpeciesDuplicatesbyCellID <- function (dataframe) {
+  SpeciesDataOcc <- dataframe %>%
+    drop_na(cell) %>%
+    group_by(species, cell) %>%
+    slice_max(year, with_ties = FALSE) %>%  # Keep most recent record per species-cell
+    ungroup() %>%
+    distinct(species, cell, year, .keep_all = TRUE) %>%  # Ensure unique species-cell-year
+    arrange(species, cell, year)
+  # Format numeric columns to have at least 5 decimal digits
+  numeric_cols <- sapply(SpeciesDataOcc, is.numeric)
+  SpeciesDataOcc[numeric_cols] <- lapply(SpeciesDataOcc[numeric_cols], function(x) round(x, 5))
+  return(SpeciesDataOcc)
+}
