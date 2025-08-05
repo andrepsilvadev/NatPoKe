@@ -1,8 +1,8 @@
 ## Name: inputClimate.R ##
 ## Authors: Jorinde-M. Rieger ##
-## Description: Applies functions to calculate climate input data (temperature and precipitation)
+## Description: Applies functions to calculate climate input data (temperature and precipitation) for SDMRund.R
 ## for the ssp126 and ssp585 scenarios in various years##
-## Date: July 22nd 2025 ##
+## Date: August 5th 2025 ##
 
 # Input variables -------------------------------------------
 yearsOrigin <- c("2011-2040", "2041-2070", "2071-2100") # original in time periods"2011-2040", "2041-2070", "2071-2100"
@@ -15,29 +15,22 @@ models <- c("gfdl-esm4", "ipsl-cm6a-lr", "mpi-esm1-2-hr", "mri-esm2-0", "ukesm1-
 yearsMapping <- setNames(years, yearsOrigin)
 
 # Define the file paths
-basePathClim <- "~/data/data/CHELSA_gfdl-esm4_V.2.1"
+basePathClim <- "data/CHELSA_gfdl-esm4_V.2.1"
 
-# Create environmental input Data (climate) as training landscapes-------------------------------------------
-# Create an empty list to store climate training Landscapes
+# Create environmental input Data (climate) as training landscapes (baseline) -------------------------------------------
 trainingLandscapesClim <- list()
-# Loop through the training landscapes
 for (variable in variables) {
-  # Load the raster
-  raster <- load_baseline_clim(variable, baseline_yearOrigin)
+  raster <- load_baseline_clim(variable, baseline_yearOrigin)  # Load the raster
   
-  # Ensure CRS consistency
+  # Format extent object and crop the baseline raster
   extent_crs <- sf::st_transform(extent_sf, crs = crs(raster))
-  
-  # Convert the sf to a spatial object
   extent_sp <- terra::vect(extent_crs)
-  
-  # Crop and mask the raster
   raster_extent <- crop_mask_raster(raster, extent_sp)
   
   # Aggregate to target resolution
-  input_resolution <- res(raster_extent)[1]  # Assuming square cells, take the resolution of the first dimension
+  input_resolution <- terra::res(raster_extent)[1]  # Assuming square cells, take the resolution of the first dimension
   aggregation_factor <- round(target_resolution / input_resolution)
-  raster_agg <- aggregate(raster_extent, fact = aggregation_factor, fun = mean)
+  raster_agg <- terra::aggregate(raster_extent, fact = aggregation_factor, fun = mean)
   
   trainingLandscapesClim[[variable]] <- raster_agg
 }
@@ -49,72 +42,46 @@ trainingLandscapesClim <- terra::rast(trainingLandscapesClim)
 names(trainingLandscapesClim) <- variables
 
 # Save the trainingLandscape with the adapted baseline year
-output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, "_5km.tif"))
+output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, "_5km.tif")) # global extent at 5 km resolution
 terra::writeRaster(trainingLandscapesClim, output_file, overwrite = TRUE)
 
-# Test the rasters
-plot(trainingLandscapesClim)
+#plot(trainingLandscapesClim)
 
-# Create environmental input Data (climate) as prediction landscapes-------------------------------------------
+# Create environmental input Data (climate) as prediction landscapes (future scenarios) -------------------------------------------
 # Register parallel backend
 num_cores <- min(parallel::detectCores() - 1, 10)  # Use up to 10 cores
-cl <- makeCluster(num_cores)
-registerDoParallel(cl)
-
-# Create an empty list to store all processed rasters
-#all_rasters <- list()
+cl <- parallel::makeCluster(num_cores)
+doParallel::registerDoParallel(cl)
 
 # Create raster of averaged GCMs in a paralleled loop
 foreach(scenario = scenarios, .combine = 'c', .packages = c("terra", "sf")) %:%
   foreach(yearOrigin = yearsOrigin, .combine = 'c') %dopar% {
-    # Create a list for each scenario-year combination
-    raster_list <- list()
+    raster_list <- list() # Create a list for each scenario-year combination
     
     for (variable in variables) {
-      # Load averaged raster of climate models
+      # average climate models and save them
       raster <- average_climate_models(outputPathLandscapes, scenario, yearOrigin, variable)
-      
-      # Store the processed raster in the list
       raster_list[[variable]] <- raster
     }
-    
-    # Combine the rasters for this scenario and year into a SpatRaster stack
-    #combined_raster <- terra::rast(raster_list)
-    
-    # Return the combined raster as a list element
-    #list(paste0(scenario, "_", yearOrigin) = combined_raster)
   }
 
 # Stop the cluster
 stopCluster(cl)
 
-# Create an empty list to store prediction landscapes
+# Create prediction landscapes for climate variables
 predictionLandscapesClim <- list()
-
 for (scenario in scenarios) {
   for (yearOrigin in yearsOrigin) {
-    
-    # Create a list for each scenario-year combination
-    raster_list <- list()
-    
+    raster_list <- list() # Create a list for each scenario-year combination
     for (variable in variables) {
       # Load averaged raster of climate models
       raster <- load_average_scenario_clim(outputPathLandscapes, scenario, yearOrigin, variable)
       
-      # Extent
-      #extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
-      
-      # Ensure CRS consistency
-      #extent_crs <- sf::st_transform(extent_sf, crs = crs(raster))
-      
-      # Convert the sf to a spatial object
-      #extent_sp <- terra::vect(extent_crs)
-      
-      # Crop and mask the raster
+      # crop and mask the raster to the extent
       raster_extent <- crop_mask_raster(raster, extent_sp)
       
       # Aggregate to target resolution
-      input_resolution <- res(raster_extent)[1]  # Assuming square cells, take the resolution of the first dimension
+      input_resolution <- terra::res(raster_extent)[1]  # Assuming square cells, take the resolution of the first dimension
       aggregation_factor <- round(target_resolution / input_resolution)
       raster_agg <- aggregate(raster_extent, fact = aggregation_factor, fun = mean)
       
@@ -135,18 +102,14 @@ for (i in seq_along(predictionLandscapesClim)) {
 # Save the climate prediction landscapes  with adapted years
 for (scenario in scenarios) {
   for (yearOrigin in yearsOrigin) {
-    # Get the adapted year
-    year <- yearsMapping[yearOrigin]
+    year <- yearsMapping[yearOrigin] # Get the adapted year
     
     # Save the prediction landscape
-    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, "_5km.tif"))
+    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesClim_", scenario, "_", year, "_5km.tif")) # global extent at 5 km resolution
     terra::writeRaster(predictionLandscapesClim[[paste0(scenario, "_", yearOrigin)]], output_file, overwrite = TRUE)
   }
 }
 
 # Remove all data from memory/global Environment
-rm()
+rm(list = ls())
 gc()
-# Print the structure of the final list
-#print(predictionLandscapesClim)
-#plot(predictionLandscapesClim[["ssp126_2071-2100"]])
