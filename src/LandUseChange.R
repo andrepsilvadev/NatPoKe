@@ -1,12 +1,13 @@
 ## Name: LandUseChange.R ##
 ## Authors: Jorinde-M. Rieger ##
-## Description: Applies functions to calculate percentage changes over time and spatial explicit changes for a given extent
+## Description: Creates figures: Projected percentage change in land-use types & Spatial distribution of land-use cover change (%)
 ## for the ssp126 and ssp585 scenarios in various years ##
-## Date: July 15th 2025 ##
+## Date: August 4th 2025 ##
 
 # Settings & libraries -------------------------------------------
-source("~/data/NatPoKe1/src/libraries.R") # libraries
-source("~/data/NatPoKe1/src/customFunctions2.R") # functions
+# set working directory to NatPoKe folder
+source("NatPoKe1/src/libraries.R") # libraries
+source("NatPoKe1/src/customFunctions2.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
@@ -24,25 +25,12 @@ years <- c(2030, 2050, 2100)
 baseline_year <- 2015
 
 # Define the target resolution (based on climate inputs)
-target_resolution <- 0.008333333 # 1km resolution
+#target_resolution <- 0.008333333 # 1km resolution
+target_resolution <- 0.04166 # approx. 5km resolution
 
 # Define global terrestrial extent
 #extent = "Global Terrestrial"
 #extent_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
-
-# Iberian peninsula
-#extent_name <- "Iberian peninsula"
-#extent_sf <- rnaturalearth::ne_countries(scale = "medium", country = c("Spain", "Portugal"), returnclass = "sf")
-#extent_spain <- rnaturalearth::ne_countries(country = "Spain", returnclass = "sf")
-#continent_names <- NULL
-#continent_title <- NULL
-#continent_geoms <- NULL
-
-# Define outputfile for Bank of Spain Project
-#outputPathLandUse <- "~/data/BoS/output/LandUseChange"
-#if (!dir.exists(outputPathLandUse)) {
-#  dir.create(outputPathLandUse, recursive = TRUE)
-#}
 
 # Tropical Biome
 extent <- "Tropical Biome"
@@ -61,12 +49,12 @@ continents_sf <- sf::st_wrap_dateline(continents_sf, options = c("WRAPDATELINE=Y
 continents_sf <- sf::st_make_valid(continents_sf)
 
 # Define the file paths
-basePathLandUse <- "~/data/data/stitched_lulc_esa_scenarios"
-outputPathLandscapes <- "~/data/output/Landscapes"
+basePathLandUse <- "data/stitched_lulc_esa_scenarios"
+outputPathLandscapes <- "output/Landscapes"
 if (!dir.exists(outputPathLandscapes)) {
   dir.create(outputPathLandscapes, recursive = TRUE)
 }
-outputPathLandUse <- "~/data/output/LandUseChange"
+outputPathLandUse <- "output/LandUseChange"
 if (!dir.exists(outputPathLandUse)) {
   dir.create(outputPathLandUse, recursive = TRUE)
 }
@@ -129,20 +117,13 @@ landUsematrix <- matrix(value_to_landUse, ncol = 2, byrow = TRUE )
 # Process baseline year
 baseline_raster <- load_baseline_landUse(baseline_year)
 
-# Ensure CRS consistency
+# Format extent object and crop the baseline raster
 extent_crs <- sf::st_transform(extent_sf, crs = crs(baseline_raster))
-
-# Convert the sf to a spatial object
 extent_sp <- terra::vect(extent_crs)
-
-# Crop and mask baseline raster to extent
 baseline_raster_extent <- crop_mask_raster(baseline_raster, extent_sp)
 
-# Apply land-use type mapping
+# Apply LULC type mapping and save the mapped baseline raster
 mapped_baseline <- terra::classify(baseline_raster_extent, landUsematrix, include.lowest = TRUE)
-plot(mapped_baseline)
-
-# Save the mapped baseline raster
 output_file <- file.path(outputPathLandscapes, paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent), ".tif"))
 terra::writeRaster(mapped_baseline, output_file, overwrite = TRUE)
 assign(paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent)), mapped_baseline, envir = .GlobalEnv)
@@ -150,41 +131,34 @@ assign(paste0("MappedLandUse_base_", baseline_year, "_", gsub(" ", "_", extent))
 # Load the mapped raster stack for the baseline year
 mapped_baseline <- load_mapped_baseline_landUse(outputPathLandscapes, baseline_year)
 
-# Apply calculateRasterClass to the baseline raster to create raster classes for the land use types
+# Apply calculateRasterClass to the baseline raster to create raster classes for the LULC types
 trainingLandscapesLandUse <- calculateRasterClass(
   OriginalRaster = mapped_baseline,
-  extent = extent_sp,
+  extent = extent_sp, 
   target_resolution = target_resolution
 )
 
-# Replace land use numbers with names
+# Replace LULC numbers with names
 trainingLandscapesLandUse <- replace_numbers_with_names(trainingLandscapesLandUse, LULC_Types, LULC_Types_names)
 
 # Save the processed baseline raster
-output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year, "_", gsub(" ", "_", extent), ".tif"))
+output_file <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year, "_", gsub(" ", "_", extent), "_5km.tif"))
 terra::writeRaster(trainingLandscapesLandUse, output_file, overwrite = TRUE)
-
-#plot(trainingLandscapesLandUse)
 gc()
 
 # Create land-use input raster for the predictionLandscape -------------------------------------------
 # Loop through the scenarios and years crop to the biome
 for (scenario_des in scenarios_des) {
   for (year in years) {
-    # Load the raster
-    raster <- load_scenario_landUse(scenario_des, year)
+    raster <- load_scenario_landUse(scenario_des, year) # Load the raster
     
     # Crop and mask the raster
     raster_extent <- crop_mask_raster(raster, extent_sp)
     
-    # Map the scenario name
+    # Map the scenario name and save the mapped raster
     scenario <- scenario_name_mapping[scenario_des]
-    
-    # Save the aggregated raster
     output_file <- file.path(outputPathLandscapes, paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
     terra::writeRaster(raster_extent, output_file, overwrite = TRUE)
-    
-    # Assign the raster to name
     assign(paste0("LandUse_", scenario, "_", year, "_", gsub(" ", "_", extent)), raster_extent)
   }
 }
@@ -194,11 +168,11 @@ library(doParallel)
 
 # Register parallel backend
 num_cores <- min(parallel::detectCores() - 1, 10)  # use up to 10 cores
-cl <- makeCluster(num_cores)
-registerDoParallel(cl)
+cl <- parallel::makeCluster(num_cores)
+doParallel::registerDoParallel(cl)
 
 # Loop through the years to create raster stacks and map land-use types
-mapped_rasters <- foreach(year = years, .combine = 'c', .packages = c("terra", "sf")) %dopar% {
+mapped_rasters <- foreach::foreach(year = years, .combine = 'c', .packages = c("terra", "sf")) %dopar% {
   # Create raster stacks for years
   raster_stack <- stack_rasters(year, scenarios, extent, outputPathLandscapes)
   
@@ -206,12 +180,10 @@ mapped_rasters <- foreach(year = years, .combine = 'c', .packages = c("terra", "
   raster_stack <- file.path(outputPathLandscapes, paste0("LandUse_scenarioStack_", year, "_", gsub(" ", "_", extent), ".tif"))
   raster_stack <- terra::rast(raster_stack)
   
-  # Apply land-use type mapping
+  # Apply LULC type mapping and save the mapped raster stack
   mapped_scenarios <- terra::classify(raster_stack, landUsematrix, include.lowest = TRUE)
-  
-  # Save the mapped raster stack to disk
   output_file <- file.path(outputPathLandscapes, paste0("MappedLandUse_scenarios_", year, "_", gsub(" ", "_", extent), ".tif"))
-  writeRaster(mapped_scenarios, output_file, overwrite = TRUE)
+  terra::writeRaster(mapped_scenarios, output_file, overwrite = TRUE)
   
   # Return the mapped raster stack
   mapped_scenarios
@@ -225,10 +197,8 @@ for (year in years) {
 }
 
 # Apply calculateRasterClass to the target year rasters
-# Loop through the years to process each layer (scenario) (takes approx 8h per landscape on a global scale)
 for (year in names(LULC_scenarios_list)) {
-  # Get the raster for the year
-  target_raster <- LULC_scenarios_list[[year]]
+  target_raster <- LULC_scenarios_list[[year]]  # Get the raster for the year
   
   # Ensure the raster has the same number of layers as the scenarios
   if (nlyr(target_raster) != length(scenarios)) {
@@ -243,10 +213,8 @@ for (year in names(LULC_scenarios_list)) {
   
   # Create a list to store the processed rasters for this year
   processed_scenario_rasters <- list()
-  
   for (scenario in names(scenario_rasters)) {
-    # Get the raster for the scenario
-    scenario_raster <- scenario_rasters[[scenario]]
+    scenario_raster <- scenario_rasters[[scenario]] # Get the raster for the scenario
     
     # Apply calculateRasterClass to classify the raster
     scenario_raster_classified <- calculateRasterClass(
@@ -256,7 +224,7 @@ for (year in names(LULC_scenarios_list)) {
     )
     
     # Save the processed raster
-    output_file <- file.path(outputPathLandscapes, paste0("LandUseClass_", scenario, "_", year,"_", gsub(" ", "_", extent), ".tif"))
+    output_file <- file.path(outputPathLandscapes, paste0("LandUseClass_", scenario, "_", year,"_", gsub(" ", "_", extent), "_5km.tif"))
     terra::writeRaster(scenario_raster_classified, output_file, overwrite = TRUE)
     
     # Store the processed raster in the list
@@ -267,20 +235,16 @@ for (year in names(LULC_scenarios_list)) {
   LULC_scenarios_list[[year]] <- processed_scenario_rasters
 }
 
-# Load land-use classes
+# Replace LULC types numbers with names in the raster stacks
 predictionLandscapesLandUse <- list()
-# Loop through scenarios and years to load rasters
 for (scenario in scenarios) {
   for (year in years) {
-    # Dynamically construct the file path
-    input_file <- file.path(outputPathLandscapes, paste0("LandUseClass_", scenario, "_", year, "_", gsub(" ", "_", extent), ".tif"))
-    
-    # Load the raster
-    loaded_raster <- terra::rast(input_file)
+    input_file <- file.path(outputPathLandscapes, paste0("LandUseClass_", scenario, "_", year, "_", gsub(" ", "_", extent), "_5km.tif"))
+    loaded_raster <- terra::rast(input_file) # Load the raster
     loaded_raster <- replace_numbers_with_names(loaded_raster, LULC_Types, LULC_Types_names)
     
     # Save the processed raster
-    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year,"_", gsub(" ", "_", extent), ".tif"))
+    output_file <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year,"_", gsub(" ", "_", extent), "_5km.tif"))
     terra::writeRaster(loaded_raster, output_file, overwrite = TRUE)
     
     # Store the raster in the list
@@ -302,16 +266,11 @@ for (year in years) {
   mapped_scenarios[[as.character(year)]] <- load_mapped_landUse(outputPathLandscapes, year, extent)
 }
 
-# Crop and mask to continent extents
-# Transform continent CRS to match the raster CRS
-continents_crs <- st_transform(continents_sf, crs = st_crs(extent_sf))
-
-# Define continent geometries
+# IF continent is defined, crop and mask the rasters to the continent geometries
+continents_crs <- sf::st_transform(continents_sf, crs = st_crs(extent_sf)) # Transform continent CRS to match the raster CRS
 continent_geoms <- setNames(lapply(continent_names, function(continent) {
   continents_sf %>% dplyr::filter(continent == !!continent)
 }), continent_names)
-
-# Crop and mask each mapped raster stack to regions/continents
 continent_scenarios <- list()
 for (year in names(mapped_scenarios)) {
   for (continent in continent_names) {
@@ -320,7 +279,7 @@ for (year in names(mapped_scenarios)) {
   }
 }
 
-# Calculate land use cover percentages and create a graphic
+# Calculate Land use cover percentages and create a graphic
 LandUseCover <- list()
 if (exists("continent_scenarios") && length(continent_scenarios) > 0) {
   # Loop for continent-cropped rasters
@@ -339,17 +298,17 @@ if (exists("continent_scenarios") && length(continent_scenarios) > 0) {
     scenarios_percentages_df_filtered <- scenarios_percentages_df %>% # Filter "Water" land-use type
       filter(landUse != "Water")
     
-    LandUseChange_time_plot <- ggplot(scenarios_percentages_df_filtered, aes(x = time, y = value, color = Scenario, group = Scenario)) +
-      geom_line() +
-      geom_point() +
-      scale_color_manual(values = scenario_colors,
-                         guide = guide_legend(direction = "horizontal")) +
-      facet_wrap(~ landUse, scales = "free_y", ncol = 3) +
-      labs(title = paste0("Future Land Use Projections for the ",  extent, " of ", continent),
-           x = "Year",
-           y = "Total Land Area (%)") +
-      theme_minimal()+
-      theme(
+    LandUseChange_time_plot <- ggplot2::ggplot(scenarios_percentages_df_filtered, aes(x = time, y = value, color = Scenario, group = Scenario)) +
+      ggplot2::geom_line() +
+      ggplot2::geom_point() +
+      ggplot2::scale_color_manual(values = scenario_colors,
+                                  guide = guide_legend(direction = "horizontal")) +
+      ggplot2::facet_wrap(~ landUse, scales = "free_y", ncol = 3) +
+      ggplot2::labs(title = paste0("Future Land Use Projections for the ",  extent, " of ", continent),
+                    x = "Year",
+                    y = "Total Land Area (%)") +
+      ggplot2::theme_minimal()+
+      ggplot2::theme(
         plot.title = element_text(size = 14),  # Adjust title size
         axis.title = element_text(size = 12),  # Adjust axis title size
         axis.text = element_text(size = 10),   # Adjust axis text size
@@ -362,7 +321,7 @@ if (exists("continent_scenarios") && length(continent_scenarios) > 0) {
     print(LandUseChange_time_plot)
     
     # Save the plot with specified dimensions and resolution
-    ggsave(
+    ggplot2::ggsave(
       filename = file.path(outputPathLandUse, paste0("LandUseChange_time_", gsub(" ", "_", extent),"_", gsub(" ", "_", continent), ".png")),
       plot = LandUseChange_time_plot,
       width = 10,  # Width in inches
@@ -379,22 +338,22 @@ if (exists("continent_scenarios") && length(continent_scenarios) > 0) {
   
   # Clean and plot
   scenarios_percentages_df <- scenarios_percentages_df %>%
-    mutate(Scenario = gsub("^scenario_", "", Scenario)) %>%
-    mutate(Scenario = gsub("_\\d{4}$", "", Scenario)) %>%
-    mutate(Scenario = recode(Scenario, !!!setNames(scenario_names, scenarios)))
+    dplyr::mutate(Scenario = gsub("^scenario_", "", Scenario)) %>%
+    dplyr::mutate(Scenario = gsub("_\\d{4}$", "", Scenario)) %>%
+    dplyr::mutate(Scenario = recode(Scenario, !!!setNames(scenario_names, scenarios)))
   
   scenarios_percentages_df_filtered <- scenarios_percentages_df %>%
     filter(landUse != "Water")
   
-  LandUseChange_time_plot <- ggplot(scenarios_percentages_df_filtered, aes(x = time, y = value, color = Scenario, group = Scenario)) +
-    geom_line() +
-    geom_point() +
-    scale_color_manual(values = scenario_colors, guide = guide_legend(direction = "horizontal")) +
-    facet_wrap(~ landUse, scales = "free_y", ncol = 3) +
-    labs(title = paste0("Future Land Use Projections for the ", extent),
-         x = "Year", y = "Total Land Area (%)") +
-    theme_minimal() +
-    theme(
+  LandUseChange_time_plot <- ggplot2::ggplot(scenarios_percentages_df_filtered, aes(x = time, y = value, color = Scenario, group = Scenario)) +
+    ggplot2::geom_line() +
+    ggplot2::geom_point() +
+    ggplot2::scale_color_manual(values = scenario_colors, guide = guide_legend(direction = "horizontal")) +
+    ggplot2::facet_wrap(~ landUse, scales = "free_y", ncol = 3) +
+    ggplot2::labs(title = paste0("Future Land Use Projections for the ", extent),
+                  x = "Year", y = "Total Land Area (%)") +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
       plot.title = element_text(size = 14),
       axis.title = element_text(size = 12),
       axis.text = element_text(size = 10),
@@ -406,7 +365,7 @@ if (exists("continent_scenarios") && length(continent_scenarios) > 0) {
     )
   print(LandUseChange_time_plot)
   
-  ggsave(
+  ggplot2::ggsave(
     filename = file.path(outputPathLandUse, paste0("LandUseChange_time_", gsub(" ", "_", extent), ".png")),
     plot = LandUseChange_time_plot,
     width = 10,
@@ -417,54 +376,41 @@ if (exists("continent_scenarios") && length(continent_scenarios) > 0) {
 
 gc()
 
-# Load the training and prediction Landscapes, crop to extent if needed -------------------------------------------
+# Load the training and prediction Landscapes-------------------------------------------
 # Load training- and predictionLandscapesLandUse for defined extent
-trainingLandscapesLandUse <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year,"_", gsub(" ", "_", extent), ".tif"))
+trainingLandscapesLandUse <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year,"_", gsub(" ", "_", extent), "_5km.tif"))
 trainingLandscapesLandUse <- terra::rast(trainingLandscapesLandUse)
 
 predictionLandscapesLandUse <- list()
 for (scenario in scenarios) {
   for (year in years) {
-    raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year,"_", gsub(" ", "_", extent), ".tif"))
+    raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year,"_", gsub(" ", "_", extent), "_5km.tif"))
     raster <- terra::rast(raster_path)
     predictionLandscapesLandUse[[paste0(scenario, "_", year)]] <- raster
   }
 }
-
-# Load training- and predictionLandscapesLandUse for global extent and crop to defined extent
+plot(predictionLandscapesLandUse$ssp126_2030)
+# Load the training and prediction Landscapes -------------------------------------------
 trainingLandscapesLandUse <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year, ".tif"))
 trainingLandscapesLandUse <- terra::rast(trainingLandscapesLandUse)
-
-extent_crs <- sf::st_transform(extent_sf, crs = crs(trainingLandscapesLandUse))
-extent_sp <- terra::vect(extent_crs)
-trainingLandscapesLandUse <- crop_mask_raster(trainingLandscapesLandUse, extent_sp)
 
 predictionLandscapesLandUse <- list()
 for (scenario in scenarios) {
   for (year in years) {
     raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
     raster <- terra::rast(raster_path)
-    raster <- crop_mask_raster(raster, extent_sp)
     predictionLandscapesLandUse[[paste0(scenario, "_", year)]] <- raster
   }
 }
 
-# Calculate spatial distirbution of land-use change -------------------------------------------
-
-# Define, transform continents IF APPLICABLE
-# Transform continent CRS to match the raster CRS
-continents_crs <- st_transform(continents_sf, crs = st_crs(extent_sf))
-
-# Define continent geometries
+# Calculate spatial percentage changes of LULC types -------------------------------------------
+# IF CONTINENTS: Transform and define continents geometries
+continents_crs <- sf::st_transform(continents_sf, crs = st_crs(extent_sf))
 continent_geoms <- setNames(lapply(continent_names, function(continent) {
   continents_sf %>% dplyr::filter(continent == !!continent)
 }), continent_names)
+extent_continents <- intersect_extent_continents(extent_sf, continent_geoms) # Intersect extent with continents
 
-# Intersect the biome with the continents
-extent_continents <- intersect_extent_continents(extent_sf, continent_geoms)
-
-
-# Double check if this is correct, look for NA values
 # Calculate the percentage changes
 percentage_change_rasters_list <- calculate_percentage_changes(
   base_year_raster = trainingLandscapesLandUse,
@@ -474,9 +420,8 @@ percentage_change_rasters_list <- calculate_percentage_changes(
 )
 gc()
 rm(predictionLandscapesLandUse)
-# Create spatial distribution figures of land-use change -------------------------------------------
 
-# Crop and mask the percentage change rasters to the desired continents IF APPLICABLE
+# IF CONTINENTS: Crop and mask the percentage change rasters to the desired continents
 cropped_rasters <- list()
 for (year in names(percentage_change_rasters_list)) {
   cropped_rasters[[year]] <- list()
@@ -497,8 +442,9 @@ for (year in names(percentage_change_rasters_list)) {
 rm(percentage_change_rasters_list)
 gc()
 
+# Create Figure: Spatial distribution of land-use type cover change (%) in extent -------------------------------------------
 # Create a custom color ramp with specified breakpoints
-custom_color_ramp <- colorRamp2(c(-100, 0, 100), c("blue", "yellow", "red"))
+custom_color_ramp <- circlize::colorRamp2(c(-100, 0, 100), c("blue", "yellow", "red"))
 
 # Set this flag to TRUE if you want continent-based plots, FALSE for global/region
 use_continents <- exists("continent_names") && length(continent_names) > 0
@@ -525,8 +471,8 @@ for (class in names(trainingLandscapesLandUse)) {
             fill_label = "Change in %  ",
             min_value = -100,
             max_value = 100,
-            coord_limits = coord_limits
-          ) + theme(legend.position = "none")
+            coord_limits = coord_limits) + 
+            theme(legend.position = "none")
           plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
         }
       } else {
@@ -568,15 +514,15 @@ for (class in names(trainingLandscapesLandUse)) {
     # Arrange plots
     if (use_continents) {
       num_continents <- length(continent_names)
-      combined_plot_spatial <- grid.arrange(
-        arrangeGrob(
+      combined_plot_spatial <- gridExtra::grid.arrange(
+        gridExtra::arrangeGrob(
           grobs = lapply(continent_names, function(continent) {
             textGrob(continent, gp = gpar(fontsize = 22))
           }),
           ncol = num_continents,
           heights = unit(c(0.5), "null")
         ),
-        arrangeGrob(
+        gridExtra::arrangeGrob(
           grobs = c(
             list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 22))),
             lapply(continent_names, function(continent) {
@@ -586,7 +532,7 @@ for (class in names(trainingLandscapesLandUse)) {
           ncol = num_continents + 1,
           widths = unit(c(0.5, rep(5, num_continents)), "null")
         ),
-        arrangeGrob(
+        gridExtra::arrangeGrob(
           grobs = c(
             list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 22))),
             lapply(continent_names, function(continent) {
@@ -599,9 +545,9 @@ for (class in names(trainingLandscapesLandUse)) {
         heights = unit(c(0.5, 5, 5), "null")
       )
     } else {
-      combined_plot_spatial <- grid.arrange(
+      combined_plot_spatial <- gridExtra::grid.arrange(
         grobs = lapply(seq_along(scenarios), function(i) {
-          arrangeGrob(
+          gridExtra::arrangeGrob(
             textGrob(scenario_names[i], gp = gpar(fontsize = 22)),
             plots_spatial[[scenarios[i]]],
             ncol = 1,
@@ -612,23 +558,8 @@ for (class in names(trainingLandscapesLandUse)) {
       )
     }
     
-    # Combine the plot and legend side by side
-    #    final_plot <- grid.arrange(
-    #      combined_plot_spatial,
-    #      arrangeGrob(
-    #        grobs = list(shared_legend),
-    #        ncol = 1
-    #      ),
-    #      ncol = 2,
-    #      widths = unit(c(15, 3), "null"),
-    #      top = textGrob(
-    #        paste0("Land Use Change for ", class, " in the ", extent_name, " (", baseline_year, " vs. ", year, ")"),
-    #        gp = gpar(fontsize = 24)
-    #      )
-    #    )
-    
     # Combine the plot and legend below
-    final_plot <- grid.arrange(
+    final_plot <- gridExtra::grid.arrange(
       combined_plot_spatial,
       shared_legend,
       ncol = 1,
@@ -640,7 +571,7 @@ for (class in names(trainingLandscapesLandUse)) {
     )
     
     # Save the combined plot
-    ggsave(
+    ggplot2::ggsave(
       filename = file.path(outputPathLandUse, paste0("LandUseSpatialChanges_", class, "_", year, "_", gsub(" ", "_", extent), ".png")),
       plot = final_plot,
       width = 15, height = 8, dpi = 300 # adjust according to plot arrangements
