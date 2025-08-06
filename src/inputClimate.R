@@ -5,6 +5,11 @@
 ## Date: August 5th 2025 ##
 
 # Input variables -------------------------------------------
+# Climatologies at high resolution for the earth’s land surface areas (CHELSEA) data provided by Karger et al. (2017 & 2021)
+# (Data availability: https://chelsa-climate.org/downloads/)
+# Define the file paths to downloaded and processed data
+basePathClim <- "data/CHELSA_Data"
+
 yearsOrigin <- c("2011-2040", "2041-2070", "2071-2100") # original in time periods"2011-2040", "2041-2070", "2071-2100"
 baseline_yearOrigin <- "1981-2010"
 
@@ -14,8 +19,6 @@ models <- c("gfdl-esm4", "ipsl-cm6a-lr", "mpi-esm1-2-hr", "mri-esm2-0", "ukesm1-
 # Map time periods to adapted years
 yearsMapping <- setNames(years, yearsOrigin)
 
-# Define the file paths
-basePathClim <- "data/CHELSA_gfdl-esm4_V.2.1"
 
 # Create environmental input Data (climate) as training landscapes (baseline) -------------------------------------------
 trainingLandscapesClim <- list()
