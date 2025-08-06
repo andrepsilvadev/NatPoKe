@@ -6,8 +6,8 @@
 
 # Settings & libraries -------------------------------------------
 # set working directory to NatPoKe folder
-source("NatPoKe1/src/libraries.R") # libraries
-source("NatPoKe1/src/customFunctions2.R") # functions
+source("src/libraries.R") # libraries
+source("src/customFunctions2.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
@@ -389,19 +389,6 @@ for (scenario in scenarios) {
     predictionLandscapesLandUse[[paste0(scenario, "_", year)]] <- raster
   }
 }
-plot(predictionLandscapesLandUse$ssp126_2030)
-# Load the training and prediction Landscapes -------------------------------------------
-trainingLandscapesLandUse <- file.path(outputPathLandscapes, paste0("trainingLandscapesLandUse_", baseline_year, ".tif"))
-trainingLandscapesLandUse <- terra::rast(trainingLandscapesLandUse)
-
-predictionLandscapesLandUse <- list()
-for (scenario in scenarios) {
-  for (year in years) {
-    raster_path <- file.path(outputPathLandscapes, paste0("predictionLandscapesLandUse_", scenario, "_", year, ".tif"))
-    raster <- terra::rast(raster_path)
-    predictionLandscapesLandUse[[paste0(scenario, "_", year)]] <- raster
-  }
-}
 
 # Calculate spatial percentage changes of LULC types -------------------------------------------
 # IF CONTINENTS: Transform and define continents geometries
@@ -563,7 +550,7 @@ for (class in names(trainingLandscapesLandUse)) {
       combined_plot_spatial,
       shared_legend,
       ncol = 1,
-      heights = unit(c(10, 2.5), "null"), #2.5 including country boundaries and area legend
+      heights = unit(c(11, 2.5), "null"), #2.5 including country boundaries and area legend
       top = textGrob(
         paste0("Land-Use Change of ", class, " Areas in the ", extent_name, " (", baseline_year, " vs. ", year, ")"),
         gp = gpar(fontsize = 24)
@@ -574,7 +561,7 @@ for (class in names(trainingLandscapesLandUse)) {
     ggplot2::ggsave(
       filename = file.path(outputPathLandUse, paste0("LandUseSpatialChanges_", class, "_", year, "_", gsub(" ", "_", extent), ".png")),
       plot = final_plot,
-      width = 15, height = 8, dpi = 300 # adjust according to plot arrangements
+      width = 18, height = 11, dpi = 300 # adjust according to plot arrangements
     )
   }
 }
