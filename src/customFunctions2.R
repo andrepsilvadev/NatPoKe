@@ -78,7 +78,6 @@ load_select_continents <- function(continent_names) {
 }
 
 # Function to intersect biome with continents
-#intersect_biome_with_continents <- function(biome_sf, continent_geoms) {
 intersect_extent_continents <- function(extent_sf, continent_geoms) {
   # Validate and fix geometries
   extent_sf <- st_make_valid(extent_sf)
@@ -94,11 +93,6 @@ intersect_extent_continents <- function(extent_sf, continent_geoms) {
   }), names(continent_geoms))
   
   return(biome_continents)
-}
-
-# Function to crop the biome boundaries to the continents
-crop_biome_to_continent <- function(biome, continent_geom) {
-  st_intersection(biome, continent_geom)
 }
 
 #####################################
@@ -191,7 +185,7 @@ plot_timeChanges <- function(mean_values_df, value_type, y_label) {
 }
 
 
-plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_label, min_value, max_value) {
+plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_label, min_value, max_value, coord_limits = NULL) {
   # Convert raster to data frame
   raster_df <- as.data.frame(raster, xy = TRUE)
   colnames(raster_df)[3] <- "value"  # Percentage change (%)
@@ -218,11 +212,20 @@ plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_lab
   # Create the plot
   plot <- ggplot(raster_df) +
     # Add extent boundary
-    geom_sf(data = extent_geom, aes(color = "Area"), show.legend = FALSE, fill = "lightgrey", size = 0.2) +
+    geom_sf(data = extent_geom, aes(color = "Area"), fill = "lightgrey", size = 0.2) +
     # Add country boundaries
-    geom_sf(data = overlapping_countries, aes(color = "Country Boundaries"), show.legend = FALSE, fill = NA, size = 0.2) +
+    geom_sf(data = overlapping_countries, aes(color = "Country Boundaries"), fill = NA, size = 0.2) +
     # Add raster data
     geom_tile(data = raster_df, aes(x = x, y = y, fill = value)) +
+    
+    # Define the color scale for the extent area and country boundaries
+    scale_color_manual(
+      name = NULL,
+      values = c("Country Boundaries" = "black", "Area" = "lightgrey"),
+      breaks = c("Country Boundaries", "Area"),  # Ensure these match the aes(color = ...) values
+      labels = c("Country Boundaries", "Area"),
+      guide = guide_legend(direction = "horizontal")
+    ) +
     # Define the color scale for the raster
     scale_fill_gradientn(name = fill_label, 
                          colors = color_ramp(seq(min_value, max_value, length.out = 101)),
@@ -239,14 +242,6 @@ plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_lab
                            barheight = unit(0.5, "cm")   # Adjust as needed
                          )
     ) +
-    # Define the color scale for the extent area and country boundaries
-    scale_color_manual(
-      name = NULL,
-      values = c("Country Boundaries" = "black", "Area" = "lightgrey"),
-      breaks = c("Country Boundaries", "Area"),  # Ensure these match the aes(color = ...) values
-      labels = c("Country Boundaries", "Area"),
-      guide = guide_legend(direction = "horizontal")
-    ) +
     theme(
       legend.position = "bottom",
       legend.box = "horizontal"  # <--- Ensures legends are in a horizontal box
@@ -256,15 +251,18 @@ plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_lab
     theme_minimal() +
     theme(
       axis.title = element_text(size = 18),
-      axis.text = element_text(size = 14),
+      axis.text = element_text(size = 15),
       plot.title = element_blank(),
       legend.title = element_text(size = 22, margin = ggplot2::margin(b = 10)),
       legend.text = element_text(size = 18),
       legend.key.height = unit(1, "cm"),  # Increase the height of the color ramp
-      legend.spacing = unit(1, "cm")
+      legend.spacing = unit(0.5, "cm")
     ) +
-    coord_sf()  # Use coord_sf() for spatial data
-  
+    if (!is.null(coord_limits)) {
+      coord_sf(xlim = coord_limits$xlim, ylim = coord_limits$ylim, expand = FALSE)
+    } else {
+      coord_sf()
+    }
   return(plot)
 }
 
@@ -544,7 +542,7 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
     theme_minimal() +
     theme(
       axis.title = element_text(size = 18),
-      axis.text = element_text(size = 18),
+      axis.text = element_text(size = 15),
       plot.title = element_blank(),
       legend.title = element_text(size = 22, margin = ggplot2::margin(b = 10)),
       legend.text = element_text(size = 18),
