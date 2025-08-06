@@ -4,8 +4,10 @@
 ## Date: August 5th 2025 ##
 
 # Input variables -------------------------------------------
-# Define the file paths
-basePathElev <- "data/wc2.1_30s_elev/wc2.1_30s_elev.tif" # Path to the elevation raster downloaded from WorldClim
+# Elevation data underlying WorldClim V2 by Fick and Hijmans (2017)
+# (Data availability: https://www.worldclim.org/data/worldclim21.html)
+# Define the file paths to the downloaded file
+basePathElev <- "data/wc2.1_30s_elev/wc2.1_30s_elev.tif"
 
 # Load the elevation raster -------------------------------------------
 elevation_raster <- terra::rast(basePathElev)
