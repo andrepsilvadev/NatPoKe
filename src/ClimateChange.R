@@ -2,12 +2,12 @@
 ## Authors: Jorinde-M. Rieger ##
 ## Description: Create figures: Projected changes in climatologies (bio1 & 12) for extent & Projected spatial changes in climatologies (bio1 & 12) for extent
 ## for the ssp126 and ssp585 scenarios for 2030, 2050, 2100 ##
-## Date: August 4th 2025 ##
+## Date: August 6th 2025 ##
 
 # Settings & libraries -------------------------------------------
-#setwd("/mnt/data/jorinde") # set working directory
-source("NatPoKe1/src/libraries.R") # libraries
-source("NatPoKe1/src/customFunctions2.R") # functions
+# set working directory
+source("src/libraries.R") # libraries
+source("src/customFunctions2.R") # functions
 
 # Input variables -------------------------------------------
 # Define input variables
@@ -37,23 +37,24 @@ models <- c("gfdl-esm4", "ipsl-cm6a-lr", "mpi-esm1-2-hr", "mri-esm2-0", "ukesm1-
 
 # Define extent
 # Tropical Biome
-extent <- "Tropical & Subtropical Moist Broadleaf Forests"
-extent_name <- "Tropical Biome"
-extent_sf <- load_biome(extent)
+# Tropical Biome
+extent <- "Tropical Biome"
+extent_name <- "Tropical & Subtropical Moist Broadleaf Forests"
+extent_sf <- load_biome(extent_name)
 continent_names <- c("Central & South America", "Africa", "Asia")
-continent_title <- c("Central & South America", "Africa", "Asia")
 continents_sf <- load_select_continents(continent_names)
 
 # Boreal Biome
-biome_name <- "Boreal Forests/Taiga"
-biome_name_short <- "Boreal Biome"
-extent_sf <- load_biome(extent)
-continent_names <- c("North America", "Europe")
-continent_title <- c("North America", "Europe & Asia")
+extent <- "Boreal Biome"
+extent_name <- "Boreal Forests/Taiga"
+extent_sf <- load_biome(extent_name)
+continent_names <- c("North America", "Europe & Asia")
 continents_sf <- load_select_continents(continent_names)
+continents_sf <- sf::st_wrap_dateline(continents_sf, options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"))
+continents_sf <- sf::st_make_valid(continents_sf)
 
 # Define the file paths
-basePathClim <- "data/CHELSA_gfdl-esm4_V.2.1"
+basePathClim <- "data/CHELSA_Data"
 outputPathLandscapes <- "output/Landscapes"
 if (!dir.exists(outputPathLandscapes)) {
   dir.create(outputPathLandscapes, recursive = TRUE)
@@ -118,7 +119,6 @@ stopCluster(cl)
 
 # Create prediction landscapes for climate variables
 predictionLandscapesClim <- list()
-
 for (scenario in scenarios) {
   for (yearOrigin in yearsOrigin) {
     raster_list <- list() # Create a list for each scenario-year combination
@@ -256,24 +256,19 @@ combined_plot_time <- gridExtra::grid.arrange(
 
 # Save the combined plot
 ggplot2::ggsave(
-  filename = file.path(outputPathClimate, "ClimateChange_time_", gsub(" ", "_", extent), ".png"),
+  filename = file.path(outputPathClimate, paste0("ClimateChange_time_", gsub(" ", "_", extent), ".png")),
   plot = combined_plot_time,
   width = 10, height = 6, dpi = 600
 )
 
 
 # Calculate and create spatially explicit Climate Change Maps -------------------------------------------
-# Set this flag to TRUE if you want continent-based plots, FALSE for global/region
-use_continents <- !is.null(continent_names) && length(continent_names) > 0
-
-if (use_continents) {
-  # transform, crop and mask the rasters to the continent geometries
-  continents_crs <- sf::st_transform(continents_sf, crs(trainingLandscapesClim))
-  continent_geoms <- setNames(lapply(continent_names, function(continent) {
-    continents_crs %>% dplyr::filter(continent == !!continent)
-  }), continent_names)
-  extent_continents <- intersect_extent_continents(extent_sf, continent_geoms) # Intersect the extent with the continents
-}
+# Transform, crop and mask the rasters to the continent geometries
+continents_crs <- sf::st_transform(continents_sf, crs(trainingLandscapesClim))
+continent_geoms <- setNames(lapply(continent_names, function(continent) {
+  continents_crs %>% dplyr::filter(continent == !!continent)
+}), continent_names)
+extent_continents <- intersect_extent_continents(extent_sf, continent_geoms) # Intersect the extent with the continents
 
 # Calculate changes and crop/mask
 for (variable in variables) {
@@ -284,23 +279,18 @@ for (variable in variables) {
       pred_raster <- pred_stack[[variable]]
       change_raster <- pred_raster - baseline_raster
       
-      if (use_continents) {
-        # Crop and mask to continents
-        change_rasters <- lapply(continent_geoms, function(continent_geom) {
-          crop_mask_continent(change_raster, continent_geom)
-        })
-        for (continent in names(change_rasters)) {
-          assign(paste0("Change_", scenario, "_", variable, "_", year, "_", tolower(continent)), change_rasters[[continent]])
-        }
-      } else {
-        # No continents: just assign the change raster
-        assign(paste0("Change_", scenario, "_", variable, "_", year, "_", extent_name), change_raster)
+      # Crop and mask to continents
+      change_rasters <- lapply(continent_geoms, function(continent_geom) {
+        crop_mask_raster(change_raster, continent_geom)
+      })
+      for (continent in names(change_rasters)) {
+        assign(paste0("Change_", scenario, "_", variable, "_", year, "_", tolower(continent)), change_rasters[[continent]])
       }
     }
   }
 }
 
-# Calculate min/max values for colour scale
+# Calculate min/max values for colour scale (across all continents)
 min_values <- list()
 max_values <- list()
 for (variable in variables) {
@@ -308,161 +298,109 @@ for (variable in variables) {
   max_value <- -Inf
   for (year in years) {
     for (scenario in scenarios) {
-      if (use_continents) {
-        for (continent in continent_names) {
-          raster_stack <- get(paste0("Change_", scenario, "_", variable, "_", year, "_", tolower(continent)))
-          min_value <- min(min_value, min(values(raster_stack), na.rm = TRUE))
-          max_value <- max(max_value, max(values(raster_stack), na.rm = TRUE))
-        }
-      } else {
-        raster_stack <- get(paste0("Change_", scenario, "_", variable, "_", year, "_", extent_name))
+      for (continent in continent_names) {
+        raster_stack <- get(paste0("Change_", scenario, "_", variable, "_", year, "_", tolower(continent)))
         min_value <- min(min_value, min(values(raster_stack), na.rm = TRUE))
         max_value <- max(max_value, max(values(raster_stack), na.rm = TRUE))
       }
     }
   }
-  min_values[[variable]] <- round(min_value)
-  max_values[[variable]] <- round(max_value)
-}
-
-# Create color ramps
-color_ramps <- list()
-for (i in seq_along(variables)) {
-  if (i <= 3) {
-    color_ramps[[variables[i]]] <- colorRamp2(
-      c(min_values[[variables[i]]], 0, max_values[[variables[i]]]),
-      c("blue", "white", "red")
-    )
-  } else {
-    color_ramps[[variables[i]]] <- colorRamp2(
-      c(min_values[[variables[i]]], 0, max_values[[variables[i]]]),
-      c("saddlebrown", "yellow", "darkgreen")
-    )
+  min_value <- round(min_value)
+  max_value <- ceiling(max_value)
+  
+  # Create Color ramp
+  if (variable == "bio1") {
+    color_ramp <- colorRamp2(c(min_value, 0, max_value), c("blue", "white", "red"))
+  } else if (variable == "bio12") {
+    color_ramp <- colorRamp2(c(min_value, 0, max_value), c("saddlebrown", "yellow", "darkgreen"))
   }
-}
-
-# Plotting
-for (variable in variables) {
-  for (year in years) {
-    for (scenario in scenarios) {
-      color_ramp <- color_ramps[[variable]]
-      var_idx <- which(variables == variable)
-      fill_label <- paste("Change in", value_units[var_idx], " ")
-      min_value <- min_values[[variable]]
-      max_value <- max_values[[variable]]
-      
-      plots_spatial <- list()
-      for (scenario in scenarios) {
-        if (use_continents) {
-          for (continent in continent_names) {
-            plot <- plot_ClimatespatialChanges(
-              raster = get(paste0("Change_", scenario, "_", variable, "_", year, "_", tolower(continent))),
-              extent_geom = extent_continents[[continent]],
-              color_ramp = color_ramp,
-              fill_label = fill_label,
-              min_value = min_value,
-              max_value = max_value
-            ) + theme(legend.position = "none")
-            plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
-          }
-        } else {
-          plot <- plot_ClimatespatialChanges(
-            raster = get(paste0("Change_", scenario, "_", variable, "_", year, "_", extent_name)),
-            extent_geom = extent_sf,
-            color_ramp = color_ramp,
-            fill_label = fill_label,
-            min_value = min_value,
-            max_value = max_value
-          ) + theme(legend.position = "none")
-          plots_spatial[[scenario]] <- plot
-        }
-      }
-      # Extract the legend
-      example_plot <- if (use_continents) {
-        plot_ClimatespatialChanges(
-          raster = get(paste0("Change_", scenarios[1], "_", variable, "_", year, "_", tolower(continent_names[1]))),
-          extent_geom = extent_continents[[continent_names[1]]],
-          color_ramp = color_ramp,
-          fill_label = fill_label,
-          min_value = min_value,
-          max_value = max_value
-        )
-      } else {
-        plot_ClimatespatialChanges(
-          raster = get(paste0("Change_", scenarios[1], "_", variable, "_", year, "_", extent_name)),
-          extent_geom = extent_sf,
-          color_ramp = color_ramp,
-          fill_label = fill_label,
-          min_value = min_value,
-          max_value = max_value
-        )
-      }      
-      shared_legend <- extract_legend(example_plot)
-      
-      # Combine plots
-      if (use_continents) {
-        num_continents <- length(continent_names)
-        combined_plot_spatial <- gridExtra::grid.arrange(
-          gridExtra::arrangeGrob(
-            grobs = lapply(continent_title, function(continent) {
-              textGrob(continent, gp = gpar(fontsize = 22))
-            }),
-            ncol = num_continents,
-            heights = unit(c(0.5), "null")
-          ),
-          gridExtra::arrangeGrob(
-            grobs = c(
-              list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 22))),
-              lapply(continent_names, function(continent) {
-                plots_spatial[[paste0(scenarios[1], "_", tolower(continent))]]
-              })
-            ),
-            ncol = num_continents + 1,
-            widths = unit(c(0.5, rep(5, num_continents)), "null")
-          ),
-          gridExtra::arrangeGrob(
-            grobs = c(
-              list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 22))),
-              lapply(continent_names, function(continent) {
-                plots_spatial[[paste0(scenarios[2], "_", tolower(continent))]]
-              })
-            ),
-            ncol = num_continents + 1,
-            widths = unit(c(0.5, rep(5, num_continents)), "null")
-          ),
-          heights = unit(c(0.5, 5, 5), "null")
-        )
-      } else {
-        combined_plot_spatial <- gridExtra::grid.arrange(
-          grobs = lapply(seq_along(scenarios), function(i) {
-            gridExtra::arrangeGrob(
-              textGrob(scenario_names[i], gp = gpar(fontsize = 22)),
-              plots_spatial[[scenarios[i]]],
-              ncol = 1,
-              heights = unit(c(0.5, 5), "null")
-            )
-          }),
-          ncol = length(scenarios)
-        )
-      }
-      # Combine plot and legend (legend below)
-      final_plot <- gridExtra::grid.arrange(
-        combined_plot_spatial,
-        shared_legend,
-        ncol = 1,
-        heights = unit(c(10, 2.5), "null"), #2.5 including country boundaries and area legend
-        top = textGrob(
-          paste0(variable_names[var_idx], " ", fill_label, " for the ", extent_name, " (", baseline_year, " vs. ", year, ")"),
-          gp = gpar(fontsize = 24)
-        )
+  fill_label <- paste("Change in", value_units[which(variables == variable)], " ")
+  
+  # Prepare plot grobs for all scenarios and years
+  plots_spatial <- list()
+  for (scenario in scenarios) {
+    for (continent in continent_names) {
+      coord_limits <- switch(
+        continent,
+        "North America" = list(xlim = c(-180, -40), ylim = c(20, 75)),
+        "Europe & Asia" = list(xlim = c(-40, 200), ylim = c(20, 75)), #c(-40, 180), ylim = c(20, 75))
+        NULL  # fallback
       )
-      
-      # Save the plot
-      ggplot2::ggsave(filename = file.path(outputPathClimate,
-                                           paste0("ClimateSpatialChange_", variable, year, "_", gsub(" ", "_", extent_name), ".png")),
-                      plot = final_plot,
-                      width = 15, height = 8, dpi = 300)
+      plot <- plot_ClimatespatialChanges(
+        raster = get(paste0("Change_", scenario, "_", variable, "_", year, "_", tolower(continent))),
+        extent_geom = extent_continents[[continent]],
+        color_ramp = color_ramp,
+        fill_label = fill_label,
+        min_value = min_value,
+        max_value = max_value,
+        coord_limits = coord_limits) +
+        theme(legend.position = "none")
+      plots_spatial[[paste0(scenario, "_", tolower(continent))]] <- plot
     }
   }
+  
+  # Extract the legend from one of the plots
+  example_plot <- plot_ClimatespatialChanges(
+    raster = get(paste0("Change_", scenarios[1], "_", variable, "_", year, "_", tolower(continent_names[1]))),
+    extent_geom = extent_continents[[continent_names[1]]],
+    color_ramp = color_ramp,
+    fill_label = fill_label,
+    min_value = min_value,
+    max_value = max_value
+  )
+  shared_legend <- extract_legend(example_plot)
+  
+  # Combine plots: column titles (continents), row labels (scenarios)
+  num_continents <- length(continent_names)
+  combined_plot_spatial <- gridExtra::grid.arrange(
+    gridExtra::arrangeGrob(
+      grobs = lapply(continent_names, function(continent) {
+        textGrob(continent, gp = gpar(fontsize = 22))
+      }),
+      ncol = num_continents,
+      heights = unit(c(0.5), "null")
+    ),
+    gridExtra::arrangeGrob(
+      grobs = c(
+        list(textGrob(scenario_names[1], rot = 90, gp = gpar(fontsize = 22))),
+        lapply(continent_names, function(continent) {
+          plots_spatial[[paste0(scenarios[1], "_", tolower(continent))]]
+        })
+      ),
+      ncol = num_continents + 1,
+      widths = unit(c(0.5, rep(5, num_continents)), "null")
+    ),
+    gridExtra::arrangeGrob(
+      grobs = c(
+        list(textGrob(scenario_names[2], rot = 90, gp = gpar(fontsize = 22))),
+        lapply(continent_names, function(continent) {
+          plots_spatial[[paste0(scenarios[2], "_", tolower(continent))]]
+        })
+      ),
+      ncol = num_continents + 1,
+      widths = unit(c(0.5, rep(5, num_continents)), "null")
+    ),
+    heights = unit(c(0.5, 5, 5), "null")
+  )
+  
+  # Combine plot and legend (legend below)
+  final_plot <- gridExtra::grid.arrange(
+    combined_plot_spatial,
+    shared_legend,
+    ncol = 1,
+    heights = unit(c(11, 2.5), "null"),
+    top = textGrob(
+      paste0(variable_names[which(variables == variable)], " ", fill_label, " (", baseline_year, " vs. ", year, ")"),
+      gp = gpar(fontsize = 24)
+    )
+  )
+  
+  # Save the plot
+  ggplot2::ggsave(
+    filename = file.path(outputPathClimate,
+                         paste0("ClimateSpatialChange_", variable, year, "_", extent, ".png")),
+    plot = final_plot,
+    width = 18, height = 11, dpi = 300
+  )
 }
 gc()
