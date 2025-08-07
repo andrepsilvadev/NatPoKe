@@ -1,1 +1,12 @@
+# input folder structure
 
+**Input data preparation**
+  - `TaxaOccurrence.R` <- Downloads taxa occurrence of multiple species from GBIF Database
+  
+  - `inputClimate.R` <- Applies functions to calculate input data (temperature and precipitation) for SDMRun.R
+
+  - `inputElev.R` <- Processes elevation data as input for training and prediction landscapes for SDMRun.R
+
+  - `inputLandUse.R` <- Applies functions to calculate land-use input data on defined extent for SDMRun.R for the ssp126 and ssp585 scenarios in various years
+
+<br>
