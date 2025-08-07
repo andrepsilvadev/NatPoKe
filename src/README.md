@@ -13,6 +13,8 @@
   
  -  `customFunctions.R` - load created functions necessary throughout the pipeline
 
+ -  `customFunctions2.R` - load created functions necessary for inputClimate.R, inputLandUse.R, inputElev.R, SDMRun.R, ClimateChange.R, LandUseChange.R
+
 <br>
 
 **Input data preparation**
@@ -22,11 +24,6 @@
 
   - `inputFiles.R` - download and crop global suitability raster files for multiple species in a designated biome and region, from the SRIT Database google drive *THIS WILL PROBABLY BE DEPRECATED IN THE NEAR FUTURE*
  
-  - `TaxaOccurence.R` <- download taxa occurrence of multiple species from GBIF Database
-  
-  - `inputSpeciesData.R` <- cleans species occurrence data, one species per grid cell, filters by year
-  
-  - `inputClimate.R` <- calculates environmental input data (bioclimates) in various time periods, builds training and prediction landscapes
 
 <br>
 
@@ -40,11 +37,11 @@
 
 **Output Manipulation & Visualizations**
 
-  - `ClimateChange.R` <- calculates spatially explicit bioclimatic changes in biomes
+  - `ClimateChange.R` <- calculates bioclimatic changes over time and spatially explicit bioclimatic changes in biomes
   
-  -  `LandUseChange.R` <- calculates land-use changes over time and spatially explicit changes in percent
+  -  `LandUseChange.R` <- calculates land-use changes over time and spatially explicit changes in percent in biomes
   
-  -  `SDMRun.R` <- creates outputs of species distribution modeling, Species presence points, Evaluation plots for ensemble model evaluation, current and future suitability landscapes for multiple species
+  -  `SDMRun.R` <- creates outputs of species distribution modeling (SDM.R), Species presence points, Evaluation plots for ensemble model evaluation, current and future suitability landscapes for multiple species
 
   - `meanTraitValuesAcrossReplicates.R` <- averages all rasters across replicates for each trait, species and timestep
 
