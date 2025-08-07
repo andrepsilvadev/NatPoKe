@@ -31,7 +31,6 @@ variables <- c("bio1", # mean annual air temperature
 
 # Define years
 years <- c(2030, 2050, 2100)
-years <- c(2030, 2050)
 baseline_year <- 2015
 
 # Define the target resolution
@@ -49,9 +48,9 @@ if (!dir.exists(outputPathLandscapes)) {
 
 # When using the pipeline for the first time run on global extent:-----------------------------------------------------------------
 # Format training and prediction Landscape
-source("NatPoKe/src/inputClimate.R") # format and reads input climate raster landscapes, adapt: scenarios, years & variables
-source("NatPoKe/src/inputLandUse.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
-source("NatPoKe/src/inputElev.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
+source("input/inputClimate.R") # format and reads input climate raster landscapes, adapt: scenarios, years & variables
+source("input/inputLandUse.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
+source("input/inputElev.R") # format and reads input land-use raster landscapes, adapt: scenarios, years & variables
 
 # Define file paths and load training landscapes
 trainingLandscapesClim <- file.path(outputPathLandscapes, paste0("trainingLandscapesClim_", baseline_year, "_5km.tif"))
@@ -192,21 +191,6 @@ targetSpecies <- c("Alces alces", "Bison bonasus", "Cervus elaphus", "Sus scrofa
 "Ursus arctos", "Canis lupus", "Rangifer tarandus", "Puma concolor", "Bison bison", "Panthera onca",
 "Crocuta crocuta", "Mandrillus sphinx", "Panthera pardus", "Syncerus caffer", "Acinonyx jubatus",
 "Panthera leo", "Connochaetes taurinus", "Loxodonta africana")
-
-# Function to remove species duplicates by cell ID
-removeSpeciesDuplicatesbyCellID <- function (dataframe) {
-  SpeciesDataOcc <- dataframe %>%
-    drop_na(cell) %>%
-    group_by(species, cell) %>%
-    slice_max(year, with_ties = FALSE) %>%  # Keep most recent record per species-cell
-    ungroup() %>%
-    distinct(species, cell, year, .keep_all = TRUE) %>%  # Ensure unique species-cell-year
-    arrange(species, cell, year)
-  # Format numeric columns to have at least 5 decimal digits
-  numeric_cols <- sapply(SpeciesDataOcc, is.numeric)
-  SpeciesDataOcc[numeric_cols] <- lapply(SpeciesDataOcc[numeric_cols], function(x) round(x, 5))
-  return(SpeciesDataOcc)
-}
 
 # Implement the for loop for single species apply to SDM function
 SDMresults <- list() # Initialize an empty list to store results for each species
