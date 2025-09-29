@@ -24,7 +24,7 @@
 
 
 # RANDOM DUMMY MISTAKES TO AVOID
-    ## 1 - species names CANNOT have spaces or "_"
+    ## 1 - species names CANNOT have spaces or "_", but "." is ok!
     ## 2 - species for which we do not have a suitability raster cannot be in the .csv file
     ## 3 - max_dispersal_dist HAS to be an INTEGRER! So I added as.integer() into that line 
     ## 4 - when this "self$sim$environment$current[[species_suitability_name]]" appears make sure species_suitability is the EXACT same name as the name of the raster imported with sds()
@@ -37,6 +37,13 @@
 
 # import species traits df
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+
+# biome
+if (target_biome == "Tropical & Subtropical Moist Broadleaf Forests") {
+  biome <- "tropical"
+} else if (target_biome == "Boreal Forests/Taiga") {
+  biome <- "boreal"
+}
 
 # clean target biome and region names (removes special characters like /, &, and space)
 target_biome <- gsub("[/& ]", "", target_biome)
@@ -57,6 +64,7 @@ set_verbosity(2L) # 0L = silent, 1L = progress updates, 2L =  debug
 options(scipen = 999) # prevents scientific notation for large numbers
 set.seed(1) # reproducibility
 
+
 ##########
 # Step 2 # RUN THE METARANGE MODEL FOR MAMMAL SPECIES
 ##########
@@ -67,9 +75,9 @@ for (replicateN in 1:n_replicates) {
   
   sim_name <- paste0(replicateN, "_", str_replace_all(target_biome, " ", ""), "_", target_region, "_Mammals")
   sim_env <- sds(list.files(dirinput,
-                            pattern = "_cropped_modified_reprojectedKm.tif", full.names = TRUE))
+                            pattern = paste0("_", biome, "_", scenario, "_cropped_reprojectedKm.tif"), full.names = TRUE))
   invisible(gc())
-
+  
   # Step 2 # Create a simulation object 
   
   sim <- create_simulation(sim_env,
@@ -144,7 +152,7 @@ for (replicateN in 1:n_replicates) {
       species = species_names,
       process_name = "suitability_influence_population_parameter",
       process_fun = function() {
-        species_suitability_name <- paste0(self$name, "_suitability_cropped_modified_reprojectedKm")
+        species_suitability_name <- paste0(self$name, "_", biome, "_", scenario, "_cropped_reprojectedKm")
         
         self$traits[["carryingCapacity"]] <-
           self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -179,7 +187,7 @@ for (replicateN in 1:n_replicates) {
         # i.e. individuals disperse more likely into more suitable cells
         abundance_after <- dispersal(
                   abundance = self$traits[["abundance"]],
-                  weights = self$sim$environment$current[[paste0(self$name, "_suitability_cropped_modified_reprojectedKm")]],
+                  weights = self$sim$environment$current[[paste0(self$name, "_", biome, "_", scenario, "_cropped_reprojectedKm")]],
                   dispersal_kernel = self$traits[["dispersalKernel"]])
         
         # adding randomness?
