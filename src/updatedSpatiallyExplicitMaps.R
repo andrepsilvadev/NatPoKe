@@ -10,7 +10,7 @@
 
 library(here)
 source(here("src", "libraries.R"))
-source(here("src", "customFunctions.R"))
+source(here("src", "customFunctions2.R"))
 
 ##########
 # Step 1 # Prepare & build maps insets for better visualisation 
@@ -21,54 +21,39 @@ regions <- c("Europe", "North America", "South America", "Africa", "Asia")
 world <- ne_countries(scale = "medium", returnclass = "sf")
 unique(world$continent)
 
-region_sfs <- list()
-# Loop through each region
-for (region in regions) {
-  # Filter the world map for the current region
-  region_sf <- world[world$continent == region,] %>% 
-    dplyr::select(continent, geometry)
-  region_sfs[[region]] <- st_transform(region_sf, crs = "ESRI:54030")
-}
 
-# work on flat earth
-sf_use_s2(FALSE) 
+# turn off s2 geometry (like before)
+sf_use_s2(FALSE)
 
-# load biome shapefile
-biome_sf <- st_read(here("data/Ecoregions2017", "Ecoregions2017.shp"))
-
-# adapt Jorinde's functions
-get_biome <- function(biome_name) {
-  biome_sf[biome_sf$BIOME_NAME == biome_name, ] %>%
-    group_by(BIOME_NAME) %>%
-    summarise(geometry = st_union(geometry))
-}
-
-get_continent <- function(continent_name) {
-  ne_countries(scale = "medium", returnclass = "sf") %>%
-    filter(continent == continent_name) %>%
-    group_by(continent) %>%
-    summarise(geometry = st_union(geometry))
-}
-
-crop_biome <- function(biome_name, continent_name) {
-  st_intersection(get_biome(biome_name), get_continent(continent_name))
-}
-
-# define a tasks list
+# define your tasks list (biome, continent pairs)
 tasks <- list(
-  asia_trop = c("Tropical & Subtropical Moist Broadleaf Forests", "Asia"),
+  asia_trop        = c("Tropical & Subtropical Moist Broadleaf Forests", "Asia"),
   southAmerica_trop = c("Tropical & Subtropical Moist Broadleaf Forests", "South America"),
-  africa_trop = c("Tropical & Subtropical Moist Broadleaf Forests", "Africa"),
+  africa_trop      = c("Tropical & Subtropical Moist Broadleaf Forests", "Africa"),
   northAmerica_bor = c("Boreal Forests/Taiga", "North America"),
-  europe_bor = c("Boreal Forests/Taiga", "Europe")
+  europe_bor       = c("Boreal Forests/Taiga", "Europe")
 )
 
-# run those tasks all at once (much cleaner than before)
-results <- lapply(tasks, function(x) crop_biome(biome_name = x[1], continent_name = x[2]))
-list2env(results, .GlobalEnv)  # Optional: assign each result to a named object
-results$asia_trop
+region_sfs <- list()
 
+for (nm in names(tasks)) {
+  biome_name     <- tasks[[nm]][1]
+  continent_name <- tasks[[nm]][2]
+  
+  # load biome and continent geometries for this task
+  biome_sf     <- load_biome(biome_name = biome_name)
+  continent_sf <- load_select_continents(continent_names = continent_name)
+  
+  # crop biome to continent
+  region_sfs[[nm]] <- crop_biome_to_continent(biome_sf, continent_sf)%>%
+    summarise(geometry = st_union(geometry))
+}
 
+# optional: unpack into the global environment
+list2env(region_sfs, .GlobalEnv)
+plot(region_sfs$asia_trop)
+
+plot(region_sfs$southAmerica_trop)
 
 # south america inset - continent + tropical forests ---------------------------
 southamerica_plot <- ggplot() +
@@ -121,20 +106,50 @@ northamerica_plot <- ggplot() +
 ##########
 # Step 2 # list all directories with outputs to map SSP5
 ##########
+# Boreal Forests ---------------------------------------------------------------
 
-# IF I HAVE MORE RUNS (e.g. DIFF SSP RUNS) JUST MAKE SURE THAT IS IN THE RUN NAME
+## Europe SSP5
+europe_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp585/Outputs"
+## Europe SSP1
+europe_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp126/Outputs"
 
-europe_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_EuropeRobinson/Outputs"
-northAmerica_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_NorthAmericaRobinson/Outputs"
-southAmerica_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_SouthAmericaRobinson/Outputs"
-africa_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_AfricaRobinson/Outputs"
-asia_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/28Mar2025_AsiaRobinson/Outputs"
+## North America SSP5
+northAmerica_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_NorthAmerica_ssp585/Outputs" 
+
+## North America SSP1
+northAmerica_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_NorthAmerica_ssp126/Outputs"
+
+
+# Tropical Moist Forests -------------------------------------------------------
+
+## Asia SSP5
+asia_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Asia_ssp585/Outputs"
+## Asia SSP1
+asia_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Asia_ssp126/Outputs"
+## Africa SSP5
+africa_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Africa_ssp585/Outputs"
+## Africa SSP1
+africa_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Africa_ssp126/Outputs"
+
+
+## South America SSP5
+southAmerica_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_SouthAmerica_ssp585/Outputs"
+## South America SSP1
+southAmerica_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_SouthAmerica_ssp126/Outputs"
+invisible(gc())
 
 # all directories
-directories <- c(europe_SSP5, asia_SSP5, africa_SSP5, southAmerica_SSP5, northAmerica_SSP5)
+directories <- c(europe_SSP5, asia_SSP5, africa_SSP5, southAmerica_SSP5, northAmerica_SSP5,
+                 europe_SSP1, asia_SSP1, africa_SSP1, southAmerica_SSP1, northAmerica_SSP1)
 
 # get every species that was modeled for the outputs
-target_species <- c("Alcesalces", "Lynxlynx", "Canislupus", "Susscrofa", "Rangifertarandus", "Odocoileusvirginianus", "Cervuselaphus", "Damadama", "Lynxrufus", "Crocutacrocuta", "Pantheraleo", "Pantheratigris", "Pumaconcolor", "Callithrixjacchus", "Nasuanasua")
+target_species <- c("Alces alces",
+                    "Bison bonasus", "Cervus elaphus", "Sus scrofa", 
+                    "Lynx rufus", "Canis lupus", "Rangifer tarandus",
+                    "Gorilla gorilla", "Orycteropus afer", "Pan troglodytes", 
+                    "Panthera onca", "Crocuta crocuta", "Syncerus caffer",
+                    "Panthera leo","Loxodonta africana","Puma concolor")
+target_species <- gsub(" ", ".", target_species)
 
 ##########
 # Step 3 # transform rasters
@@ -143,48 +158,60 @@ target_species <- c("Alcesalces", "Lynxlynx", "Canislupus", "Susscrofa", "Rangif
 # Initialize an empty list to store final dataframes
 all_final_data <- list()
 
+#dir <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp585/Outputs" 
+
+all_final_data <- list()
+
 # Loop through each directory
 for (dir in directories) {
-  # Initialize an empty list to store dataframes for the current directory
+  
   dir_data <- list()
   
-  # Loop through each species within the directory
+  # Loop through each species
   for (target_sps in target_species) {
-    # Import abundance raster for timestep 101
-    sps101_files <- list.files(path = dir,
-                               pattern = paste0(".*101_", target_sps, "_abundance\\.tif"),
-                               full.names = TRUE)
-    if (length(sps101_files) > 0) {
-      sps101 <- rast(sps101_files)
-      sps101_df <- as.data.frame(sps101, xy = TRUE) %>%
-        mutate(timestep = 101, species = target_sps)
-      dir_data[[paste(target_sps, "101", sep = "_")]] <- sps101_df
+    
+    for (timestep in c(101, 235)) {
+      
+      # list all rasters for this species & timestep (handles replicates)
+      sps_files <- list.files(path = dir,
+                              pattern = paste0(".*", timestep, "_", target_sps, "_abundance\\.tif"),
+                              full.names = TRUE)
+      
+      if (length(sps_files) > 0) {
+        # import all replicates as a SpatRaster
+        sps_stack <- rast(sps_files)
+        
+        # compute mean across replicates
+        sps_mean <- app(sps_stack, mean, na.rm = TRUE)
+        
+        # convert to dataframe with xy coordinates
+        sps_df <- as.data.frame(sps_mean, xy = TRUE) %>%
+          mutate(timestep = timestep,
+                 species = target_sps)
+        
+        # store in the directory list
+        dir_data[[paste(target_sps, timestep, sep = "_")]] <- sps_df
+      }
+      
     }
     
-    # Import abundance raster for timestep 125
-    sps125_files <- list.files(path = dir,
-                               pattern = paste0(".*125_", target_sps, "_abundance\\.tif"),
-                               full.names = TRUE)
-    if (length(sps125_files) > 0) {
-      sps125 <- rast(sps125_files)
-      sps125_df <- as.data.frame(sps125, xy = TRUE) %>%
-        mutate(timestep = 125, species = target_sps)
-      dir_data[[paste(target_sps, "125", sep = "_")]] <- sps125_df
-    }
   }
   
-  # Combine all dataframes for the current directory into a single dataframe
+  # Combine all species & timesteps into a single dataframe
   final_df <- bind_rows(dir_data)
   
-  # Extract the second-to-last folder name as the key
-  folder_names <- strsplit(dir, "/")[[1]] #split path into each folder name.
-  short_dir_name <- folder_names[length(folder_names) - 1] #get the second to last.
+  # Extract second-to-last folder name as key
+  folder_names <- strsplit(dir, "/")[[1]]
+  short_dir_name <- folder_names[length(folder_names) - 1]
   
-  # Store the final dataframe in the all_final_data list, using the directory path as the name
+  # Store in the master list
   all_final_data[[short_dir_name]] <- final_df
 }
 
-unique(all_final_data$`28Mar2025_EuropeRobinson`$species)
+
+#all_final_data$`13Sep_Europe_ssp585`
+#summary(all_final_data$`13Sep_Europe_ssp585`)
+#unique(all_final_data$`13Sep_Europe_ssp585`$species)
 
 ##########
 # Step 4 # Calculate Shannon index change **per functional group**
@@ -194,7 +221,9 @@ Shannon_indexes <- list()
 
 # call combined trait data to get trophic levels
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
-  mutate(sci_name = gsub("[/& ]", "",sci_name))
+  mutate(sci_name = gsub("[/& ]", ".",sci_name))
+
+#dir_name <- "13Sep_Europe_ssp585"
 
 # going trhough each scenario+region
 for (dir_name in names(all_final_data)) { 
@@ -212,7 +241,7 @@ for (dir_name in names(all_final_data)) {
   # go through each trophic level in each scenario+region
   for (troph in unique(df$trophic_level)) {
     troph_df <- df %>%
-      dplyr::filter(trophic_level == troph, lyr1 != 0)
+      dplyr::filter(trophic_level == troph, mean != 0)
     
     # get the sps names used in that specific trophic group
     species_used <- unique(troph_df$species)
@@ -224,19 +253,19 @@ for (dir_name in names(all_final_data)) {
     troph_df <- troph_df %>%
       group_by(timestep, x, y) %>%
       dplyr::mutate(
-        p_i = lyr1 / sum(lyr1),
+        p_i = mean / sum(mean),
         ln_p_i = ifelse(p_i > 0, log(p_i), 0)
       ) %>%
       dplyr::summarize(
         Shannon_Wiener_Index = -sum(p_i * ln_p_i),
         .groups = "drop"
       ) %>%
-      # calculate the change in realtion to the first equilibrium timestep
-      group_by(x, y) %>%
-      mutate(
-        Shannon_change = Shannon_Wiener_Index - Shannon_Wiener_Index[timestep == 101]
-      ) %>%
-      dplyr::filter(timestep == 125)
+      # keep only what you need
+      select(x, y, timestep, Shannon_Wiener_Index) %>%
+      # reshape wide by timestep
+      pivot_wider(names_from = timestep, values_from = Shannon_Wiener_Index, names_prefix = "t") %>%
+      # compute change (t235 - t101), automatically NA if one is missing
+      mutate(Shannon_change = t235 - t101)
     
     invisible(gc())
     
@@ -245,6 +274,7 @@ for (dir_name in names(all_final_data)) {
     invisible(gc())
   }
 }
+
 
 # check results
 #Shannon_indexes$`28Mar2025_EuropeRobinson`$Herbivore
@@ -262,12 +292,14 @@ for (region in names(Shannon_indexes)) {
   # go through the trophic levels (functional groups) in the scenario+region
   for (troph in names(Shannon_indexes[[region]])) {
     
-    df <- Shannon_indexes_[[region]][[troph]]
+    df <- Shannon_indexes[[region]][[troph]]
     
     # make the plot
     p <- ggplot() +
       geom_tile(data = df, aes(x = x, y = y, fill = Shannon_change)) +
-      scale_fill_viridis_c(name = "Shannon's Index\nChange", limits = c(-0.5, 0.5), na.value = "transparent") +
+      scale_fill_viridis_c(name = "Shannon's Index\nChange",
+                           #limits = c(-0.5, 0.5), na.value = "transparent"
+                           ) +
       labs(x = "Longitude", y = "Latitude", 
            title = paste(region, "-", troph)) +
       theme_minimal() +
@@ -277,12 +309,46 @@ for (region in names(Shannon_indexes)) {
     all_plots[[paste(region, troph, sep = "_")]] <- p
     
     # save directly to a .tiff file
-    # ggsave(filename = paste0("plots/", region, "_", troph, "_ShannonChange.tif"),
-            # plot = p,
-            # bg = 'white', width = 250, height = 300, units = "mm", dpi = 1200, compression = "lzw")
+    #ggsave(filename = paste0("./output/", region, "_", troph, "_ShannonChange.tif"),
+     #   plot = p,
+      #  bg = 'white', width = 250, height = 300, units = "mm", dpi = 1200, compression = "lzw")
   }
 }
 
+df <- Shannon_indexes[["13Sep_Africa_ssp126"]][["Herbivore"]]
+
+
+# get African country polygons
+africa <- ne_countries(continent = "Africa", scale = "medium", returnclass = "sf")
+
+ggplot() +
+  # raster layer
+  geom_tile(data = df, aes(x = x, y = y, fill = Shannon_change)) +
+  # country borders
+  geom_sf(data = africa, fill = NA, color = "black", linewidth = 0.3) +
+  # color scale
+  scale_fill_viridis_c(
+    name = "Shannon's Index\nChange"
+    #, limits = c(-0.5, 0.5), na.value = "transparent"
+  ) +
+  labs(x = "Longitude", y = "Latitude",
+       title = paste(region, "-", troph)) +
+  # Robinson projection (EPSG:54030)
+  coord_sf(crs = "+proj=robin") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+
+
+all_plots$`13Sep_Africa_ssp585_Herbivore`
+all_plots$`13Sep_Europe_ssp585_Herbivore`
+all_plots$`13Sep_Asia_ssp585_Omnivore`
+all_plots$`13Sep_Asia_ssp126_Omnivore`
+all_plots$`13Sep_Asia_ssp585_Carnivore`
+all_plots$`13Sep_Africa_ssp126_Herbivore`
 # check results
 #all_plots$`28Mar2025_EuropeRobinson_Herbivore`
 
