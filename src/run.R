@@ -8,32 +8,48 @@
 source("./src/libraries.R")            # Load necessary packages
 source("./src/customFunctions.R")      # Load customized functions
 
-runname <- "13May_Europe_Robinson"   # Unique id for the run e.g. date_region_scenario
+runname <- "13Sep_SouthAmerica_ssp585"   # Unique id for the run e.g. date_region_scenario
 source("./src/generalSettings.R")      # Load paths and spatial settings
 
 
 # Input Selection --------------------------------------------------------------
 
 ## Select Target Biome (choose one)
-target_biome <- "Boreal Forests/Taiga" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
+target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
 
 ## Select Target Region (choose one)
-target_region <- "Europe" # Options: "North America", "South America", "Europe", "Asia", "Africa"
+target_region <- "South America" # Options: "North America", "South America", "Europe", "Asia", "Africa"
 
 ## Select scenario
-scenario <- "SSP1"
+scenario <- "ssp585"
 
 ## Select Target Species (multiple allowed with spaces)
 target_species <- c(
-  "Alces alces",
-  "Lynx lynx")
+  #"Alces alces",
+  #"Bison bonasus", "Cervus elaphus", 
+  #"Sus scrofa", 
+  #"Lynx rufus",
+  #"Canis lupus",
+  #"Rangifer tarandus",
+  #"Gorilla gorilla", "Orycteropus afer", "Pan troglodytes", 
+  #"Panthera onca", 
+  #"Crocuta crocuta", "Syncerus caffer",
+  #"Panthera leo"
+  #,"Loxodonta africana"
+  "Puma concolor")
 
-# Prepare & Load Species Data --------------------------------------------------
+# Prepare & Load Input Data ----------------------------------------------------
 
+## create species traits dataframe
 source("./src/mammalMetaRangeSpeciesDataframe.R")
 
-#source("./src/inputFiles.R")
-source("./src/inputFiles_Robinson.R")
+## build Species Distribution Models & save output rasters
+#source("./src/SDM.R")
+
+## transform SDM outputs into input data for MetaRange model
+source("./src/environmentalLayers.R")
+
+# Run MetaRange Model ----------------------------------------------------------
 
 source("./src/mammalModel.R")
 
