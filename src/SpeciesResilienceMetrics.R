@@ -11,69 +11,36 @@ source("./src/customFunctions.R")
 # Step 1 # Get all the data
 ##########
 
-runsFolder <- "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/trial_runs"
-
-
 # Boreal Forests ---------------------------------------------------------------
 
 ## Europe SSP5
-europe_SSP5 <- fread(file.path(runsFolder, "26Mar2025_Europe/Outputs/TNIND_yr_26Mar2025_Europe.csv")) %>% 
-  mutate(scenario = "SSP5",
-         Biome = case_when(Biome == "Boreal Forests Taiga" ~ "BorealForestsTaiga"),
-         Region = "Europe")
-
-colnames(europe_SSP5) <- c("TNIND", "biome", "region", "species", "timestep", "scenario")
-
+europe_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp585/Outputs/TNIND_yr_13Sep_Europe_ssp585.csv")
 ## Europe SSP1
-europe_SSP1 <- fread(file.path(runsFolder, "23April_Europe/Outputs/TNIND_yr_23April_Europe.csv")) %>% 
-  dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario")
-
-
+europe_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp126/Outputs/TNIND_yr_13Sep_Europe_ssp126.csv")
 
 ## North America SSP5
-northamerica_SSP5 <- fread(file.path(runsFolder, "27Mar2025_NorthAmerica/Outputs/TNIND_yr_27Mar2025_NorthAmerica.csv")) %>% 
-  mutate(scenario = "SSP5",
-         biome = case_when(biome == "oreal Forests Taiga" ~ "BorealForestsTaiga")) 
+northamerica_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_NorthAmerica_ssp585/Outputs/TNIND_yr_13Sep_NorthAmerica_ssp585.csv") 
 
 ## North America SSP1
-northamerica_SSP1 <- fread(file.path(runsFolder, "23April_NorthAmerica/Outputs/TNIND_yr_23April_NorthAmerica.csv")) %>% 
-  dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario") %>% 
-  mutate(scenario = "SSP1")
+northamerica_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_NorthAmerica_ssp126/Outputs/TNIND_yr_13Sep_NorthAmerica_ssp126.csv")
 
 
 # Tropical Moist Forests -------------------------------------------------------
 
 ## Asia SSP5
-asia_SSP5 <- fread(file.path(runsFolder, "27Mar2025_Asia/Outputs/TNIND_yr_27Mar2025_Asia.csv")) %>% 
-  mutate(scenario = "SSP5",
-         biome = case_when(biome == "Tropical Subtropical Moist Broadleaf Forests" ~ "TropicalSubtropicalMoistBroadleafForests"))
-
+asia_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Asia_ssp585/Outputs/TNIND_yr_13Sep_Asia_ssp585.csv")
 ## Asia SSP1
-asia_SSP1 <- fread(file.path(runsFolder, "23April_Asia/Outputs/TNIND_yr_23April_Asia.csv")) %>% 
-  dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario") %>% 
-  mutate(scenario = "SSP1")
-
-
-
+asia_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Asia_ssp126/Outputs/TNIND_yr_13Sep_Asia_ssp126.csv")
 ## Africa SSP5
-africa_SSP5 <- fread(file.path(runsFolder, "27Mar2025_Africa/Outputs/TNIND_yr_27Mar2025_Africa.csv")) %>% 
-  mutate(scenario = "SSP5",
-         biome = case_when(biome == "Tropical Subtropical Moist Broadleaf Forests" ~ "TropicalSubtropicalMoistBroadleafForests"))
+africa_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Africa_ssp585/Outputs/TNIND_yr_13Sep_Africa_ssp585.csv")
 ## Africa SSP1
-africa_SSP1 <- fread(file.path(runsFolder, "23April_Africa/Outputs/TNIND_yr_23April_Africa.csv")) %>% 
-  dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario") %>% 
-  mutate(scenario = "SSP1")
-
+africa_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Africa_ssp126/Outputs/TNIND_yr_13Sep_Africa_ssp126.csv")
 
 
 ## South America SSP5
-southamerica_SSP5 <- fread(file.path(runsFolder, "27Mar2025_SouthAmerica/Outputs/TNIND_yr_27Mar2025_SouthAmerica.csv")) %>% 
-  mutate(scenario = "SSP5")
+southamerica_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_SouthAmerica_ssp585/Outputs/TNIND_yr_13Sep_SouthAmerica_ssp585.csv")
 ## South America SSP1
-southamerica_SSP1 <- fread(file.path(runsFolder, "23April_SouthAmerica/Outputs/TNIND_yr_23April_SouthAmerica.csv")) %>% 
-  dplyr::select("TNIND", "biome", "region", "species", "timestep", "scenario")%>% 
-  mutate(scenario = "SSP1")
-
+southamerica_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_SouthAmerica_ssp126/Outputs/TNIND_yr_13Sep_SouthAmerica_ssp126.csv")
 
 invisible(gc())
 
@@ -107,39 +74,51 @@ TNIND_yr <- TNIND_yr %>%
     dplyr::select(combined_traits_data, sci_name, BIOME_NAME, CONTINENT, trophic_level),
     by = c("species" = "sci_name",
            "biome" = "BIOME_NAME", # keep biome & continent here or a many-to-many warning will appear
-           "region" = "CONTINENT")
-  ) 
+           "region" = "CONTINENT")) %>%
+  # simplify replicates numbering
+  mutate(rep_num = str_extract(rep, "^[0-9]+"))
+  
+
+
+
 # %>% 
 #   group_by(biome, region, species, timestep, scenario, trophic_level) %>% 
 #   summarise(across(height:mass, ~ mean(.x, na.rm = TRUE)))
 
 
 # write complete dataset into .csv to facilitate usage downstream
-#write_csv(TNIND_yr, 
- #         file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/completeRunApril2025.csv")
+write_csv(TNIND_yr, 
+         file = "./output/completeRun13Sep2025.csv")
 
 ##########
 # Step 4 # Calculate metrics
 ##########
 
-# define burn-in and policy start year
-t_burnin <- 100
-t_policy <- 110
+t_burnin <- 100 # burn-in years
+t_policy <- 135 # final timestep
 
 # calculate post policy mean value --------------------------------------------- 
   # for the recovery time metric
 post_disturbance_values <- TNIND_yr %>%
-  #filter(timestep > t_burnin) %>% # remove burn-in period
+  dplyr::filter(timestep > t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep > t_burnin &
                            timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy periods
+  dplyr::filter(period == "Post") %>% # filter for the post policy period only
+  group_by(biome, scenario, period, trophic_level, species, rep_num) %>% 
+  summarise(across(c(TNIND, MNIND, mean_repRate, mean_carrCap, occupancy),
+                   ~ mean(.x, na.rm = TRUE),
+                   .names = "mean_{.col}"),
+            .groups = "drop") %>% 
+  # collapse across replicates
   group_by(biome, scenario, period, trophic_level, species) %>%
-  filter(period == "Post") %>% # filter for the post policy period only
-  summarise(mean_post = mean(TNIND, na.rm = TRUE))
+  summarise(mean_post = mean(mean_TNIND, na.rm = TRUE))
 invisible(gc())
+
+
 
 # calculate metrics per scenario, biome, functional group & sps ----------------
 stability_sps <- TNIND_yr %>%
-  filter(timestep > t_burnin) %>% # remove burn-in period
+  dplyr::filter(timestep > t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep >= t_burnin & timestep <= t_policy, "Pre", "Post")) %>%  # code pre and post policy
   left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "trophic_level")) %>%
   group_by(biome, scenario, period, trophic_level, species) %>%
@@ -230,7 +209,7 @@ names(metric.labs) <- c("impact",
 biome_names <- c("BorealForestsTaiga" = "Boreal Forests Taiga", "TropicalSubtropicalMoistBroadleafForests" = "Tropical & Subtropical\nMoist Broadleaf Forests")
 
 # Custom color palette
-custom_colors <- c("SSP5" = "#ffab27", "SSP1" = "#99cc00")
+custom_colors <- c("ssp585" = "#ffab27", "ssp126" = "#99cc00")
 
 # Updated plot (**FIGURE 1**)
 figure1 <- stability_avg_long %>%
@@ -266,10 +245,36 @@ figure1 <- stability_avg_long %>%
 figure1
 invisible(gc())
 
-ggsave(filename = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/figures_20250427/Figure1.png", # path
+ggsave(filename = "./output/Figure1_13Sep2025.png", # path
        figure1, # plot
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, #compression = "lzw"
        ) # image parameters
+
+t_burnin <- 100
+t_policy <- 110
+
+scenarios <- c("ssp126", "ssp585")
+
+# Loop through each scenario
+for (sc in scenarios) {
+  
+  p <- TNIND_yr %>%
+    filter(scenario == sc) %>%
+    ggplot(aes(x = timestep, y = TNIND, group = species)) +
+    geom_line() +
+    facet_wrap(biome + region ~ species, scales = "free_y", ncol = 4) +
+    labs(y = "Total number of individuals",
+         title = paste("Scenario:", sc)) +
+    theme_minimal() +
+    geom_vline(xintercept = t_policy, linetype = "dotted", color = "red", size = 0.8)
+  
+  print(p)   # will display in the plotting window
+  
+  # Optionally save each scenario plot as a file
+  #ggsave(filename = paste0("TNIND_", sc, ".png"), plot = p,
+   #      width = 12, height = 8, dpi = 300)
+}
+head(TNIND_yr)
 
 ##########
 # Step 6 # build supplementary plot for time to impact and to recovery
