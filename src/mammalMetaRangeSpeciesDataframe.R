@@ -11,7 +11,7 @@
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   # filter for prefered area & species
   dplyr::filter(BIOME_NAME %in% gsub("[/& ]", "", target_biome)) %>% 
-  dplyr::filter(CONTINENT %in% target_region) %>% 
+  dplyr::filter(CONTINENT %in% gsub("[/& ]", "", target_region)) %>% 
   dplyr::filter(sci_name %in% target_species) 
 
 
@@ -25,7 +25,7 @@ species_traits <- tibble(
   # BIOME
   #Biome = combined_traits_data$BIOME_NAME,
   # scientific name WITHOUT spaces
-  Species = stringr::str_replace_all(combined_traits_data$sci_name, " ", ""), 
+  Species = stringr::str_replace_all(combined_traits_data$sci_name, " ", "."), 
   # family
   Family = combined_traits_data$family.x,
   # order
@@ -37,11 +37,11 @@ species_traits <- tibble(
   # body mass (kg)
   BodyMass = combined_traits_data$Mass.g / 1000, 
   # cell area (km2)
-  CellResolution = 3.076948*3.076948,
+  CellResolution = (0.04166667*111)^2,
   # modelling resolution based on the sps mean HomeRange (km)
   ##ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))), # ANDRE'S MODELLING RES
   #ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
-  ModellingRes = 10,
+  ModellingRes = 25,
   #ProjRes = ModellingRes*1000,
   # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
   initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd)*(ModellingRes^2)), 
@@ -75,4 +75,9 @@ write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.c
 #rm(rast_obj, res_x, res_y, filename, file)
 rm(combined_traits_data)
 
-
+# final message with species codes
+message(
+  "✅ Species dataframe save successfully!\n",
+  "It contains trait data for: ",
+  paste(unique(species_traits$Species), collapse = ", ")
+)
