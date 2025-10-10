@@ -70,7 +70,8 @@ invisible(gc())
 ##########
 # Step 4 # Build plot
 ##########
-
+Shannon_index <- Shannon_index %>% 
+  dplyr::filter(!trophic_level == "Omnivore")
 # get the top-right corner coordinates for each *TOP* facet only
 icon_positions_shannon <- Shannon_index %>%
   group_by(biome, trophic_level) %>%
@@ -84,7 +85,9 @@ ungroup() %>%
     trophic_level == "Herbivore" ~ uuid_herbivores,
     trophic_level == "Omnivore" ~ uuid_omnivores
   )) %>%
-  left_join(species_count, by = c("biome", "trophic_level"))
+  left_join(species_count  %>%
+              group_by(biome, trophic_level) %>% 
+              summarise(n_species = sum(n_species)), by = c("biome", "trophic_level"))
 
   
 ShannonOverTime <- ggplot(data = Shannon_index,
@@ -101,7 +104,7 @@ ShannonOverTime <- ggplot(data = Shannon_index,
   # add PhyloPic icon for functional groups
   geom_phylopic(data = icon_positions_shannon,
                aes(x = x, y = y, uuid = phylopic), 
-              size = 0.06, inherit.aes = FALSE) +  
+              size = c(0.06, 0.08), inherit.aes = FALSE) +  
   # add label with number of species
   geom_text(data = icon_positions_shannon, aes(x = x, y = 0.4, label = paste0("n = ", n_species)), inherit.aes = FALSE, size = 2.5) +
   theme_minimal() +
@@ -128,11 +131,11 @@ ShannonOverTime <- ggplot(data = Shannon_index,
 ShannonOverTime
 
 # save plot
-#ggsave(filename = "./output/Figure2_13Sep2025.png", # path
- #      ShannonOverTime, # plot
-  #     bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200,
+ggsave(filename = "./output/jorinde/ShannonOverTime_02Oct2025.png", # path
+       ShannonOverTime, # plot
+      bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200,
        #compression = "lzw"
-#       ) # image parameters
+       ) # image parameters
 
 # AUXILARY TABLE FOR FIGURE 2
 Shannon_index_DF <- Shannon_index %>%
