@@ -732,7 +732,7 @@ pretty_species_names <- function(x) {
   with_spaces <- unique(mammalTraits_2025_03_17$sci_name)
   
   # get corresponding names **WITHOUT** spaces
-  no_spaces <- gsub(" ", "", with_spaces)
+  no_spaces <- gsub(" ", ".", with_spaces)
   
   # match and replace names
   matched <- match(x, no_spaces)
