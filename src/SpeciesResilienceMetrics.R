@@ -2,50 +2,50 @@
 # MULTI-SPECIES RESILIENCE METRICS #
 ####################################
 # Inês Silva
-# 23 April 2025 updated on 06 May 2025
+# 23 April 2025 updated on 06 May 2025, 06 Nov 2025
 
 source("./src/libraries.R")
 source("./src/customFunctions.R")  
 
 ##########
-# Step 1 # Get all the data
+# STEP 1 # Load all runs data
 ##########
 
 # Boreal Forests ---------------------------------------------------------------
 
 ## Europe SSP5
-europe_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp585/Outputs/TNIND_yr_13Sep_Europe_ssp585.csv")
+europe_SSP1 <- fread("./output/metaRangeRuns/Europe_ssp126_31Oct25/Outputs/TNIND_yr_Europe_ssp126_31Oct25.csv")
 ## Europe SSP1
-europe_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp126/Outputs/TNIND_yr_13Sep_Europe_ssp126.csv")
+europe_SSP5 <- fread("./output/metaRangeRuns/Europe_ssp585_31Oct25/Outputs/TNIND_yr_Europe_ssp585_31Oct25.csv")
 
 ## North America SSP5
-northamerica_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_NorthAmerica_ssp585/Outputs/TNIND_yr_13Sep_NorthAmerica_ssp585.csv") 
+northamerica_SSP1 <- fread("./output/metaRangeRuns/NorthAmerica_ssp126_31Oct25/Outputs/TNIND_yr_NorthAmerica_ssp126_31Oct25.csv") 
 
 ## North America SSP1
-northamerica_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_NorthAmerica_ssp126/Outputs/TNIND_yr_13Sep_NorthAmerica_ssp126.csv")
+northamerica_SSP5 <- fread("./output/metaRangeRuns/NorthAmerica_ssp585_31Oct25/Outputs/TNIND_yr_NorthAmerica_ssp585_31Oct25.csv")
 
 
 # Tropical Moist Forests -------------------------------------------------------
 
-## Asia SSP5
-asia_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Asia_ssp585/Outputs/TNIND_yr_13Sep_Asia_ssp585.csv")
-## Asia SSP1
-asia_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Asia_ssp126/Outputs/TNIND_yr_13Sep_Asia_ssp126.csv")
-## Africa SSP5
-africa_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Africa_ssp585/Outputs/TNIND_yr_13Sep_Africa_ssp585.csv")
-## Africa SSP1
-africa_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Africa_ssp126/Outputs/TNIND_yr_13Sep_Africa_ssp126.csv")
-
-
 ## South America SSP5
-southamerica_SSP5 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_SouthAmerica_ssp585/Outputs/TNIND_yr_13Sep_SouthAmerica_ssp585.csv")
+southamerica_SSP1 <- fread("./output/metaRangeRuns/SouthAmerica_ssp126_31Oct25/Outputs/TNIND_yr_SouthAmerica_ssp126_31Oct25.csv")
 ## South America SSP1
-southamerica_SSP1 <- fread("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_SouthAmerica_ssp126/Outputs/TNIND_yr_13Sep_SouthAmerica_ssp126.csv")
+southamerica_SSP5 <- fread("./output/metaRangeRuns/SouthAmerica_ssp585_31Oct25/Outputs/TNIND_yr_SouthAmerica_ssp585_31Oct25.csv")
+
+## Africa SSP5
+africa_SSP1 <- fread("./output/metaRangeRuns/Africa_ssp126_31Oct25/Outputs/TNIND_yr_Africa_ssp126_31Oct25.csv")
+## Africa SSP1
+africa_SSP5 <- fread("./output/metaRangeRuns/Africa_ssp585_31Oct25/Outputs/TNIND_yr_Africa_ssp585_31Oct25.csv")
+
+## Asia SSP5
+asia_SSP1 <- fread("./output/metaRangeRuns/Asia_ssp126_31Oct25/Outputs/TNIND_yr_Asia_ssp126_31Oct25.csv")
+## Asia SSP1
+asia_SSP5 <- fread("./output/metaRangeRuns/Asia_ssp585_31Oct25/Outputs/TNIND_yr_Asia_ssp585_31Oct25.csv")
 
 invisible(gc())
 
 ##########
-# Step 2 # Combining all regions data together
+# STEP 2 # Combining all regions data together
 ##########
 
 datasets <- list(europe_SSP5, northamerica_SSP5, asia_SSP5, africa_SSP5, southamerica_SSP5,
@@ -53,17 +53,13 @@ datasets <- list(europe_SSP5, northamerica_SSP5, asia_SSP5, africa_SSP5, southam
 
 TNIND_yr <- do.call("rbind", datasets)
 # check for species names
-#unique(TNIND_yr$biome)
+#unique(TNIND_yr$species)
 
 rm(europe_SSP5, northamerica_SSP5, asia_SSP5, africa_SSP5, southamerica_SSP5,
    europe_SSP1, northamerica_SSP1, asia_SSP1, africa_SSP1, southamerica_SSP1)
 invisible(gc())
 
-
-##########
-# Step 3 # Get correspondence between species names and functional group
-##########
-
+# get correspondence between species names and functional group
 # retrieve trait data for trophic level, continent and biome info
 combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
   dplyr::filter(BIOME_NAME %in%  gsub("[/& ]", "", c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"))) 
@@ -76,29 +72,150 @@ TNIND_yr <- TNIND_yr %>%
            "biome" = "BIOME_NAME", # keep biome & continent here or a many-to-many warning will appear
            "region" = "CONTINENT")) %>%
   # simplify replicates numbering
-  mutate(rep_num = str_extract(rep, "^[0-9]+"))
-  
+  mutate(rep_num = str_extract(rep, "^[0-9]+")) %>% 
+  # correction for tigers that are from asia but asian boreal forest are modelled together with europe
+  mutate(trophic_level = replace(trophic_level, species== "Panthera tigris", "Carnivore"))%>%
+  # deal with integer 64 columns (=big big numbers)
+  mutate(across(where(bit64::is.integer64), as.numeric))
 
 
+##########
+# STEP 3 # Save data and "diagnostics" pop. trends
+##########
 
-# %>% 
-#   group_by(biome, region, species, timestep, scenario, trophic_level) %>% 
-#   summarise(across(height:mass, ~ mean(.x, na.rm = TRUE)))
-
-
-# write complete dataset into .csv to facilitate usage downstream
+# write complete dataset into .csv (RAW DATA)
 write_csv(TNIND_yr, 
-         file = "./output/completeRun13Sep2025.csv")
+          file = "./output/completeMetaRangeRun_31Oct25.csv")
+
+# create folder to save diagnostics
+diagnostics <- file.path("./output/metaRangeRuns/diagnostics")
+dir.create(diagnostics, showWarnings = TRUE)
+
+n_sps <- TNIND_yr %>% 
+  group_by(scenario, biome, region) %>% 
+  summarise(n_species = n_distinct(species), .groups = "drop")
+
+# plot population trends -------------------------------------------------------
+
+## differences within EACH replicate
+TNIND_diff <- TNIND_yr %>%
+  arrange(species, biome, rep_num, timestep) %>%
+  group_by(biome, species, rep_num, scenario, region) %>%
+  mutate(diff_TNIND = TNIND - lag(TNIND)) %>%
+  ungroup() %>% 
+  dplyr::select(scenario, biome, region, species, timestep, rep_num, TNIND, diff_TNIND) %>% 
+  arrange(scenario, biome, region, species)
+
+## mean TNIND and diff ACROSS replicates
+TNIND_mean <- TNIND_diff %>%
+  group_by(scenario, biome, region, species, timestep) %>%
+  summarise(mean_TNIND = mean(TNIND, na.rm = TRUE),
+            mean_diff_TNIND = mean(diff_TNIND, na.rm = TRUE)) %>%
+  mutate(rep_num = "Mean") %>%
+  ungroup() %>% 
+  dplyr::select(scenario, biome, region, species, timestep, mean_TNIND, mean_diff_TNIND, rep_num)
+
+# save diagnostics in .xlsx
+# create workbook
+wb <- createWorkbook()
+addWorksheet(wb, "spsModelled")
+writeData(wb, "spsModelled", n_sps)
+addWorksheet(wb, "perReplicate")
+writeData(wb, "perReplicate", TNIND_diff)
+# add across-replicate sheet 
+addWorksheet(wb, "acrossReplicates")
+writeData(wb, "acrossReplicates", TNIND_mean)
+saveWorkbook(wb, "./output/metaRangeRun_31Oct_diagnostics.xlsx", overwrite = TRUE)
+invisible(gc())
+
+# pop trends in plot format ----------------------------------------------------
+### per biome
+for (b in unique(TNIND_mean$biome)) {
+  # make plot
+  p <- TNIND_mean %>%
+    filter(biome == b) %>%
+    ggplot(aes(x = timestep,
+               y = mean_TNIND)) +
+    geom_line() +
+    facet_wrap(~species, scales = "free_y") +
+    labs(title = gsub("([A-Z])", " \\1", b) |> trimws()) +
+    theme_minimal() +
+    theme(strip.text = element_text(face = "italic"))
+  
+  # save plot
+  ggsave(filename = paste0("./output/metaRangeRuns/diagnostics/", gsub(" ", "", b), "_speciesPopulationTrends.png"),
+         plot = p, bg = "white", width = 350, height = 210, units = "mm", dpi = 300)
+  gc(rm(p, b))
+}
+
+### per species
+
+# get unique combination to plot (biome+region+species)
+combo_list <- TNIND_diff %>%
+  distinct(biome, region, species)
+
+# go through each combination
+for (i in seq_len(nrow(combo_list))) {
+  # subset correct data
+  biome_to_plot  <- combo_list$biome[i]
+  region_to_plot <- combo_list$region[i]
+  sp             <- combo_list$species[i]
+  
+  # filter for that combo
+  sp_mean <- TNIND_mean %>%
+    filter(biome == biome_to_plot, region == region_to_plot, species == sp,
+           # remove burn in
+           timestep > 100)
+  
+  sp_data <- TNIND_diff %>%
+    filter(biome == biome_to_plot, region == region_to_plot, species == sp)
+  
+  # skip if data missing
+  if (nrow(sp_data) == 0 | nrow(sp_mean) == 0) next
+  
+  # right plot - mean TNIND across replicates
+  p_right <- ggplot(sp_mean, aes(x = timestep, y = mean_TNIND)) +
+    geom_line(color = "black", size = 1) +
+    labs(title = paste(sp, "- Mean across replicates"), x = "Timestep", y = "Mean TNIND") +
+    theme_minimal()
+  
+  # left plot - TNIND per replicate separately
+  p_left <- ggplot(sp_data, aes(x = timestep, y = TNIND,
+                                group = factor(rep_num),
+                                color = factor(rep_num))) +
+    geom_line(size = 0.8, alpha = 0.7) +
+    # dashed line for burn-in line
+    geom_vline(xintercept = 100, linetype = "dashed") +
+    labs(title = paste(sp, "- Replicates"), x = "Timestep", y = "TNIND", color = "Replicate") +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+  
+  # combine both
+  combined_plot <- p_right + p_left +
+    plot_annotation(title = paste("Temporal dynamics of TNIND",
+                                  "\nBiome:", biome_to_plot, "| Region:", region_to_plot))
+  
+  # save plots
+  filename <- paste0("TNIND_", gsub(" ", "_", sp), "_", gsub(" ", "_", biome_to_plot), "_", gsub(" ", "_", region_to_plot), ".png")
+  ggsave(filename, combined_plot, 
+         path = diagnostics, width = 16, height = 6, dpi = 300)
+  
+  message("Saved: ", filename)
+  gc(rm(sp_data, sp_mean, p_left, p_right, combined_plot, biome_to_plot, region_to_plot, sp))
+}
+
 
 ##########
-# Step 4 # Calculate metrics
+# STEP 4 # Calculate metrics
 ##########
+
+length(unique(TNIND_yr$timestep))
 
 t_burnin <- 100 # burn-in years
 t_policy <- 135 # final timestep
 
 # calculate post policy mean value --------------------------------------------- 
-  # for the recovery time metric
+# for the recovery time metric
 post_disturbance_values <- TNIND_yr %>%
   dplyr::filter(timestep > t_burnin) %>% # remove burn-in period
   mutate(period = ifelse(timestep > t_burnin &
@@ -114,8 +231,6 @@ post_disturbance_values <- TNIND_yr %>%
   summarise(mean_post = mean(mean_TNIND, na.rm = TRUE))
 invisible(gc())
 
-
-
 # calculate metrics per scenario, biome, functional group & sps ----------------
 stability_sps <- TNIND_yr %>%
   dplyr::filter(timestep > t_burnin) %>% # remove burn-in period
@@ -123,21 +238,21 @@ stability_sps <- TNIND_yr %>%
   left_join(post_disturbance_values,by = c("biome", "species", "scenario", "period", "trophic_level")) %>%
   group_by(biome, scenario, period, trophic_level, species) %>%
   summarise(
-            # find mean nº of individuals
-            mean = mean(TNIND, na.rm = TRUE),
-            # find min. nº of individuals
-            min = min(TNIND, na.rm = TRUE),
-            # find max. nº of individuals
-            max = max(TNIND, na.rm = TRUE),
-            # find the year the pop. reaches a min. value in the post policy period
-            impact_year = timestep[which.min(TNIND)],
-            # find year the pop bounces back to the same value in the pre period or even surpasses it
-            recovery_year = ifelse(mean == 0, 
-                                   NA, 
-                                   ifelse(any(timestep > t_policy & TNIND >= mean_post),
-                                          min(timestep[timestep > t_policy & TNIND >= mean_post], na.rm = TRUE), 
-                                          NA)), 
-            .groups = "drop") %>%
+    # find mean nº of individuals
+    mean = mean(TNIND, na.rm = TRUE),
+    # find min. nº of individuals
+    min = min(TNIND, na.rm = TRUE),
+    # find max. nº of individuals
+    max = max(TNIND, na.rm = TRUE),
+    # find the year the pop. reaches a min. value in the post policy period
+    impact_year = timestep[which.min(TNIND)],
+    # find year the pop bounces back to the same value in the pre period or even surpasses it
+    recovery_year = ifelse(mean == 0, 
+                           NA, 
+                           ifelse(any(timestep > t_policy & TNIND >= mean_post),
+                                  min(timestep[timestep > t_policy & TNIND >= mean_post], na.rm = TRUE), 
+                                  NA)), 
+    .groups = "drop") %>%
   pivot_wider(names_from = period, values_from = c(mean, min, max, impact_year, recovery_year)) %>%
   dplyr::select(!c(impact_year_Pre, recovery_year_Pre)) %>% # remove year of min. nº of individuals in the pre policy period and the year in which the nº ind is equal to the mean values of the post policy period
   mutate(impact = ifelse( mean_Post > mean_Pre,
@@ -153,12 +268,13 @@ stability_sps <- TNIND_yr %>%
 # write metrics per species to csv file (SUPPLEMENTARY TABLE X)
 write.csv(stability_sps %>% 
             dplyr::select(biome, scenario, species, trophic_level, mean_Post, mean_Pre, impact, time_impact, recovery, time_recovery),
-          file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/resilienceMetricsPerSpecies.csv",
+          file = "./output/resilienceMetricsPerSpecies.csv",
           row.names = FALSE)
 invisible(gc())
 
 # average stability metrics across functional groups ---------------------------
 stability_avg <- stability_sps %>%
+  dplyr::filter(!species == "Bison bonasus") %>% 
   group_by(biome, scenario, trophic_level) %>%
   dplyr::summarize(
     impact_avg = mean(impact, na.rm = TRUE),
@@ -184,8 +300,8 @@ lookup <- c("impact_avg" = "Mean Impact",
 
 # (Table x to support **FIGURE 1**)
 write.csv(stability_avg %>%
-    rename_with(~ lookup[.x], .cols = names(lookup)),
-          file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/resilienceMetricsAveraged.csv",
+            rename_with(~ lookup[.x], .cols = names(lookup)),
+          file = "./output/resilienceMetricsAveraged.csv",
           row.names = FALSE)
 invisible(gc())
 
@@ -197,7 +313,7 @@ stability_avg_long <- stability_avg %>%
     names_sep = "_")
 
 ##########
-# Step 5 # build plot for impact and recovery
+# STEP 5 # build plot for impact and recovery
 ##########
 
 # new facet label names
@@ -217,7 +333,7 @@ figure1 <- stability_avg_long %>%
   ggplot(aes(x = trophic_level , y = avg, fill = scenario)) +
   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.6) +
   geom_errorbar(aes(ymin = avg-sd, ymax = avg+sd), width = 0.2, colour = "black", alpha = 0.9, size = 0.4, position = position_dodge(0.6)) +
-  facet_grid(metric ~ biome, scales = "free", labeller = labeller(metric = metric.labs, biome = biome_names), switch = "y") +
+  facet_grid(metric ~ biome, scales = "free_y", labeller = labeller(metric = metric.labs, biome = biome_names), switch = "y") +
   geom_hline(yintercept = 0) +
   # use custom colors for taxa
   scale_fill_manual("Socio-economic\nscenario", values = custom_colors) +
@@ -242,42 +358,19 @@ figure1 <- stability_avg_long %>%
     panel.border = element_blank(),
     panel.spacing.x = unit(1, "lines"),
     panel.spacing.y = unit(2, "lines"))
+
+
+
 figure1
 invisible(gc())
 
-ggsave(filename = "./output/Figure1_13Sep2025.png", # path
+ggsave(filename = "./output/Figure1_ResilienceMetrics_31Oct25.png", # path
        figure1, # plot
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, #compression = "lzw"
-       ) # image parameters
-
-t_burnin <- 100
-t_policy <- 110
-
-scenarios <- c("ssp126", "ssp585")
-
-# Loop through each scenario
-for (sc in scenarios) {
-  
-  p <- TNIND_yr %>%
-    filter(scenario == sc) %>%
-    ggplot(aes(x = timestep, y = TNIND, group = species)) +
-    geom_line() +
-    facet_wrap(biome + region ~ species, scales = "free_y", ncol = 4) +
-    labs(y = "Total number of individuals",
-         title = paste("Scenario:", sc)) +
-    theme_minimal() +
-    geom_vline(xintercept = t_policy, linetype = "dotted", color = "red", size = 0.8)
-  
-  print(p)   # will display in the plotting window
-  
-  # Optionally save each scenario plot as a file
-  #ggsave(filename = paste0("TNIND_", sc, ".png"), plot = p,
-   #      width = 12, height = 8, dpi = 300)
-}
-head(TNIND_yr)
+) # image parameters
 
 ##########
-# Step 6 # build supplementary plot for time to impact and to recovery
+# STEP 6 # build supplementary plot for time to impact and to recovery
 ##########
 
 
@@ -315,7 +408,7 @@ supfigure1 <- stability_avg_long %>%
 supfigure1
 invisible(gc())
 
-ggsave(filename = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/figures_20250427/SupFigure1.png", # path
+ggsave(filename = "./output/SupFigure1_TimeToImpactRecovery_31Oct25.png", # path
        supfigure1, # plot
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, #compression = "lzw"
 ) # image parameters
