@@ -7,8 +7,9 @@
 # Load Settings & Libraries ----------------------------------------------------
 source("./src/libraries.R")            # Load necessary packages
 source("./src/customFunctions.R")      # Load customized functions
+source("./src/customFunctions2.R")      # Load customized functions
 
-runname <- "13Sep_SouthAmerica_ssp585"   # Unique id for the run e.g. date_region_scenario
+runname <- "Asia_ssp585_31Oct25"   # Unique id for the run e.g. date_region_scenario
 source("./src/generalSettings.R")      # Load paths and spatial settings
 
 
@@ -18,36 +19,61 @@ source("./src/generalSettings.R")      # Load paths and spatial settings
 target_biome <- "Tropical & Subtropical Moist Broadleaf Forests" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
 
 ## Select Target Region (choose one)
-target_region <- "South America" # Options: "North America", "South America", "Europe", "Asia", "Africa"
+target_region <- "Asia" # Options: "North America", "South America", "Europe", "Asia", "Africa"
 
 ## Select scenario
 scenario <- "ssp585"
 
 ## Select Target Species (multiple allowed with spaces)
 target_species <- c(
-  #"Alces alces",
-  #"Bison bonasus", "Cervus elaphus", 
-  #"Sus scrofa", 
-  #"Lynx rufus",
-  #"Canis lupus",
-  #"Rangifer tarandus",
-  #"Gorilla gorilla", "Orycteropus afer", "Pan troglodytes", 
-  #"Panthera onca", 
-  #"Crocuta crocuta", "Syncerus caffer",
-  #"Panthera leo"
-  #,"Loxodonta africana"
-  "Puma concolor")
+  ##############
+  # BOREAL SPS #
+  ##############
+  
+  # Europe
+  #"Alces alces", "Bison bonasus", "Cervus elaphus", "Sus scrofa", "Vulpes vulpes",
+  #"Panthera tigris", "Lynx lynx", "Ursus arctos", "Canis lupus", "Rangifer tarandus"#,
+  
+  # North America
+  #"Alces alces", "Canis latrans", "Lynx rufus", "Martes americana", "Taxidea taxus",
+  #"Ursus americanus", "Vulpes vulpes", "Puma concolor", "Bison bison", "Ursus arctos",
+  #"Canis lupus", "Rangifer tarandus"#,
+  
+  # South America
+  #"Leontopithecus caissara", 
+  #"Leopardus pardalis", "Nasua nasua", "Panthera onca",
+  #"Puma concolor"#,
+  
+  # Africa
+  #"Aepyceros melampus", "Colobus angolensis", #"Daubentonia madagascariensis",
+  #"Diceros bicornis", "Erythrocebus patas", "Gorilla beringei", "Gorilla gorilla",
+  #"Orycteropus afer", #"Pan paniscus",
+  #"Pan troglodytes", "Papio anubis", "Papio ursinus", 
+  #"Crocuta crocuta", "Mandrillus sphinx", "Panthera pardus", "Syncerus caffer",
+  #"Acinonyx jubatus", "Panthera leo", "Connochaetes taurinus", "Loxodonta africana"#,
+  
+  # Asia
+  "Cervus nippon", "Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii",
+  "Pongo pygmaeus", "Sus scrofa", "Vulpes vulpes", "Panthera pardus", "Acinonyx jubatus",
+  "Lynx lynx", "Panthera leo", "Panthera tigris", "Ursus arctos",
+  "Canis lupus"
+)
 
 # Prepare & Load Input Data ----------------------------------------------------
+
+## build Species Distribution Models & save output rasters
+#source("./src/SDM.R")
+### DONT FORGET !!! CHNAGE THE SCRIPT TO PUT THE SDMs FOLDER AS THE OUTPUT FOLDER FOR THE FUNCTION HERE, 
+### THEN CHNAGE THE NEXT SCRIPTS TO FISH TEH OUTPUTS FROM THERE !!!!!!!
+
+## produce supplemnatry figures to visualise SDM results
+#source(".src/SDMfigures.R")
 
 ## create species traits dataframe
 source("./src/mammalMetaRangeSpeciesDataframe.R")
 
-## build Species Distribution Models & save output rasters
-#source("./src/SDM.R")
-
 ## transform SDM outputs into input data for MetaRange model
-source("./src/environmentalLayers.R")
+source("./src/speciesSuitabilityLayers.R")
 
 # Run MetaRange Model ----------------------------------------------------------
 
