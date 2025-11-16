@@ -39,6 +39,9 @@ get_taxa_occurrences <- function(
   if (!is.null(taxa_filter)) {
     taxa_spp <- taxa_spp[taxa_spp %in% taxa_filter]}
   
+  # progess message
+  message("All selected species have a known IUCN ranges polygon available")
+  
   ##########
   # STEP 2 # Get GBIF taxon keys
   ##########
@@ -71,7 +74,7 @@ get_taxa_occurrences <- function(
   invisible(gc())
   
   # retrieve and import download
-  d <- occ_download_get(key = "0061373-250920141307145")
+  d <- occ_download_get(key = "0052479-251009101135966")
   gbif_data <- occ_download_import(d)
   rm(d)
   invisible(gc())
@@ -82,15 +85,26 @@ get_taxa_occurrences <- function(
   
   gbif_data_filtered <- gbif_data %>%
     drop_na(decimalLatitude, decimalLongitude, year) %>% 
-    dplyr::filter(# keep only species (exclude subspecies for instance)
-                  taxonRank == "SPECIES",
-                  infraspecificEpithet == "",
-                  # only keep occ with year info.
-                  year > 0) %>% 
+    # dplyr::filter(# keep only species (exclude subspecies for instance)
+    #               #taxonRank == "SPECIES",
+    #               #infraspecificEpithet == "",
+    #               # only keep occ with year info.
+    #               year > 0) %>% 
     group_by(species) %>% 
     # keep only species with over 30 occ
     dplyr::filter(n() > 30) %>% 
     ungroup()
+  
+  # are there species with no occurrence records match?
+  missing_spp <- setdiff(taxa_spp,  unique(gbif_data_filtered$species))
+  
+  # Check and report
+  if (length(missing_spp) > 0) {
+    message("!! WARNING !! The following species do not have enough records:")
+    message(paste(missing_spp, collapse = ", "))
+  } else {
+    message("All taxa_spp species have more than 30 occurrence records! Continue...")
+  }
   
   ##########
   # STEP 5 # Crop occurrences within IUCN range
@@ -111,24 +125,47 @@ get_taxa_occurrences <- function(
     poly <- IUCN_ranges %>% filter(sci_name == sp)
     pts  <- gbif_sf %>% filter(species == sp)
     if (nrow(poly) == 0 || nrow(pts) == 0) return(NULL)
-    st_join(pts, poly, join = st_within, left = FALSE)
+    return(st_join(pts, poly, join = st_within, left = FALSE))
   }))
   
+  # final output
   return(occurrences_in_range)
 }
 
 
 ## USE FUNCTION ----------------------------------------------------------------
 
-# these are just to test drive the function
-speciesTest <- c("Alces alces", "Canis lupus")
+# these are taregt sps for NatPoKe
+targetSpecies <- c(## BOREAL SPS ##
+  "Alces alces", "Canis lupus", "Bison bonasus", "Cervus elaphus", 
+  "Sus scrofa", "Vulpes vulpes", "Canis latrans", "Lynx rufus",
+  "Martes americana", "Taxidea taxus", "Ursus americanus", "Panthera tigris",
+  "Lynx lynx", "Ursus arctos", "Rangifer tarandus",
+  "Puma concolor", "Bison bison",
+  
+  ## TROPICAL SPS ##
+  "Leontopithecus caissara", # has only 4 occurences
+  "Leopardus pardalis", "Nasua nasua", "Aepyceros melampus",
+  "Colobus angolensis", "Daubentonia madagascariensis",
+  "Diceros bicornis", "Erythrocebus patas", "Gorilla beringei",
+  "Gorilla gorilla", "Orycteropus afer", "Pan paniscus",
+  "Pan troglodytes", "Papio anubis", "Papio ursinus", "Cervus nippon",
+  "Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii",
+  "Pongo pygmaeus",  "Panthera onca", "Crocuta crocuta", "Mandrillus sphinx",
+  "Panthera pardus", "Syncerus caffer", "Acinonyx jubatus",
+  "Panthera leo", "Connochaetes taurinus", "Loxodonta africana",
+  "Puma concolor"
+)
+
+keys <- yaml::read_yaml("./config/api_keys.yml")
+
 
 GBIF_data <- get_taxa_occurrences(
-  iucn_shapefile = "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/externalData/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp",
-  taxa_filter = speciesTest,
-  gbif_user = "maria_ines_silva",
-  gbif_pwd = "SRIT2024!",
-  gbif_email = "ncisines@gmail.com")
+  iucn_shapefile = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/externalData/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp",
+  taxa_filter = targetSpecies,
+  gbif_user = keys$gbif_user,
+  gbif_pwd = keys$gbif_pwd,
+  gbif_email = keys$gbif_email)
 invisible(gc())
 
 ##########
@@ -139,12 +176,22 @@ invisible(gc())
 # We go through the table below and assess whether subspecies
 # are being included in the recovered occurrences.
 
+invisible(gc(rm(IUCN_ranges, gbif_taxon_keys, keys)))
+
 # summarise number of records per species and verbatim name
 species_name_check <- GBIF_data %>%
+  dplyr::filter(
+    # Condition 1: Keep all records for Gorilla species
+    species %in% c("Gorilla gorilla", "Gorilla beringei") |
+      
+      # Condition 2: OR (if not a Gorilla species), keep only those where taxonRank is "SPECIES"
+      (taxonRank == "SPECIES")
+  ) %>% 
   group_by(species, verbatimScientificName) %>%
   summarise(n_records = n(), .groups = "drop") %>%
   st_drop_geometry() %>% 
   arrange(species, desc(n_records))
+invisible(gc())
 
 # print warning message
 message("STOP & ANALYSE - Please check species vs. verbatim names before going further...")
@@ -153,7 +200,7 @@ message("STOP & ANALYSE - Please check species vs. verbatim names before going f
 View(species_name_check)
 # save .csv for detailed review
 write.csv(species_name_check,
-          "~/data/data/trait_datasets/species_verbatim_check.csv",
+          "./data/species_verbatim_check.csv",
           row.names = FALSE)
 
 # STOP script review is done
@@ -163,6 +210,40 @@ readline(prompt = "Press [Enter] to continue with filtering once you've reviewed
 GBIF_data_df <- GBIF_data %>%
   # remove unwanted subspecies, domestic animals, or problematic names
   dplyr::filter(!verbatimScientificName %in% c(
+                                              # Possible coyote record
+                                              "Canis latrans spp",
+                                              # Red-Deer subspecies
+                                              "Cervus elaphus hippelaphus",
+                                              "Cervus elaphus montanus",
+                                              # Wildbeast subspecies
+                                              "Connochaetes mearnsi", 
+                                              "Connochaetes johnstoni",
+                                              "Connochaetes albojubatus",
+                                              #Gorilla subspecies
+                                              "Gorilla beringei graueri",
+                                              "Gorilla gorilla diehli",
+                                              # Lynx lynx subspecies
+                                              "Lynx lynx dinniki",
+                                              "Lynx lynx wrangeli",
+                                              # Chimpanzee subspecies
+                                              "Pan troglodytes verus",
+                                              # leopard subsspecies
+                                              "Panthera pardus tulliana",
+                                              #sri lanka boar
+                                              "Sus scrofa affinis",
+                                              # domestic pigs
+                                              "Sus domesticus Erxleben, 1777",
+                                              "Sus domesticus",
+                                              "Sus attila",
+                                              "Sus domesticus forma",
+                                              "Sus scrofa baeticus",
+                                              "Sus setosus",
+                                              # Gobi bear
+                                              "Ursus arctos gobiensis",
+                                              # american red fox
+                                              "Vulpes fulva",
+                                              # subspecies of fox
+                                              "Vulpes vulpes patwin",
                                               # Domestic dog / dingo
                                               "Canis familiaris",
                                               "Canis familiaris (Linnaeus, 1758)",
@@ -184,8 +265,21 @@ GBIF_data_df <- GBIF_data %>%
   st_set_geometry(NULL)
 
 ##########
-# STEP 7 # Export screened data to .csv
+# STEP 7 # Export screened data to .csv & save taxonomic info table
 ##########
 
-write.csv(GBIF_data_df, "./data/GBIF_occurrences.csv")
+invisible(gc(rm(GBIF_data, species_name_check)))
+
+# occurrences file
+write.csv(GBIF_data_df[, c("species", "decimalLatitude", "decimalLongitude", "year")],
+          "./data/GBIF_occurrences.csv")
+
+# taxonomic info file
+sps_names <- GBIF_data_df %>% 
+  dplyr::select(species, order, family, genus) %>% 
+  st_drop_geometry() %>% 
+  unique()
+write.csv(sps_names, paste0("output/27October25/mammalSpeciesTaxonomy.csv"), row.names = FALSE)
+
+
 message("✅ Screened GBIF data exported to 'GBIF_occurrences.csv'.")
