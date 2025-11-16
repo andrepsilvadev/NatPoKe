@@ -2,6 +2,7 @@
 ## Inês Silva ##
 ## 16 Sept 2025 ##
 
+setwd("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/NatPoKe")
 
 source("./src/libraries.R")
 source("./src/customFunctions.R")  
@@ -287,7 +288,10 @@ for (region in names(Shannon_indexes)) {
     # )
   }
 }
-
+all_plots$`13Sep_Europe_ssp585_Herbivore`
+all_plots$`13Sep_Europe_ssp585_Omnivore`
+all_plots$`13Sep_Europe_ssp585_Carnivore`
+all_plots$`13Sep_Europe_ssp126_Herbivore`
 #all_plots$`13Sep_Europe_ssp585_Herbivore`
 df <- Shannon_indexes[["13Sep_NorthAmerica_ssp126"]][["Carnivore"]]
 
