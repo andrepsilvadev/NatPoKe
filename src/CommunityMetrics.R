@@ -12,12 +12,12 @@ source("./src/customFunctions.R")
 ##########
 
 # all runs were previously compiled into one .csv file stored in the outputs folder
-TNIND_yr <- fread("./output/13Sept_FinBioMeeting/completeRun13Sep2025.csv")
+TNIND_yr <- fread("./output/completeMetaRangeRun_31Oct25.csv")
 
 
 # count number of unique species per biome and trophic level
 species_count <- TNIND_yr[, .(n_species = uniqueN(species)), by = .(biome, region, trophic_level)]
-#View(species_count)
+View(species_count)
 
 ##########
 # Step 2 # Define burn-in and scenario start + other cosmetic arguments
@@ -54,7 +54,7 @@ Shannon_index <- TNIND_yr %>%
   # collapse across replicates
   group_by(biome, scenario, timestep, trophic_level) %>%
   summarise(mean_TNIND = mean(mean_TNIND, na.rm = TRUE)) %>% 
- 
+  
   dplyr::mutate(p_i = mean_TNIND / sum(mean_TNIND),
                 # calculate proportion of individuals of species i
                 ln_p_i = ifelse(p_i > 0, log(p_i), 0)) %>%  # in case pi is 0
@@ -70,28 +70,28 @@ invisible(gc())
 ##########
 # Step 4 # Build plot
 ##########
-Shannon_index <- Shannon_index %>% 
-  dplyr::filter(!trophic_level == "Omnivore")
+#Shannon_index <- Shannon_index %>% 
+#dplyr::filter(!trophic_level == "Omnivore")
 # get the top-right corner coordinates for each *TOP* facet only
 icon_positions_shannon <- Shannon_index %>%
   group_by(biome, trophic_level) %>%
   summarise(x = max(timestep) - 2, # xx coordinate
             y = 0.45 ) %>% # yy coordinate, max(Shannon)
-ungroup() %>% 
-  # add the PhyloPic UUIDs to the positions
-  mutate(phylopic = case_when(
-    biome == "TropicalSubtropicalMoistBroadleafForests" ~ NA_character_,  # if Tropical biome, no icon (NA)
-    trophic_level == "Carnivore" ~ uuid_carnivores,
-    trophic_level == "Herbivore" ~ uuid_herbivores,
-    trophic_level == "Omnivore" ~ uuid_omnivores
-  )) %>%
+  ungroup() %>% 
+  # # add the PhyloPic UUIDs to the positions
+  # mutate(phylopic = case_when(
+  #   biome == "TropicalSubtropicalMoistBroadleafForests" ~ NA_character_,  # if Tropical biome, no icon (NA)
+  #   trophic_level == "Carnivore" ~ uuid_carnivores,
+  #   trophic_level == "Herbivore" ~ uuid_herbivores,
+  #   trophic_level == "Omnivore" ~ uuid_omnivores
+  # )) %>%
   left_join(species_count  %>%
               group_by(biome, trophic_level) %>% 
               summarise(n_species = sum(n_species)), by = c("biome", "trophic_level"))
 
-  
+
 ShannonOverTime <- ggplot(data = Shannon_index,
-       aes(x = timestep, y = Shannon_Wiener_Index, color = scenario)) +
+                          aes(x = timestep, y = Shannon_Wiener_Index, color = scenario)) +
   geom_line() +
   # to deal with axis more freely (add axis on top row)
   ggh4x::facet_grid2(biome ~ trophic_level,
@@ -102,9 +102,9 @@ ShannonOverTime <- ggplot(data = Shannon_index,
     breaks = c(100, 115, 135, 185),
     labels = c("2015", "2030", "2050", "2100")) +
   # add PhyloPic icon for functional groups
-  geom_phylopic(data = icon_positions_shannon,
-               aes(x = x, y = y, uuid = phylopic), 
-              size = c(0.06, 0.08), inherit.aes = FALSE) +  
+  #geom_phylopic(data = icon_positions_shannon,
+  #            aes(x = x, y = y, uuid = phylopic), 
+  #          size = c(0.06, 0.08), inherit.aes = FALSE) +  
   # add label with number of species
   geom_text(data = icon_positions_shannon, aes(x = x, y = 0.4, label = paste0("n = ", n_species)), inherit.aes = FALSE, size = 2.5) +
   theme_minimal() +
@@ -126,16 +126,16 @@ ShannonOverTime <- ggplot(data = Shannon_index,
     panel.spacing.x = unit(1, "lines"),
     panel.spacing.y = unit(2, "lines"),
     plot.margin = unit(c(0, 0.5, 0, 0.5), "cm"))# +
-  #geom_vline(xintercept = c(115, 135, 185), linetype = "dotted", color = "black", size = 0.8)
+#geom_vline(xintercept = c(115, 135, 185), linetype = "dotted", color = "black", size = 0.8)
 
 ShannonOverTime
 
 # save plot
-ggsave(filename = "./output/jorinde/ShannonOverTime_02Oct2025.png", # path
+ggsave(filename = "./output/ShannonOverTime_31Oct2025.png", # path
        ShannonOverTime, # plot
-      bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200,
+       bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200,
        #compression = "lzw"
-       ) # image parameters
+) # image parameters
 
 # AUXILARY TABLE FOR FIGURE 2
 Shannon_index_DF <- Shannon_index %>%
@@ -144,5 +144,5 @@ Shannon_index_DF <- Shannon_index %>%
   dplyr::filter(timestep == 125)
 
 #write.csv(Shannon_index_DF,
- #         file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/ShannonIndexChange.csv",
-  #        row.names = FALSE)         
+#         file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/ShannonIndexChange.csv",
+#        row.names = FALSE)         
