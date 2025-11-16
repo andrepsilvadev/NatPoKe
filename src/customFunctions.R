@@ -136,7 +136,7 @@ stack_rasters <- function(year) {
   # Create a raster stack from the list of scenarios
   scenarios_stack <- rast(scenarios_list)
   names(scenarios_stack) <- names(scenarios_list)
-
+  
   stack_output_file <- file.path(output_path, paste0("LandUseChange_scenarioStack_", year, "_", biome_name_short, ".tif"))
   writeRaster(scenarios_stack, stack_output_file, overwrite = TRUE)
   
