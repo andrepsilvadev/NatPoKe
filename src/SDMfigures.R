@@ -17,6 +17,7 @@ pathSMDoutputs <- c(# Tropical region
 
 # new folder to save figures
 outputPathSDMfigures <- "output/SDMoutputs_27Oct25" # adapt if needed
+
 if (!dir.exists(outputPathSDMfigures)) {
   dir.create(outputPathSDMfigures, recursive = TRUE)
 }

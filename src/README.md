@@ -13,6 +13,8 @@
   
  -  `customFunctions.R` - load created functions necessary throughout the pipeline
 
+ -  `customFunctions2.R` - load created functions necessary for inputClimate.R, inputLandUse.R, inputElev.R, SDMRun.R, ClimateChange.R, LandUseChange.R
+
 <br>
 
 **Input data preparation**
@@ -28,7 +30,7 @@
   - `SMD.R` <- main function for species distribution modelling (ensemble) for multiple species
  
   - `speciesSuitabilityLayers.R` - stack SDM projections per scenario and species, then proceed to rescale (from 0-1000 to 0-1), crop & mask per continent
-<br>
+
 
 **Models**
    
@@ -38,11 +40,11 @@
 
 **Output Manipulation & Visualizations**
 
-  - `ClimateChange.R` <- calculates spatially explicit bioclimatic changes in biomes
+  - `ClimateChange.R` <- calculates bioclimatic changes over time and spatially explicit bioclimatic changes in biomes
   
-  -  `LandUseChange.R` <- calculates land-use changes over time and spatially explicit changes in percent
+  -  `LandUseChange.R` <- calculates land-use changes over time and spatially explicit changes in percent in biomes
   
-  -  `SDMRun.R` <- creates outputs of species distribution modeling, Species presence points, Evaluation plots for ensemble model evaluation, current and future suitability landscapes for multiple species
+  -  `SDMRun.R` <- creates outputs of species distribution modeling (SDM.R), Species presence points, Evaluation plots for ensemble model evaluation, current and future suitability landscapes for multiple species
 
   - `meanTraitValuesAcrossReplicates.R` <- averages all rasters across replicates for each trait, species and timestep
 

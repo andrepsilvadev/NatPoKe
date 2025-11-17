@@ -63,5 +63,4 @@ easypackages::packages(
   "crayon",
   "HomeRange",
   "naniar",
-  
   prompt = FALSE)
