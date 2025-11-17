@@ -20,16 +20,19 @@
 **Input data preparation**
 
   - `mammalMetaRangeSpeciesDataframe.R` - format traget species traits, from a .csv file in the [data folder](https://github.com/andrepsilvadev/NatPoKe/blob/6bca303d6b0c17e94915c44f5e6323e978c0763e/data/mammalTraits_2025-03-17.csv), into an input dataframe ready to use within the metaRange model.
-
-
-  - `inputFiles.R` - download and crop global suitability raster files for multiple species in a designated biome and region, from the SRIT Database google drive *THIS WILL PROBABLY BE DEPRECATED IN THE NEAR FUTURE*
  
+  - `TaxaOccurence.R` <- download & clean up taxa occurrence of multiple species from GBIF Database; includes manual step to check for incorrect records
+  
+  - `inputSpeciesData.R` <- cleans species occurrence data, one species per grid cell, filters by year
+  
+  - `inputClimate.R` <- calculates environmental input data (bioclimates) in various time periods, builds training and prediction landscape
+ 
+  - `SMD.R` <- main function for species distribution modelling (ensemble) for multiple species
+ 
+  - `speciesSuitabilityLayers.R` - stack SDM projections per scenario and species, then proceed to rescale (from 0-1000 to 0-1), crop & mask per continent
 
-<br>
 
 **Models**
-
-  - `SMD.R` <- main function for species distribution modelling for multiple true species occurrences
    
   - `mammalModel.R` - runs the metaRange model for mammals with all species at the same resolution  
    

@@ -6,4 +6,5 @@
 
 # Ignore deleteLater folder
 src/deprecatedScripts/
-data/Ecoregions2017/
+data/
+output/

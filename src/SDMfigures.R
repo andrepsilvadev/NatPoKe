@@ -1,422 +1,406 @@
 ## Name: SDMfigures.R ##
-## Author: Jorinde-M. Rieger ##
-## Description: Creates figures of SDM results in R ##
-## Date: August 7th 2025 ##
+## Author: Jorinde-M. Rieger & Inês Silva ##
+## Description: Create all suplementary material's figure from the SDM's runs ##
+## Date: 30th Aug 2025 ##
 
-# Not tested script on the biome level #
+# Settings & libraries ---------------------------------------------------------
+source("src/libraries.R") # libraries
+source("src/customFunctions2.R") # functions
+setwd("/mnt/data/maria/NatPoKe")
+gc()
+# paths for outputs
+pathSMDoutputs <- c(# Tropical region
+  "output/NatPoke_October25_tropical",
+  # Boreal region
+  "output/NatPoke_October25_boreal"
+)
 
-# Define the scenarios and species to plot
-scenarios <- c("ssp126", "ssp585")
-scenario_names <- c("SSP1-RCP2.6", "SSP5-RCP8.5")
-years <- c(2030, 2050, 2100)
+# new folder to save figures
+outputPathSDMfigures <- "output/SDMoutputs_27Oct25" # adapt if needed
 
-putputPathSDMensemble <- "output/SDMensemble/Mammals"
-outputPathSDMfigures <- "output/SDMfigures/Mammals"
 if (!dir.exists(outputPathSDMfigures)) {
   dir.create(outputPathSDMfigures, recursive = TRUE)
 }
 
-# Define Extent
-# Tropical Biome
-extent <- "Tropical Biome"
-extent_name <- "Tropical & Subtropical Moist Broadleaf Forests"
-extent_sf <- load_biome(extent_name)
-continent_names <- c("Central & South America", "Africa", "Asia")
-continents_sf <- load_select_continents(continent_names)
-
-# Boreal Biome
-extent <- "Boreal Biome"
-extent_name <- "Boreal Forests/Taiga"
-extent_sf <- load_biome(extent_name)
-continent_names <- c("North America", "Europe & Asia")
-continents_sf <- load_select_continents(continent_names)
-continents_sf <- sf::st_wrap_dateline(continents_sf, options = c("WRAPDATELINE=YES", "DATELINEOFFSET=180"))
-continents_sf <- sf::st_make_valid(continents_sf)
-
-# Define target species
-# NatPoKe Mammals
-targetSpecies <- c("Alces alces", "Bison bonasus", "Cervus elaphus", "Sus scrofa", "Vulpes vulpes", "Canis latrans",
-"Lynx rufus", "Martes americana", "Taxidea taxus", "Ursus americanus", "Leontopithecus caissara", # hase only 4 occurences
-"Leopardus pardalis", "Nasua nasua", "Aepyceros melampus", "Colobus angolensis", "Daubentonia madagascariensis",
-"Diceros bicornis", "Erythrocebus patas", "Gorilla beringei", "Gorilla gorilla", "Orycteropus afer",
-"Pan paniscus", "Pan troglodytes", "Papio anubis", "Papio ursinus", "Cervus nippon", "Cuon alpinus",
-"Felis chaus", "Macaca fuscata", "Pongo abelii", "Pongo pygmaeus", "Panthera tigris", "Lynx lynx",
-"Ursus arctos", "Canis lupus", "Rangifer tarandus", "Puma concolor", "Bison bison", "Panthera onca",
-"Crocuta crocuta", "Mandrillus sphinx", "Panthera pardus", "Syncerus caffer", "Acinonyx jubatus",
-"Panthera leo", "Connochaetes taurinus", "Loxodonta africana")
-
-# 1. Figures: SDM evaluation metrics ------------------------------------------------
-# a. Plot evaluation scores for ensemble models
-all_EvalScoresEM <- data.frame() # create data frame for all evaluation scores of EM
-for (species in targetSpecies) {
-  file_path <- file.path(putputPathSDMensemble, paste0("EvalScoresEM_", species, extent, ".csv"))
-  if (file.exists(file_path)) {
-    eval_scores <- read.csv(file_path)
-    eval_scores$species <- species  # Add species column if not present
-    all_EvalScoresEM <- rbind(all_EvalScoresEM, eval_scores)
-  }
+# Create main output folder if missing
+presencePlotBase <- file.path(outputPathSDMfigures, "presencePlots")
+if (!dir.exists(presencePlotBase)) {
+  dir.create(presencePlotBase, recursive = TRUE)
 }
 
-eval_plot_em <- ggplot2::ggplot(all_EvalScoresEM, aes(x = species, y = calibration, fill = metric.eval)) +
-  ggplot2::geom_boxplot() +
-  ggplot2::labs(
-    title = "Evaluation Metrics for Ensemble Models (EM)",
-    x = "Species",
-    y = "Calibration Score",
-    fill = "Metric"
-  ) +
-  ggplot2::scale_fill_viridis_d(name = "Metric") +  
-  ggplot2::theme_minimal() +
-  ggplot2::theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+# scenarios names (used for files)
+scenarios <- c("Current", "ssp126_2030_tropical", "ssp126_2050_tropical", "ssp126_2100_tropical",
+               "ssp585_2030_tropical", "ssp585_2050_tropical", "ssp585_2100_tropical",
+               "ssp126_2030_boreal", "ssp126_2050_boreal", "ssp126_2100_boreal",
+               "ssp585_2030_boreal", "ssp585_2050_boreal", "ssp585_2100_boreal")
 
-print(eval_plot_em)
-ggplot2::ggsave(file.path(outputPathSDMfigures, "EvaluationMetrics_EM_exampleSpecies.png"),
-       plot = eval_plot_em, width = 10, height = 6, dpi = 300)
+# scenarios prettier labels
+scenario_labels <- c(
+  Current = "Current",
+  ssp126_2030_tropical = "SSP1-2.6 (2030)",
+  ssp126_2050_tropical = "SSP1-2.6 (2050)",
+  ssp126_2100_tropical = "SSP1-2.6 (2100)",
+  ssp585_2030_tropical = "SSP5-8.5 (2030)",
+  ssp585_2050_tropical = "SSP5-8.5 (2050)",
+  ssp585_2100_tropical = "SSP5-8.5 (2100)",
+  ssp126_2030_boreal = "SSP1-2.6 (2030)",
+  ssp126_2050_boreal = "SSP1-2.6 (2050)",
+  ssp126_2100_boreal = "SSP1-2.6 (2100)",
+  ssp585_2030_boreal = "SSP5-8.5 (2030)",
+  ssp585_2050_boreal = "SSP5-8.5 (2050)",
+  ssp585_2100_boreal = "SSP5-8.5 (2100)"
+)
 
-# b. Plot evaluation metrics for RUN 1-6
-all_eval_scores <- data.frame() # create data frame for all evaluation scores
-for (species in targetSpecies) {
-  file_path <- file.path(putputPathSDMensemble, paste0("EvalScores_", species, extent, ".csv"))
-  if (file.exists(file_path)) {
-    eval_scores <- read.csv(file_path)
-    eval_scores$species <- species  # Add species column if not present
-    all_eval_scores <- rbind(all_eval_scores, eval_scores)
-  }
-}
+targetSpecies <- c(
+  # BOREAL SPS
+  "Alces alces", "Canis lupus", "Bison bonasus", "Cervus elaphus", 
+  "Sus scrofa", "Vulpes vulpes", "Canis latrans", "Lynx rufus",
+  "Martes americana", "Taxidea taxus", "Ursus americanus", "Panthera tigris",
+  "Lynx lynx", "Ursus arctos", "Rangifer tarandus", "Puma concolor", "Bison bison",
+  
+  # TROPICAL SPS
+  "Leontopithecus caissara", "Leopardus pardalis", "Nasua nasua", "Aepyceros melampus",
+  "Colobus angolensis", "Daubentonia madagascariensis", "Diceros bicornis",
+  "Erythrocebus patas", "Gorilla beringei", "Gorilla gorilla", "Orycteropus afer",
+  "Pan paniscus", "Pan troglodytes", "Papio anubis", "Papio ursinus", "Cervus nippon",
+  "Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii", "Pongo pygmaeus",
+  "Panthera onca", "Crocuta crocuta", "Mandrillus sphinx", "Panthera pardus",
+  "Syncerus caffer", "Acinonyx jubatus", "Panthera leo", "Connochaetes taurinus",
+  "Loxodonta africana", "Puma concolor"
+)
 
-# Filter for ROC and TSS metrics
-eval_scores_filtered <- all_eval_scores %>%
-  dplyr::filter(metric.eval %in% c("ROC", "TSS"))
+# get basemaps objects
+#extent <- "GlobalTerrestrial"
+world <- ne_countries(scale = "medium", returnclass = "sf")
 
-eval_plot_models <- ggplot2::ggplot(eval_scores_filtered, aes(x = metric.eval, y = validation, fill = algo)) +
-  ggplot2::geom_boxplot(position = position_dodge(1)) +
-  ggplot2::facet_wrap(~ species, nrow = 1) +
-  ggplot2::labs(
-    title = "Validation Scores (ROC and TSS) by Model",
-    x = "Metric",
-    y = "Validation Score",
-    fill = "Algorithm"
-  ) +
-  ggplot2::scale_fill_viridis_d(name = "Model") +
-  ggplot2::theme_minimal() +
-  ggplot2::theme(
-    axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5),
-    strip.text = element_text(size = 12)
-  )
+############
+# OUTPUT 1 # Presence maps
+############
 
-print(eval_plot_models)
-ggplot2::ggsave(file.path(outputPathSDMfigures, "ValidationScores_Models_exampleSpecies.png"),
-       plot = eval_plot_models, width = 14, height = 7, dpi = 300)
+# complete GBIF occ data
+gbif_file <- "data/GBIF_occurrences.csv"
+gbif_all <- readr::read_csv(gbif_file, show_col_types = FALSE)
+gbif_all <- gbif_all[,2:5]
+# carefull here not to swithc axis!!
+colnames(gbif_all)[1:3] <- c("species", "Latitude", "Longitude")
 
-# 2. Table: Variable importance ------------------------------------------------  
-all_var_importance_em <- data.frame() # create data frame for all variable importance of EM
-for (species in targetSpecies) {
-  file_path <- file.path(putputPathSDMensemble, paste0("VarImportanceEM_", species, extent, ".csv"))
-  if (file.exists(file_path)) {
-    var_imp <- read.csv(file_path)
-    var_imp$species <- species  # Add species column if not present
-    all_var_importance_em <- rbind(all_var_importance_em, var_imp)
-  }
-}
-# Filter for algo == "EMmean"
-var_importance_em_filtered <- all_var_importance_em %>%
-  filter(algo == "EMmean")
-
-# Summarize mean and SD for each species and variable
-importance_summary <- var_importance_em_filtered %>%
-  dplyr::group_by(species, expl.var) %>%
-  dplyr::summarize(
-    mean_importance = mean(var.imp, na.rm = TRUE), # Calculate mean
-    sd_importance = sd(var.imp, na.rm = TRUE), # Calculate standard deviation
-    .groups = "drop"
-  )
-
-# Reshape to wide format with mean and SD rows for each species
-importance_table <- importance_summary %>%
-  tidyr::pivot_longer(cols = c(mean_importance, sd_importance), names_to = "metrics", values_to = "importance") %>%
-  dplyr::mutate(metrics = ifelse(metrics == "mean_importance", "Mean", "SD")) %>%
-  tidyr::pivot_wider(names_from = expl.var, values_from = importance) %>%
-  dplyr::arrange(species, metrics)
-print(importance_table)
-write.csv(importance_table, file = file.path(outputPathSDMfigures, "VariableImportanceSummary_exampleSpecies.csv"), row.names = FALSE)
-writexl::write_xlsx(importance_table, path = file.path(outputPathSDMfigures, "VariableImportanceSummary_exampleSpecies.xlsx")) # Excel file
-
-# 3. Current Landscapes ------------------------------------------------
-currentSuitability_plots <- list()
-for (species in targetSpecies) {
-  raster_file <- file.path(gsub(" ", ".", species), "proj_Current", paste0("proj_Current_", gsub(" ", ".", species), "_ensemble.tif"))
-    emmean_layer <- terra::rast(raster_file)
-   # emmean_layer <- terra::raster[[grep("EMmean", names(raster))]]
-    raster_df <- as.data.frame(emmean_layer, xy = TRUE, na.rm = TRUE)
-    colnames(raster_df)[3] <- "value"
-    current_plot <- ggplot2::ggplot(raster_df, aes(x = x, y = y, fill = value)) +
-      ggplot2::geom_raster() +
-      tidyterra::scale_fill_terrain_c(name = "Suitability") +
-      ggplot2::labs(
-        title = paste(species, "- Current Ensemble Suitability"),
-        x = "Longitude",
-        y = "Latitude"
-      ) +
-      ggplot2::coord_fixed() +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(
-        plot.title = element_text(hjust = 0.5, size = 14),
-        axis.text = element_text(size = 8),
-        axis.title = element_text(size = 10),
-        legend.position = "right"
-      )
-  currentSuitability_plots[[species]] <- current_plot
-
-  # Optionally save individual PNGs
-  ggplot2::ggsave(
-     filename = file.path(outputPathSDMfigures, paste0("CurrentSuitability_", species, ".png")),
-    plot = current_plot,
-    width = 10,
-    height = 8,
-    dpi = 300)
-}
-
-# Combine all current plots into a single grid
-if (length(currentSuitability_plots) > 0) {
-  combined_current_plot <- gridExtra::grid.arrange(grobs = currentSuitability_plots, ncol = 2)
-  ggplot2::ggsave(
-    filename = file.path(outputPathSDMfigures, "CurrentSuitability_AllSpecies.png"),
-    plot = combined_current_plot,
-    width = 16,
-    height = 8,
-    dpi = 300)
-}
-
-# 4. Figure: Presence Points for multiple species ------------------------------------------------
-world_sf <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
 
 presencePlots <- list()
-for (species in targetSpecies) {
-  # Build the file path for the presence CSV
-  csv_file <- file.path(putputPathSDMensemble, paste0("PresencePoints_", species, "_Spain and Portugal.csv"))
-  raster_file <- file.path(gsub(" ", ".", species), "proj_Current", paste0("proj_Current_", gsub(" ", ".", species), "_ensemble.tif"))
-  if (file.exists(csv_file) && file.exists(raster_file)) {
-    # Read presence points
+
+for (path in pathSMDoutputs) {
+  
+  # Infer region name from folder name
+  region <- if (grepl("Boreal", path, ignore.case = TRUE)) "boreal" else "tropical"
+  
+  # Create subfolder for this region
+  region_output_dir <- file.path(presencePlotBase, region)
+  if (!dir.exists(region_output_dir)) dir.create(region_output_dir, recursive = TRUE)
+  
+  for (species in targetSpecies) {
+    message(paste0("Building Presence Plot for ", species, " (", region, ")"))
+    
+    # presence points used in SDMs
+    csv_file <- file.path(path, paste0("PresencePoints_", gsub(" ", ".", species), "_", region, ".csv"))
+    if (!file.exists(csv_file)) next
+    
     presence_df <- readr::read_csv(csv_file, show_col_types = FALSE)
     colnames(presence_df)[1:2] <- c("Longitude", "Latitude")
-    presence_df$Type <- "Presence Points"
-
-    # Read current suitability raster
-    emmean_layer <- terra::rast(raster_file)
-    raster_df <- as.data.frame(emmean_layer, xy = TRUE, na.rm = TRUE)
-    colnames(raster_df)[3] <- "value"
-
-    # Plot: raster as background, presence points on top
-    p <- ggplot2::ggplot() +
-      ggplot2::geom_sf(data = world_sf, fill = NA, color = "black", size = 0.5) + # Add world boundary as background
-      ggplot2::geom_raster(data = raster_df, aes(x = x, y = y, fill = value), alpha = 0.8) +
-      ggplot2::geom_point(data = presence_df, aes(x = Longitude, y = Latitude), color = "blue", size = 0.7) +
-      tidyterra::scale_fill_terrain_c(name = "Suitability") +
-      ggplot2::labs(
-        title = species,
-        x = "Longitude",
-        y = "Latitude"
-      ) +
-       ggplot2::coord_sf(expand = FALSE) +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(
-        plot.title = element_text(hjust = 0.5, size = 14),
-        axis.text = element_text(size = 8),
-        axis.title = element_text(size = 10),
-        legend.position = "none"
+    presence_df$Type <- "SDM Presences"
+    
+    # total GBIF occ records
+    gbif_species <- gbif_all %>%
+      dplyr::filter(species == !!species) %>%
+      dplyr::mutate(Type = "GBIF Occurrences")
+    
+    # color-blind palette
+    color_map <- c("GBIF" = "#0072B2", "SDM" = "#E69F00")
+    
+    # plot
+    p <- ggplot() +
+      geom_sf(data = world, fill = "grey95", color = "black") +
+      geom_point(data = gbif_species, aes(x = Longitude, y = Latitude, color = "GBIF"),
+                 size = 0.4, alpha = 0.6) +
+      geom_point(data = presence_df, aes(x = Longitude, y = Latitude, color = "SDM"),
+                 size = 0.7, alpha = 0.8) +
+      scale_color_manual(values = color_map, breaks = c("GBIF", "SDM"),
+                         labels = c("GBIF occurrences", "SDM presences"), drop = FALSE) +
+      ggtitle(bquote(italic(.(species)) ~ " occurrences (" ~ .(region) ~ ")")) +
+      theme_minimal(base_size = 12) +
+      theme(
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        legend.background = element_rect(fill = "white", color = "grey80"),
+        panel.grid = element_line(color = "grey90")
       )
-    presencePlots[[species]] <- p
-  }
-}
-
-# Extract the legend from one of the plots
-example_plot <- ggplot2::ggplot() +
-      ggplot2::geom_sf(data = world_sf, fill = NA, color = "black", size = 0.5) + # Add world boundary as background
-      ggplot2::geom_raster(data = raster_df, aes(x = x, y = y, fill = value), alpha = 0.8) +
-      ggplot2::geom_point(data = presence_df, aes(x = Longitude, y = Latitude), color = "blue", size = 0.7) +
-      tidyterra::scale_fill_terrain_c(
-    name = "Suitability",
-    guide = guide_colorbar(
-      direction = "horizontal",
-      title.position = "top",
-      title.theme = element_text(size = 18),
-      label.theme = element_text(size = 18),
-      barwidth = unit(6, "cm"),   # Make the colorbar longer
-      barheight = unit(0.5, "cm")  # Make the colorbar thicker
+    invisible(gc())
+    
+    # Save to region subfolder
+    ggsave(
+      plot = p,
+      file = file.path(region_output_dir, paste0("PresencesPlot_", gsub(" ", ".", species), ".png")),
+      bg = 'white', width = 300, height = 150, units = "mm", dpi = 1200
     )
-  ) +
-      ggplot2::labs(
-        title = species,
-        x = "Longitude",
-        y = "Latitude"
-      ) +
-      ggplot2::coord_sf() +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(
-    legend.direction = "horizontal",
-    legend.title = element_text(size = 18),
-    legend.text = element_text(size = 18)
-  )
-shared_legend <- cowplot::get_legend(example_plot)
-
-# Arrange all plots in a grid (max 2 per row)
-if (length(presencePlots) > 0) {
-  combined_presence_plot <- gridExtra::grid.arrange(
-    grobs = presencePlots,
-    ncol = 2 # max 2 species per row
-  )
-
-  final_plot <- gridExtra::grid.arrange(
-    combined_presence_plot,
-    shared_legend,
-    ncol = 1,  # Legend below the plots
-    heights = unit(c(10, 1.5), "null")
-  )
-
-  ggplot2::ggsave(
-    filename = file.path(outputPathSDMfigures, "PresencePointsWithSuitability_exampleSpecies.png"),
-    plot = final_plot,
-    width = 12, height = 6 + 1.5 * ceiling(length(presencePlots)/2), dpi = 300
-  )
-}
-
-# 5. Figure: Current and Predicted Landscapes ------------------------------------------------
-# Current Suitability Landscapes
-current_plots <- list()
-for (species in targetSpecies) {
-  raster_file <- file.path(gsub(" ", ".", species), "proj_Current", paste0("proj_Current_", gsub(" ", ".", species), "_ensemble.tif"))
-  if (file.exists(raster_file)) {
-    emmean_layer <- terra::rast(raster_file)
-    raster_df <- as.data.frame(emmean_layer, xy = TRUE, na.rm = TRUE)
-    colnames(raster_df)[3] <- "value"
-    currentPlot <- ggplot2::ggplot(raster_df, aes(x = x, y = y, fill = value)) +
-      ggplot2::geom_raster() +
-      tidyterra::scale_fill_terrain_c(name = "Prediction") +
-      ggplot2::labs(title = NULL, x = "Longitude", y = "Latitude") +
-      ggplot2::coord_sf(expand = FALSE) + # Ensure correct aspect ratio
-      ggplot2::theme_bw() +
-      ggplot2::theme(
-        axis.title = element_text(size = 22),
-        axis.text = element_text(size = 20),
-        axis.ticks = element_line(),
-        panel.grid.major = element_line(color = "gray"),
-        panel.grid.minor = element_blank(),
-        legend.position = "none"
-      )
-    current_plots[[species]] <- currentPlot
   }
 }
 
-# Future Suitability Landscapes
-future_plots <- list()
-for (year in years) {
-  for (scenario in scenarios) {
-    for (species in targetSpecies) {
-      # Build folder and file names
-      folder_name <- paste0("proj_", scenario, "_", year, "_", species)
-      file_name <- paste0("proj_", scenario, "_", year, "_", species, "_", gsub(" ", ".", species), ".tif")
-      raster_file <- file.path(gsub(" ", ".", species), folder_name, file_name)
-      if (file.exists(raster_file)) {
-        emmean_layer <- terra::rast(raster_file)
-        raster_df <- as.data.frame(emmean_layer, xy = TRUE, na.rm = TRUE)
-        colnames(raster_df)[3] <- "value"
-        futurePlot <- ggplot2::ggplot(raster_df, aes(x = x, y = y, fill = value)) +
-          ggplot2::geom_raster() +
-          tidyterra::scale_fill_terrain_c(name = "Suitability",
-                               guide = guide_colorbar(
-                                 title.position = "top",
-                                 title.theme = element_text(size = 22),
-                                 label.theme = element_text(size = 20)
-                               )) +
-          ggplot2::labs(title = NULL, x = "Longitude", y = "Latitude") +
-          ggplot2::coord_sf(expand = FALSE) + # Ensure correct aspect ratio
-          ggplot2::theme_bw() +
-          ggplot2::theme(
-            axis.title = element_text(size = 22),
-            axis.text = element_text(size = 20),
-            axis.ticks = element_line(),
-            panel.grid.major = element_line(color = "gray"),
-            panel.grid.minor = element_blank(),
-            legend.position = "none")
-        future_plots[[paste0(scenario, "_", year, "_", species)]] <- futurePlot
-      }
+################
+# EXTRA OUTPUT # Number of available presences over time
+################
+
+occOverTime <- gbif_all %>%
+  dplyr::filter(year >= 2015) %>% 
+  count(species, year) %>%
+  ggplot(aes(x = year, y = n)) +
+  geom_col(fill = "#0072B2") +
+  facet_wrap(~species, scales = "free_y") +
+  labs(title = "Occurrences over time per species",
+       x = "Year", y = "Count") +
+  theme_minimal(base_size = 10) +
+  theme(strip.text = element_text(face = "italic"))
+
+ggsave(plot = occOverTime,
+       file = "./output/gbifOccurrencesOverTime.png" , bg = 'white', width = 300, height = 150, units = "mm", dpi = 300)
+
+############
+# OUTPUT 2 # Variable Importance for Ensemble Models Table
+############
+
+# create data frame for all variable importance of EM
+all_var_importance_em <- data.frame() 
+
+for (path in pathSMDoutputs) {
+  for (species in targetSpecies) {
+    
+    # Infer region name from folder name
+    region <- if (grepl("Boreal", path, ignore.case = TRUE)) "boreal" else "tropical"
+    
+    # find teh path for the .csv with metrics value
+    file_path <- file.path(path,
+                           paste0("VarImportanceEM_", gsub(" ", ".", species), "_", region, ".csv"))
+    if (file.exists(file_path)) {
+      var_imp <- read.csv(file_path)
+      # add species column 
+      var_imp$species <- species  
+      # add biome column
+      var_imp$biome <- ifelse(grepl("Boreal", path, ignore.case = TRUE), "Boreal Forests/Taiga",
+                              ifelse(grepl("Tropical", path, ignore.case = TRUE), "Tropical & Subtropical Moist Broadleaf Forests", NA))
+      # put everything together
+      all_var_importance_em <- rbind(all_var_importance_em, var_imp)
     }
   }
 }
 
-# Extract the legend from one of the plots
-example_plot <- ggplot2::ggplot(raster_df, aes(x = x, y = y, fill = value))+
-  ggplot2::geom_raster() +
-  tidyterra::scale_fill_terrain_c(name = "Suitability",
-                       guide = guide_colorbar(
-                         title.position = "top",
-                         title.theme = element_text(size = 22),
-                         label.theme = element_text(size = 20),
-                         barwidth = 20,
-                         barheight = 1.5
-                       )) +
-  ggplot2::theme_bw() +
-  ggplot2::theme(
-    legend.direction = "horizontal",
-    legend.title = element_text(size = 22),
-    legend.text = element_text(size = 20)
-  )
-shared_legend <- cowplot::get_legend(example_plot)
+unique(all_var_importance_em$species)
+# filter for algo == "EMmean"
+var_importance_em_filtered <- all_var_importance_em %>%
+  filter(algo == "EMmean")
 
-# Suitability Landscapes for single species and multiple years
+# summarize mean and SD for each species and variable
+importance_summary <- var_importance_em_filtered %>%
+  group_by(biome, species, expl.var) %>%
+  dplyr::summarize(
+    mean_importance = mean(var.imp, na.rm = TRUE), # Calculate mean
+    sd_importance = sd(var.imp, na.rm = TRUE), # Calculate standard deviation
+    .groups = "drop") %>%
+  pivot_longer(cols = c(mean_importance, sd_importance), names_to = "metrics", values_to = "importance") %>%
+  mutate(metrics = ifelse(metrics == "mean_importance", "Mean", "SD")) %>%
+  pivot_wider(names_from = expl.var, values_from = importance) %>%
+  dplyr::arrange(biome, species, metrics)
+
+# write table to .csv and .xslx (for easy copy paste later)
+write.csv(importance_summary,
+          file = file.path(outputPathSDMfigures,
+                           paste0("VariableImportanceSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
+writexl::write_xlsx(importance_summary,
+                    path = file.path(outputPathSDMfigures,
+                                     paste0("VariableImportanceSummaryTable", Sys.Date(), ".xlsx")))
+
+############
+# OUTPUT 3 # Evaluation metrics table for Ensemble Models
+############
+
+all_EvalScoresEM <- data.frame() 
+
+for (path in pathSMDoutputs) {
+  for (species in targetSpecies) {
+    
+    # get region name from folder name
+    region <- if (grepl("Boreal", path, ignore.case = TRUE)) "boreal" else "tropical"
+    
+    # find teh path for the .csv with metrics value
+    file_path <- file.path(path, paste0("EvalScoresEM_", gsub(" ", ".", species), "_", region, ".csv"))
+    if (file.exists(file_path)) {
+      eval_scores <- read.csv(file_path)
+      # add species column 
+      eval_scores$species <- species
+      # add biome column
+      eval_scores$biome <- ifelse(grepl("Boreal", path, ignore.case = TRUE), "Boreal Forests/Taiga",
+                                  ifelse(grepl("Tropical", path, ignore.case = TRUE), "Tropical & Subtropical Moist Broadleaf Forests", NA))
+      # bind all together
+      all_EvalScoresEM <- rbind(all_EvalScoresEM, eval_scores)
+      rm(eval_scores)
+    }
+  }
+}
+
+# summarize calibration scores 
+eval_table_em <- all_EvalScoresEM %>%
+  group_by(biome, species, metric.eval) %>%
+  # get mean value for the calibration metric
+  summarise(
+    mean_calibration = mean(calibration, na.rm = TRUE),
+    .groups = "drop"
+  ) %>% 
+  pivot_wider(names_from = metric.eval, values_from = mean_calibration)
+
+# write table to .csv and .xslx (for easy copy paste later)
+write.csv(eval_table_em,
+          file = file.path(outputPathSDMfigures,
+                           paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
+writexl::write_xlsx(eval_table_em,
+                    path = file.path(outputPathSDMfigures,
+                                     paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".xlsx")))
+
+############
+# OUTPUT 4 # Continuous landscapes 
+############
+
+
+# Tropical Biome
+extent_tropical_name <- "Tropical & Subtropical Moist Broadleaf Forests" # full name of the biome
+extent_tropical_sf <- load_biome(extent_tropical_name)
+extent_tropical_sp <- terra::vect(extent_tropical_sf) 
+
+# Boreal Biome
+extent_boreal_name <- "Boreal Forests/Taiga" # full name of the biome
+extent_boreal_sf <- load_biome(extent_boreal_name)
+extent_boreal_sp <- terra::vect(extent_boreal_sf) # Convert the sf to a spatial object
+
+
+# define base folder for continuous outputs
+continuous_base <- file.path(outputPathSDMfigures, "ContinuousLandscapes")
+if (!dir.exists(continuous_base)) dir.create(continuous_base, recursive = TRUE)
+
+# Storage for plots
+continuous_list <- list()
+
+# first loop to produce a continuous map per sps and scenario
+for (path in pathSMDoutputs) {
+  for (species in targetSpecies) {
+    for (scenario in scenarios) {
+      
+      # prep rasters' paths
+      if (scenario == "Current") {
+        tif_path <- file.path(
+          path,
+          paste0("proj_Current_EM_", gsub(" ", ".", species), "_continuous.tif")) } 
+      else {
+        tif_path <- file.path(
+          path,
+          paste0("proj_", scenario, "_", gsub(" ", ".", species), "_continuous.tif")) }
+      
+      # continue if the file exists
+      if (!file.exists(tif_path)) {
+        next  # otherwise skip to next iteration
+      }
+      
+      # load raster
+      rast_obj <- rast(tif_path)
+      
+      # choose mask based on path (either boreal or tropical)
+      if (grepl("boreal", path, ignore.case = TRUE)) {
+        rast_crop <- crop(rast_obj, extent_boreal_sp)
+        rast_mask <- mask(rast_crop, extent_boreal_sp)}
+      else if (grepl("tropical", path, ignore.case = TRUE)) {
+        rast_crop <- crop(rast_obj, extent_tropical_sp)
+        rast_mask <- mask(rast_crop, extent_tropical_sp)}
+      else {
+        rast_crop <- rast_obj
+        rast_mask <- rast_obj}
+      
+      # normalize raster by 1000 and clamp to [0,1]
+      rast_norm <- rast_mask / 1000
+      rast_norm <- clamp(rast_norm, lower = 0, upper = 1, values = TRUE)   # terra::clamp
+      rm(rast_mask)
+      invisible(gc())
+      
+      # convert to df
+      cont_df <- as.data.frame(rast_norm, xy = TRUE, na.rm = TRUE)
+      names(cont_df)[3] <- "suitability"
+      
+      # progress message
+      message(paste0("Building individual plots for ", species, " in ", scenario, " scenario"))
+      
+      # plot SDM results
+      p <- ggplot() +
+        geom_sf(data = world, fill = "grey90", color = "black", linewidth = 0.2) +
+        geom_tile(data = cont_df, aes(x = x, y = y, fill = suitability)) +
+        tidyterra::scale_fill_terrain_c(name = "Suitability", limits = c(0, 1)
+        ) +
+        labs(x = "Longitude", y = "Latitude", 
+             title = scenario_labels[scenario]) +
+        theme_minimal()
+      
+      # figure out region hint from path
+      if (grepl("boreal", path, ignore.case = TRUE)) {
+        region_hint <- "boreal"} else if (grepl("tropical", path, ignore.case = TRUE)) {
+          region_hint <- "tropical"} else {
+            region_hint <- "unknown"}
+      
+      # Store plot with region in the name
+      continuous_list[[paste(species, scenario, region_hint, sep = "_")]] <- p
+    }
+  }
+}
+
+species_layouts <- list()
+
 for (species in targetSpecies) {
-  # Prepare plots for the layout
-  current_grob <- gtable::gtable_trim(ggplotGrob(current_plots[[species]]))
-  ssp1_2030_grob <- gtable::gtable_trim(ggplotGrob(future_plots[[paste0("ssp126_2030_", species)]]))
-  ssp1_2050_grob <- gtable::gtable_trim(ggplotGrob(future_plots[[paste0("ssp126_2050_", species)]]))
-  ssp5_2030_grob <- gtable::gtable_trim(ggplotGrob(future_plots[[paste0("ssp585_2030_", species)]]))
-  ssp5_2050_grob <- gtable::gtable_trim(ggplotGrob(future_plots[[paste0("ssp585_2050_", species)]]))
-
-  # Titles for columns
-  title_grobs <- list(
-    grid::nullGrob(),
-    grid::textGrob("Current", gp = gpar(fontsize = 20), just = "centre"),
-    grid::textGrob("2030", gp = gpar(fontsize = 20), just = "centre"),
-    grid::textGrob("2050", gp = gpar(fontsize = 20), just = "centre")
-  )
-
-  # Row labels
-  row1_label <- gtable_trim::textGrob("SSP1-RCP2.6", rot = 90, gp = gpar(fontsize = 20))
-  row2_label <- gtable_trim::textGrob("SSP5-RCP8.5", rot = 90, gp = gpar(fontsize = 20))
-
-  # Layout matrix: 3 columns (Current, 2030, 2050) + 1 for row labels, 3 rows (title, ssp1, ssp5)
-  layout_matrix <- matrix(
-    c(
-      1, 2, 3, 4,      # Title row
-      5, 6, 7, 8,      # SSP1 row: label, current, 2030, 2050
-      9, 10, 11, 12    # SSP5 row: label, current, 2030, 2050
-    ),
-    nrow = 3, byrow = TRUE
-  )
-
-  # Collect all grobs in order of layout_matrix
-  all_grobs <- list(
-    title_grobs[[1]], title_grobs[[2]], title_grobs[[3]], title_grobs[[4]],
-    row1_label, current_grob, ssp1_2030_grob, ssp1_2050_grob,
-    row2_label, current_grob, ssp5_2030_grob, ssp5_2050_grob
-  )
-
-  # Set column widths and row heights
-  col_widths <- grid::unit.c(unit(1, "cm"), rep(unit(1, "null"), 3))
-  row_heights <- grid::unit.c(unit(1, "null"), rep(unit(4, "null"), 2))
-
-   final_plot <- gridExtra::grid.arrange(
-    grobs = all_grobs,
-    layout_matrix = layout_matrix,
-    widths = col_widths,
-    heights = row_heights,
-    bottom = shared_legend,
-    top = textGrob(species, gp = gpar(fontface = "italic", fontsize = 26))
-  )
-
-  ggplot2::ggsave(
-    filename = file.path(outputPathSDMfigures, paste0("SuitabilityLandscapes_", species, ".png")),
-    plot = final_plot,
-    width = 24, height = 11, dpi = 300
-  )
+  
+  message("Building continuous SDM landscapes for ", species)
+  
+  # detect which regions exist for this species
+  species_keys <- names(continuous_list)[grepl(species, names(continuous_list))]
+  regions <- unique(sub(".*_(tropical|boreal)$", "\\1", species_keys))
+  
+  for (region in regions) {
+    
+    # safely extract plots for this species × region
+    p_current   <- continuous_list[[paste(species, "Current", region, sep = "_")]]
+    p_126_2030  <- continuous_list[[paste(species, "ssp126_2030", region, sep = "_", region)]]
+    p_126_2050  <- continuous_list[[paste(species, "ssp126_2050", region, sep = "_", region)]]
+    p_126_2100  <- continuous_list[[paste(species, "ssp126_2100", region, sep = "_", region)]]
+    p_585_2030  <- continuous_list[[paste(species, "ssp585_2030", region, sep = "_", region)]]
+    p_585_2050  <- continuous_list[[paste(species, "ssp585_2050", region, sep = "_", region)]]
+    p_585_2100  <- continuous_list[[paste(species, "ssp585_2100", region, sep = "_", region)]]
+    
+    # if any key plots are missing, skip
+    if (is.null(p_current)) {
+      message("Skipping ", species, " (", region, ") because SDM outputs are missing.")
+      next
+    }
+    
+    # use patchwork to layout plots
+    species_plot <- 
+      (p_current | (p_126_2030 / p_585_2030) | (p_126_2050 / p_585_2050) | (p_126_2100 / p_585_2100))  +
+      plot_layout(widths = c(1, 1, 1, 1),
+                  guides = "collect") +
+      plot_annotation(title = bquote(italic(.(species)) ~ "-" ~ .(region))) &
+      theme(legend.position = "bottom")
+    
+    # store a per-species × region patchwork
+    species_layouts[[paste(species, region, sep = "_")]] <- species_plot
+    
+    # create subfolder for region if missing
+    region_dir <- file.path(continuous_base, region)
+    if (!dir.exists(region_dir)) dir.create(region_dir, recursive = TRUE)
+    
+    # save as .png file
+    ggsave(
+      plot = species_plot,
+      file = file.path(region_dir,
+                       paste0("SDMlandscapes_", species, "_", region, ".png")),
+      bg = 'white', width = 400, height = 150, units = "mm", dpi = 1200
+    )
+  }
 }
