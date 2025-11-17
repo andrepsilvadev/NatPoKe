@@ -650,14 +650,15 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   species_df_sampled <- species_df %>%
     group_by(species) %>%
     group_modify(~ {
-      df <- .x
+      df <- .x %>% filter(abundance != 0)  # remove zeros
       if (nrow(df) >= 300) {
         df[sample(nrow(df), 300), ]
       } else {
-        df  # keep all if there are fewer values than 300
+        df  # keep all non-zero if fewer than 300
       }
     }) %>%
     ungroup()
+  
   
   
   # format raster's dataframe for validation
