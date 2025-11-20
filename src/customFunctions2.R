@@ -765,7 +765,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species na
   message(paste0("Single models completed for ", targetSpecies))
   
   # get evaluation scores & variable importance
-  eval_scores <- get_evaluations(myBiomodModelOut)
+  eval_scores <- get_evaluations(myBiomodModelOut,
+                                 evaluation = TRUE)
   eval_scores$species <- targetSpecies  # Add species column
   #evaluationScores <- rbind(evaluationScores, eval_scores)  # Combine scores across species
   var_importance <- get_variables_importance(myBiomodModelOut)
@@ -843,7 +844,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species na
   message(paste0("Ensemble model done for ", targetSpecies))
   
   # get evaluation scores & variable importance for ensemble models
-  eval_scoresEM <- get_evaluations(myBiomodEM)
+  eval_scoresEM <- get_evaluations(myBiomodEM, 
+                                   evaluation = TRUE)
   eval_scoresEM$species <- targetSpecies  # Add species column
   #evaluationScoresEM <- rbind(evaluationScoresEM, eval_scoresEM)  # Combine scores across species
   
@@ -940,7 +942,8 @@ SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species na
   message(paste0("Saving output rasters for ", targetSpecies))
   
   # Get evaluation results to extract threshold
-  evals <- get_evaluations(myBiomodEM)
+  evals <- get_evaluations(myBiomodEM,
+                           evaluation = TRUE)
   th_TSS <- evals$cutoff[evals$metric.eval == "TSS"]
   
   ## Current Conditions Raster ##
