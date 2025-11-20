@@ -79,16 +79,16 @@ TNIND_yr <- TNIND_yr %>%
   mutate(across(where(bit64::is.integer64), as.numeric))
 
 
-##########
-# STEP 3 # Save data and "diagnostics" pop. trends
-##########
-
 # write complete dataset into .csv (RAW DATA)
 write_csv(TNIND_yr, 
           file = "./output/completeMetaRangeRun_31Oct25.csv")
 
+##########
+# STEP 3 # Build "diagnostics" pop. trends
+##########
+
 # create folder to save diagnostics
-diagnostics <- file.path("./output/metaRangeRuns/diagnostics")
+diagnostics <- file.path("./output/metaRangeRuns/diagnostics2")
 dir.create(diagnostics, showWarnings = TRUE)
 
 n_sps <- TNIND_yr %>% 
@@ -96,11 +96,10 @@ n_sps <- TNIND_yr %>%
   summarise(n_species = n_distinct(species), .groups = "drop")
 
 # plot population trends -------------------------------------------------------
-
 ## differences within EACH replicate
 TNIND_diff <- TNIND_yr %>%
   arrange(species, biome, rep_num, timestep) %>%
-  group_by(biome, species, rep_num, scenario, region) %>%
+  group_by(scenario, biome, region, species, rep_num) %>%
   mutate(diff_TNIND = TNIND - lag(TNIND)) %>%
   ungroup() %>% 
   dplyr::select(scenario, biome, region, species, timestep, rep_num, TNIND, diff_TNIND) %>% 
@@ -109,9 +108,9 @@ TNIND_diff <- TNIND_yr %>%
 ## mean TNIND and diff ACROSS replicates
 TNIND_mean <- TNIND_diff %>%
   group_by(scenario, biome, region, species, timestep) %>%
-  summarise(mean_TNIND = mean(TNIND, na.rm = TRUE),
-            mean_diff_TNIND = mean(diff_TNIND, na.rm = TRUE)) %>%
-  mutate(rep_num = "Mean") %>%
+  summarise(mean_TNIND = round(mean(TNIND, na.rm = TRUE), 0)) %>% 
+  mutate(mean_diff_TNIND = mean_TNIND - lag(mean_TNIND, n = 1),
+         rep_num = "Mean") %>%
   ungroup() %>% 
   dplyr::select(scenario, biome, region, species, timestep, mean_TNIND, mean_diff_TNIND, rep_num)
 
@@ -125,50 +124,80 @@ writeData(wb, "perReplicate", TNIND_diff)
 # add across-replicate sheet 
 addWorksheet(wb, "acrossReplicates")
 writeData(wb, "acrossReplicates", TNIND_mean)
-saveWorkbook(wb, "./output/metaRangeRun_31Oct_diagnostics.xlsx", overwrite = TRUE)
+saveWorkbook(wb, file.path(diagnostics, "metaRangeRun_31Oct_diagnostics.xlsx"), overwrite = TRUE)
 invisible(gc())
 
+
 # pop trends in plot format ----------------------------------------------------
-### per biome
-for (b in unique(TNIND_mean$biome)) {
-  # make plot
-  p <- TNIND_mean %>%
-    filter(biome == b) %>%
-    ggplot(aes(x = timestep,
-               y = mean_TNIND)) +
+
+### per biome × region × scenario (all species together) -------------------------
+combo_list <- TNIND_diff %>%
+  distinct(biome, region, scenario)
+
+for (i in seq_len(nrow(combo_list))) {
+  
+  b <- combo_list$biome[i]
+  r <- combo_list$region[i]
+  s <- combo_list$scenario[i]
+  
+  # filter data for this combination
+  df <- TNIND_mean %>%
+    filter(biome == b,
+           region == r,
+           scenario == s)
+  
+  # skip if nothing there
+  if (nrow(df) == 0) next
+  
+  # nice title
+  biome_title <- gsub("([A-Z])", " \\1", b) |> trimws()
+  
+  # plot (all species together)
+  p <- ggplot(df, aes(x = timestep, y = mean_TNIND)) +
     geom_line() +
     facet_wrap(~species, scales = "free_y") +
-    labs(title = gsub("([A-Z])", " \\1", b) |> trimws()) +
+    labs(title = paste0(biome_title, " – ", r, " – ", s),
+         subtitle = "Species population trends") +
     theme_minimal() +
     theme(strip.text = element_text(face = "italic"))
   
-  # save plot
-  ggsave(filename = paste0("./output/metaRangeRuns/diagnostics/", gsub(" ", "", b), "_speciesPopulationTrends.png"),
-         plot = p, bg = "white", width = 350, height = 210, units = "mm", dpi = 300)
-  gc(rm(p, b))
+  # filename
+  fname <- paste0("./output/metaRangeRuns/diagnostics2/",
+                  gsub(" ", "", b), "_", gsub(" ", "", r), "_", gsub(" ", "", s),
+                  "_speciesPopulationTrends.png")
+  
+  ggsave(filename = fname, plot = p,
+         bg = "white", width = 350, height = 210, units = "mm", dpi = 300)
+  rm(df, p)
+  gc()
 }
 
-### per species
 
-# get unique combination to plot (biome+region+species)
+### per species
+# get unique combination to plot (biome + region + species + scenario)
 combo_list <- TNIND_diff %>%
-  distinct(biome, region, species)
+  distinct(biome, region, species, scenario)
 
 # go through each combination
 for (i in seq_len(nrow(combo_list))) {
-  # subset correct data
-  biome_to_plot  <- combo_list$biome[i]
-  region_to_plot <- combo_list$region[i]
-  sp             <- combo_list$species[i]
+  biome_to_plot   <- combo_list$biome[i]
+  region_to_plot  <- combo_list$region[i]
+  sp              <- combo_list$species[i]
+  scen_to_plot    <- combo_list$scenario[i]
   
   # filter for that combo
   sp_mean <- TNIND_mean %>%
-    filter(biome == biome_to_plot, region == region_to_plot, species == sp,
-           # remove burn in
-           timestep > 100)
+    filter(biome == biome_to_plot,
+           region == region_to_plot,
+           species == sp,
+           scenario == scen_to_plot,
+           timestep > 100)       # remove burn in
   
   sp_data <- TNIND_diff %>%
-    filter(biome == biome_to_plot, region == region_to_plot, species == sp)
+    filter(biome == biome_to_plot,
+           region == region_to_plot,
+           species == sp,
+           scenario == scen_to_plot)
   
   # skip if data missing
   if (nrow(sp_data) == 0 | nrow(sp_mean) == 0) next
@@ -176,32 +205,51 @@ for (i in seq_len(nrow(combo_list))) {
   # right plot - mean TNIND across replicates
   p_right <- ggplot(sp_mean, aes(x = timestep, y = mean_TNIND)) +
     geom_line(color = "black", size = 1) +
-    labs(title = paste(sp, "- Mean across replicates"), x = "Timestep", y = "Mean TNIND") +
+    labs(
+      title = paste(sp, "- Mean across replicates"),
+      x = "Timestep", y = "Mean TNIND") +
     theme_minimal()
   
   # left plot - TNIND per replicate separately
-  p_left <- ggplot(sp_data, aes(x = timestep, y = TNIND,
-                                group = factor(rep_num),
-                                color = factor(rep_num))) +
+  p_left <- ggplot(sp_data, aes(
+    x = timestep, y = TNIND,
+    group = factor(rep_num),
+    color = factor(rep_num))) +
     geom_line(size = 0.8, alpha = 0.7) +
-    # dashed line for burn-in line
     geom_vline(xintercept = 100, linetype = "dashed") +
-    labs(title = paste(sp, "- Replicates"), x = "Timestep", y = "TNIND", color = "Replicate") +
+    labs(
+      title = paste(sp, "- Replicates"),
+      x = "Timestep", y = "TNIND", color = "Replicate") +
     theme_minimal() +
     theme(legend.position = "bottom")
   
   # combine both
   combined_plot <- p_right + p_left +
-    plot_annotation(title = paste("Temporal dynamics of TNIND",
-                                  "\nBiome:", biome_to_plot, "| Region:", region_to_plot))
+    plot_annotation(
+      title = paste(
+        "Temporal dynamics of TNIND",
+        "\nBiome:", biome_to_plot,
+        "| Region:", region_to_plot,
+        "| Scenario:", scen_to_plot))
+  
+  # filename (scenario added)
+  filename <- paste0(
+    "TNIND_",
+    gsub(" ", "_", sp), "_",
+    gsub(" ", "_", biome_to_plot), "_",
+    gsub(" ", "_", region_to_plot), "_",
+    gsub(" ", "_", scen_to_plot),
+    ".png")
   
   # save plots
-  filename <- paste0("TNIND_", gsub(" ", "_", sp), "_", gsub(" ", "_", biome_to_plot), "_", gsub(" ", "_", region_to_plot), ".png")
-  ggsave(filename, combined_plot, 
-         path = diagnostics, width = 16, height = 6, dpi = 300)
+  ggsave(filename, combined_plot,
+         path = diagnostics,
+         width = 16, height = 6, dpi = 300)
   
   message("Saved: ", filename)
-  gc(rm(sp_data, sp_mean, p_left, p_right, combined_plot, biome_to_plot, region_to_plot, sp))
+  
+  gc(rm(sp_data, sp_mean, p_left, p_right, combined_plot,
+        biome_to_plot, region_to_plot, scen_to_plot, sp))
 }
 
 
