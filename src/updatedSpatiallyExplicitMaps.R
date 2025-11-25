@@ -1,165 +1,97 @@
-###################################
-# UPDATED SPATIALLY EXPLICIT MAPS #
-###################################
-# Ines Silva
-# 28 March 2025
+## Name: UpdatedSpatiallyExplicitMaps.R ##
+## Authors: Inês Silva ##
+## Description: calculate Shannon-Index Change and build maps per scenario and trophic group ##
+## Date: March 28th 2025 updated on November 25th 2025
 
-##########
-# Step 1 # Set up, load needed packages & functions
-##########
 
+# Set up, load needed packages & functions
 library(here)
 source(here("src", "libraries.R"))
 source(here("src", "customFunctions2.R"))
 
 ##########
-# Step 1 # Prepare & build maps insets for better visualisation 
+# STEP 1 # list all directories with outputs to map SSP5
 ##########
 
-regions <- c("Europe", "North America", "South America", "Africa", "Asia")
-# Get world map data
-world <- ne_countries(scale = "medium", returnclass = "sf")
-unique(world$continent)
-
-
-# turn off s2 geometry (like before)
-sf_use_s2(FALSE)
-
-# define your tasks list (biome, continent pairs)
-tasks <- list(
-  asia_trop        = c("Tropical & Subtropical Moist Broadleaf Forests", "Asia"),
-  southAmerica_trop = c("Tropical & Subtropical Moist Broadleaf Forests", "South America"),
-  africa_trop      = c("Tropical & Subtropical Moist Broadleaf Forests", "Africa"),
-  northAmerica_bor = c("Boreal Forests/Taiga", "North America"),
-  europe_bor       = c("Boreal Forests/Taiga", "Europe")
-)
-
-region_sfs <- list()
-
-for (nm in names(tasks)) {
-  biome_name     <- tasks[[nm]][1]
-  continent_name <- tasks[[nm]][2]
-  
-  # load biome and continent geometries for this task
-  biome_sf     <- load_biome(biome_name = biome_name)
-  continent_sf <- load_select_continents(continent_names = continent_name)
-  
-  # crop biome to continent
-  region_sfs[[nm]] <- crop_biome_to_continent(biome_sf, continent_sf)%>%
-    summarise(geometry = st_union(geometry))
-}
-
-# optional: unpack into the global environment
-list2env(region_sfs, .GlobalEnv)
-plot(region_sfs$asia_trop)
-
-plot(region_sfs$southAmerica_trop)
-
-# south america inset - continent + tropical forests ---------------------------
-southamerica_plot <- ggplot() +
-  geom_sf(data = region_sfs[["South America"]], color = "black", fill = "gray95") + 
-  geom_sf(data = southAmerica_trop, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030")) +
-  theme_void() +
-  annotate("text", x = -8000000, y = -2200000, label = "Target Area", size = 4, color = "black") +
-  annotate("segment", x = -8000000, y = -2000000, xend = -7000000, yend = -1000000,
-           arrow = arrow(length = unit(0.3, "cm")), color = "black", size = 1)
-
-# africa inset - continent + tropical forests ----------------------------------
-africa_plot <- ggplot() +
-  geom_sf(data = region_sfs[["Africa"]], color = "black", fill = "gray95") + 
-  geom_sf(data = africa_trop, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030")) +
-  theme_void() +
-  annotate("text", x = 400000, y = -1000000, label = "Target Area", size = 4, color = "black") +
-  annotate("segment", x = 400000, y = -900000, xend = 900000, yend = -500000,
-           arrow = arrow(length = unit(0.3, "cm")), color = "black", size = 1)
-
-# asia inset - continent + boreal forests --------------------------------------
-asia_plot <- ggplot() +
-  geom_sf(data = region_sfs[["Asia"]], color = "black", fill = "gray95") + 
-  geom_sf(data = asia_trop, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030")) +
-  theme_void() +
-  annotate("text", x = 6000000, y = 300000, label = "Target Area", size = 4, color = "black") +
-  annotate("segment", x = 6100000, y = 400000, xend = 8000000, yend = 1900000,
-           arrow = arrow(length = unit(0.3, "cm")), color = "black", size = 1)
-
-# europe inset - continent + tropical forests ----------------------------------
-europe_plot <- ggplot() +
-  geom_sf(data = region_sfs[["Europe"]], color = "black", fill = "gray95") + 
-  geom_sf(data = europe_bor, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030"), xlim = c(-2984101.5843,13538200), ylim = c(3825520.3916,7850400)) +
-  theme_void() +
-  annotate("text", x = 8000000, y = 4500000, label = "Target Area", size = 4, color = "black") +
-  annotate("segment", x = 7500000, y = 5000000, xend = 6000000, yend = 6500000,
-           arrow = arrow(length = unit(0.3, "cm")), color = "black", size = 1)
-
-# north america inset - continent + tropical forests ---------------------------
-northamerica_plot <- ggplot() +
-  geom_sf(data = region_sfs[["North America"]], color = "black", fill = "gray95") + 
-  geom_sf(data = northAmerica_bor, fill = "gray20") +
-  coord_sf(crs = st_crs("ESRI:54030"), xlim = c(-15030000, -1500000), ylim = c(3031000, 8134000)) +
-  theme_void()
-
-
-##########
-# Step 2 # list all directories with outputs to map SSP5
-##########
 # Boreal Forests ---------------------------------------------------------------
 
 ## Europe SSP5
-europe_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp585/Outputs"
+europe_SSP1 <- "./output/metaRangeRuns/Europe_ssp126_31Oct25/Outputs"
 ## Europe SSP1
-europe_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp126/Outputs"
+europe_SSP5 <- "./output/metaRangeRuns/Europe_ssp585_31Oct25/Outputs"
 
 ## North America SSP5
-northAmerica_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_NorthAmerica_ssp585/Outputs" 
+northamerica_SSP1 <- "./output/metaRangeRuns/NorthAmerica_ssp126_31Oct25/Outputs" 
 
 ## North America SSP1
-northAmerica_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_NorthAmerica_ssp126/Outputs"
+northamerica_SSP5 <- "./output/metaRangeRuns/NorthAmerica_ssp585_31Oct25/Outputs"
 
 
 # Tropical Moist Forests -------------------------------------------------------
 
-## Asia SSP5
-asia_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Asia_ssp585/Outputs"
-## Asia SSP1
-asia_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Asia_ssp126/Outputs"
-## Africa SSP5
-africa_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Africa_ssp585/Outputs"
-## Africa SSP1
-africa_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Africa_ssp126/Outputs"
-
-
 ## South America SSP5
-southAmerica_SSP5 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_SouthAmerica_ssp585/Outputs"
+southamerica_SSP1 <- "./output/metaRangeRuns/SouthAmerica_ssp126_31Oct25/Outputs"
 ## South America SSP1
-southAmerica_SSP1 <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_SouthAmerica_ssp126/Outputs"
+southamerica_SSP5 <- "./output/metaRangeRuns/SouthAmerica_ssp585_31Oct25/Outputs"
+
+## Africa SSP5
+africa_SSP1 <- "./output/metaRangeRuns/Africa_ssp126_31Oct25/Outputs"
+## Africa SSP1
+africa_SSP5 <- "./output/metaRangeRuns/Africa_ssp585_31Oct25/Outputs"
+
+## Asia SSP5
+asia_SSP1 <- "./output/metaRangeRuns/Asia_ssp126_31Oct25/Outputs"
+## Asia SSP1
+asia_SSP5 <- "./output/metaRangeRuns/Asia_ssp585_31Oct25/Outputs"
+
 invisible(gc())
 
 # all directories
-directories <- c(europe_SSP5, asia_SSP5, africa_SSP5, southAmerica_SSP5, northAmerica_SSP5,
-                 europe_SSP1, asia_SSP1, africa_SSP1, southAmerica_SSP1, northAmerica_SSP1)
+directories <- c(europe_SSP5, asia_SSP5, africa_SSP5, southamerica_SSP5, northamerica_SSP5,
+                 europe_SSP1, asia_SSP1, africa_SSP1, southamerica_SSP1, northamerica_SSP1)
 
 # get every species that was modeled for the outputs
-target_species <- c("Alces alces",
-                    "Bison bonasus", "Cervus elaphus", "Sus scrofa", 
-                    "Lynx rufus", "Canis lupus", "Rangifer tarandus",
-                    "Gorilla gorilla", "Orycteropus afer", "Pan troglodytes", 
-                    "Panthera onca", "Crocuta crocuta", "Syncerus caffer",
-                    "Panthera leo","Loxodonta africana","Puma concolor")
+## Select Target Species (multiple allowed with spaces)
+target_species <- c(
+  ##############
+  # BOREAL SPS #
+  ##############
+  
+  # Europe
+  "Alces alces", "Bison bonasus", "Cervus elaphus", "Sus scrofa", "Vulpes vulpes",
+  "Panthera tigris", "Lynx lynx", "Ursus arctos", "Canis lupus", "Rangifer tarandus",
+  
+  # North America
+  "Alces alces", "Canis latrans", "Lynx rufus", "Martes americana", "Taxidea taxus",
+  "Ursus americanus", "Vulpes vulpes", "Puma concolor", "Bison bison", "Ursus arctos",
+  "Canis lupus", "Rangifer tarandus",
+  
+  # South America
+  "Leontopithecus caissara", 
+  "Leopardus pardalis", "Nasua nasua", "Panthera onca",
+  "Puma concolor",
+  
+  # Africa
+  "Aepyceros melampus", "Colobus angolensis", #"Daubentonia madagascariensis",
+  "Diceros bicornis", "Erythrocebus patas", "Gorilla beringei", "Gorilla gorilla",
+  "Orycteropus afer", #"Pan paniscus",
+  "Pan troglodytes", "Papio anubis", "Papio ursinus", 
+  "Crocuta crocuta", "Mandrillus sphinx", "Panthera pardus", "Syncerus caffer",
+  "Acinonyx jubatus", "Panthera leo", "Connochaetes taurinus", "Loxodonta africana",
+  
+  # Asia
+  "Cervus nippon", "Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii",
+  "Pongo pygmaeus", "Sus scrofa", "Vulpes vulpes", "Panthera pardus", "Acinonyx jubatus",
+  "Lynx lynx", "Panthera leo", "Panthera tigris", "Ursus arctos",
+  "Canis lupus"
+)
 target_species <- gsub(" ", ".", target_species)
 
 ##########
-# Step 3 # transform rasters
+# STEP 2 # Transform rasters
 ##########
 
 # Initialize an empty list to store final dataframes
-all_final_data <- list()
-
-#dir <- "C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/NatPoKe/trial_runs/13Sep_Europe_ssp585/Outputs" 
-
 all_final_data <- list()
 
 # Loop through each directory
@@ -214,7 +146,7 @@ for (dir in directories) {
 #unique(all_final_data$`13Sep_Europe_ssp585`$species)
 
 ##########
-# Step 4 # Calculate Shannon index change **per functional group**
+# STEP 3 # Calculate Shannon index change **per functional group**
 ##########
 
 Shannon_indexes <- list()
@@ -280,8 +212,254 @@ for (dir_name in names(all_final_data)) {
 #Shannon_indexes$`28Mar2025_EuropeRobinson`$Herbivore
 
 ##########
-# Step 5 # Build actual SHANNON'S INDEX change maps
+# STEP 4 # Build actual SHANNON'S INDEX change maps
 ##########
+
+# --- 2. Get world country polygons ---
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+
+## SSP5-8.5 --------------------------------------------------------------------
+
+###################################
+# Global Plot - SSP585 Herbivores #
+###################################
+
+ggplot() +
+  # borders on top
+  geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
+  # raster layer
+  geom_tile(data = Shannon_indexes$NorthAmerica_ssp585_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Europe_ssp585_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Africa_ssp585_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Asia_ssp585_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
+  # color scale
+  scale_fill_gradientn(
+    colors = c("#8F0D14",  # strong negative
+               "#D13C16",  # moderate negative
+               "#F7DDA0",  # neutral
+               "#5CA4B3",  # moderate positive
+               "#1E4E79"   # strong positive
+               ), name = "Shannon Change") +
+  
+  #scale_fill_scico(palette = "lapaz") +
+  #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
+  
+  labs(x = "", y = "",
+       title = "Herbivore - SSP585") +
+  
+  # Robinson projection
+  coord_sf(crs = "+proj=robin", expand = FALSE) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_blank(),
+    axis.ticks = element_blank())
+
+###################################
+# Global Plot - SSP585 Carnivores #
+###################################
+
+ggplot() +
+  # borders on top
+  geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
+  # raster layer
+  geom_tile(data = Shannon_indexes$NorthAmerica_ssp585_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Europe_ssp585_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Africa_ssp585_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Asia_ssp585_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$SouthAmerica_ssp585_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  # color scale
+  scale_fill_gradientn(
+    colors = c("#8F0D14",  # strong negative
+               "#D13C16",  # moderate negative
+               "#F7DDA0",  # neutral
+               "#5CA4B3",  # moderate positive
+               "#1E4E79"   # strong positive
+    ), name = "Shannon Change") +
+  
+  #scale_fill_scico(palette = "lapaz") +
+  #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
+  
+  labs(x = "", y = "",
+       title = "Carnivore - SSP585") +
+  
+  # Robinson projection
+  coord_sf(crs = "+proj=robin", expand = FALSE) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_blank(),
+    axis.ticks = element_blank())
+
+###################################
+# Global Plot - SSP585 Omnivores #
+###################################
+
+ggplot() +
+  # borders on top
+  geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
+  # raster layer
+  geom_tile(data = Shannon_indexes$NorthAmerica_ssp585_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Europe_ssp585_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Africa_ssp585_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Asia_ssp585_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$SouthAmerica_ssp585_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  # color scale
+  scale_fill_gradientn(
+    colors = c("#8F0D14",  # strong negative
+               "#D13C16",  # moderate negative
+               "#F7DDA0",  # neutral
+               "#5CA4B3",  # moderate positive
+               "#1E4E79"   # strong positive
+    ), name = "Shannon Change") +
+  
+  #scale_fill_scico(palette = "lapaz") +
+  #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
+  
+  labs(x = "", y = "",
+       title = "Carnivore - SSP585") +
+  
+  # Robinson projection
+  coord_sf(crs = "+proj=robin", expand = FALSE) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_blank(),
+    axis.ticks = element_blank())
+
+## SSP1-2.6 --------------------------------------------------------------------
+
+###################################
+# Global Plot - SSP585 Herbivores #
+###################################
+
+ggplot() +
+  # borders on top
+  geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
+  # raster layer
+  geom_tile(data = Shannon_indexes$NorthAmerica_ssp126_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Europe_ssp126_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Africa_ssp126_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Asia_ssp126_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
+  # color scale
+  scale_fill_gradientn(
+    colors = c("#8F0D14",  # strong negative
+               "#D13C16",  # moderate negative
+               "#F7DDA0",  # neutral
+               "#5CA4B3",  # moderate positive
+               "#1E4E79"   # strong positive
+    ), name = "Shannon Change") +
+  
+  #scale_fill_scico(palette = "lapaz") +
+  #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
+  
+  labs(x = "", y = "",
+       title = "Herbivore - SSP126") +
+  
+  # Robinson projection
+  coord_sf(crs = "+proj=robin", expand = FALSE) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_blank(),
+    axis.ticks = element_blank())
+
+###################################
+# Global Plot - SSP126 Carnivores #
+###################################
+
+ggplot() +
+  # borders on top
+  geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
+  # raster layer
+  geom_tile(data = Shannon_indexes$NorthAmerica_ssp126_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Europe_ssp126_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Africa_ssp126_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Asia_ssp126_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$SouthAmerica_ssp126_31Oct25$Carnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  # color scale
+  scale_fill_gradientn(
+    colors = c("#8F0D14",  # strong negative
+               "#D13C16",  # moderate negative
+               "#F7DDA0",  # neutral
+               "#5CA4B3",  # moderate positive
+               "#1E4E79"   # strong positive
+    ), name = "Shannon Change") +
+  
+  #scale_fill_scico(palette = "lapaz") +
+  #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
+  
+  labs(x = "", y = "",
+       title = "Carnivore - SSP126") +
+  
+  # Robinson projection
+  coord_sf(crs = "+proj=robin", expand = FALSE) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_blank(),
+    axis.ticks = element_blank())
+
+###################################
+# Global Plot - SSP126 Omnivores #
+###################################
+
+ggplot() +
+  # borders on top
+  geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
+  # raster layer
+  geom_tile(data = Shannon_indexes$NorthAmerica_ssp126_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Europe_ssp126_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Africa_ssp126_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$Asia_ssp126_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  geom_tile(data = Shannon_indexes$SouthAmerica_ssp126_31Oct25$Omnivore, aes(x = x, y = y, fill = Shannon_change)) +
+  # color scale
+  scale_fill_gradientn(
+    colors = c("#8F0D14",  # strong negative
+               "#D13C16",  # moderate negative
+               "#F7DDA0",  # neutral
+               "#5CA4B3",  # moderate positive
+               "#1E4E79"   # strong positive
+    ), name = "Shannon Change") +
+  
+  #scale_fill_scico(palette = "lapaz") +
+  #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
+  
+  labs(x = "", y = "",
+       title = "Carnivore - SSP126") +
+  
+  # Robinson projection
+  coord_sf(crs = "+proj=robin", expand = FALSE) +
+  
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5),
+    axis.text = element_blank(),
+    axis.ticks = element_blank())
+
+
+
+
+
+
+
+
+
+
+
+
 
 # start empty list for plots
 all_plots <- list()
@@ -315,9 +493,9 @@ for (region in names(Shannon_indexes)) {
   }
 }
 
-df <- Shannon_indexes[["13Sep_Africa_ssp126"]][["Herbivore"]]
+df <- Shannon_indexes[["13Sep_Africa_ssp585"]][["Herbivore"]]
 
-
+df <- Shannon_indexes$Africa_ssp585_31Oct25$Herbivore
 # get African country polygons
 africa <- ne_countries(continent = "Africa", scale = "medium", returnclass = "sf")
 
@@ -325,7 +503,9 @@ ggplot() +
   # raster layer
   geom_tile(data = df, aes(x = x, y = y, fill = Shannon_change)) +
   # country borders
-  geom_sf(data = africa, fill = NA, color = "black", linewidth = 0.3) +
+  geom_sf(data = africa, fill = "#505050", color = "#505050", linewidth = 0.3) +
+  # raster layer
+  geom_tile(data = df, aes(x = x, y = y, fill = Shannon_change)) +
   # color scale
   scale_fill_viridis_c(
     name = "Shannon's Index\nChange"
