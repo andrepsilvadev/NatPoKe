@@ -46,6 +46,7 @@ head(TNIND_yr)
 
 # Shannon's index
 Shannon_index <- TNIND_yr %>%
+  dplyr::filter(!species == "Bison bonasus") %>% 
   group_by(biome, scenario, timestep, trophic_level, rep_num) %>% 
   summarise(across(c(TNIND, MNIND, mean_repRate, mean_carrCap, occupancy),
                    ~ mean(.x, na.rm = TRUE),
@@ -143,6 +144,6 @@ Shannon_index_DF <- Shannon_index %>%
   mutate(Shannon_Index_change_pct = ((Shannon_Wiener_Index - Shannon_Wiener_Index[timestep == 100])/Shannon_Wiener_Index[timestep == 100])*100) %>% 
   dplyr::filter(timestep == 125)
 
-#write.csv(Shannon_index_DF,
-#         file = "C:/Users/User/OneDrive - Universidade de Lisboa (1)/ANDRE/NatPoKe/ShannonIndexChange.csv",
-#        row.names = FALSE)         
+write.csv(Shannon_index_DF,
+          file = "./output/ShannonIndexChange_31Oct2025.csv",
+          row.names = FALSE)         
