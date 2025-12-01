@@ -284,6 +284,89 @@ all_traits <- map_dfr(input_dirs, function(input_dir) {
 # Save merged .xlsx
 write_xlsx(all_traits, file.path(runs_path, "completeTraitDataframe_allSps.xlsx"))
 
+#################################
+# AVERAGE SUITABILITY OVER TIME #
+#################################
+
+
+# ---- list input directories ----
+input_dirs <- c(
+  "C:/Users/maria/Desktop/Inputs/",
+  "C:/Users/maria/Desktop/Inputs2/"
+)
+
+# loop over folders and produce one plot per folder
+for (dir in input_dirs) {
+  
+  # list tif files in this folder
+  files <- list.files(dir, pattern = "_reprojectedKm\\.tif$", full.names = TRUE)
+  if (length(files) == 0) next
+  
+  message("Average Suitability Over Time plot for: ", dir)
+  
+  # process all species inside this folder
+  folder_df <- lapply(files, function(f) {
+    
+    fname <- basename(f)
+    
+    # get species name 
+    species_name <- str_extract(fname, "^(.*?)_(?=(boreal|tropical))")
+    species_name <- gsub("_$", "", species_name)  # remove trailing _
+    
+    # load raster
+    r <- rast(f)
+    
+    # get global mean suitability value per layer
+    df <- global(r, "mean", na.rm = TRUE) %>%
+      as.data.frame()
+    
+    # add years & sps names
+    df$year <- as.numeric(names(r))
+    df$species <- suppressMessages(pretty_species_names(species_name)) #pretty_species_names() is custom function
+    df
+    
+  }) %>% bind_rows()
+  
+  # folder name for saving plot
+  folder_name <- basename(normalizePath(dir))
+  
+  # plot average suitability
+  p <- ggplot(folder_df, aes(x = year, y = mean, group = species)) +
+    geom_line() +
+    facet_wrap(~ species, scales = "free_y", ncol = 3) +
+    scale_x_continuous(
+      breaks = seq(min(folder_df$year), max(folder_df$year), by = 20)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+          strip.text = element_text(face = "italic")) +
+    labs(x = "Year", y = "Mean suitability", title = paste("Average suitability –", folder_name))
+  
+  #print(p)
+  
+  ggsave(filename = paste0(folder_name, "_species_timeseries.png"),
+         plot = p, width = 10, height = 7, dpi = 300)
+}
 
 
 
+
+###############################################################33
+
+directory_pairs <- list(
+  # North America SSP1
+  northamerica_SSP1 = c(input = "./output/metaRangeRuns/NorthAmerica_ssp126_31Oct25/Inputs/",
+                        output = "./output/metaRangeRuns/NorthAmerica_ssp126_31Oct25/Outputs/"),
+  # North America SSP5
+  northamerica_SSP5 = c(input = "./output/metaRangeRuns/NorthAmerica_ssp585_31Oct25/Inputs/",
+                        output = "./output/metaRangeRuns/NorthAmerica_ssp585_31Oct25/Outputs/")
+  
+  # Europe SSP1
+  europe_SSP1 = c(input = "./output/metaRangeRuns/Europe_ssp126_31Oct25/Inputs/",
+                  output = "./output/metaRangeRuns/Europe_ssp126_31Oct25/Outputs/"),
+  # Europe SSP5
+  europe_SSP5 = c(input = "./output/metaRangeRuns/Europe_ssp585_31Oct25/Inputs/",
+                  output = "./output/metaRangeRuns/Europe_ssp585_31Oct25/Outputs/"),
+  #
+  
+  
+)
