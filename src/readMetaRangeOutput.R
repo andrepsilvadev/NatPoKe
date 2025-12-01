@@ -232,7 +232,7 @@ for (i in seq_len(nrow(combo_list))) {
   
   # filename 
   filename <- paste0("TNIND_", gsub(" ", "_", sp), "_", gsub(" ", "_", biome_to_plot), "_",
-    gsub(" ", "_", region_to_plot), "_", gsub(" ", "_", scen_to_plot), ".png")
+                     gsub(" ", "_", region_to_plot), "_", gsub(" ", "_", scen_to_plot), ".png")
   
   # save plots
   ggsave(filename, combined_plot, path = diagnostics,
@@ -288,12 +288,30 @@ write_xlsx(all_traits, file.path(runs_path, "completeTraitDataframe_allSps.xlsx"
 # AVERAGE SUITABILITY OVER TIME #
 #################################
 
+runs_path <- "/mnt/data/maria/NatPoKe/output/metaRangeRuns"
 
-# ---- list input directories ----
-input_dirs <- c(
-  "C:/Users/maria/Desktop/Inputs/",
-  "C:/Users/maria/Desktop/Inputs2/"
-)
+# Europe
+EuropeSSP1_input = file.path(runs_path, "Europe_ssp126_31Oct25/Inputs")
+EuropeSSP5_input = file.path(runs_path, "Europe_ssp585_31Oct25/Inputs")
+
+# North America
+NorthAmericaSSP1_input = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Inputs")
+NorthAmericaSSP5_input = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Inputs")
+
+# South America
+SouthAmericaSSP1_input = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Inputs")
+SouthAmericaSSP5_input = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Inputs")
+
+# Africa
+AfricaSSP1_input = file.path(runs_path, "Africa_ssp126_31Oct25/Inputs")
+AfricaSSP5_input = file.path(runs_path, "Africa_ssp585_31Oct25/Inputs")
+
+# Asia
+AsiaSSP1_input = file.path(runs_path, "Asia_ssp126_31Oct25/Inputs")
+AsiaSSP5_input = file.path(runs_path, "Asia_ssp585_31Oct25/Inputs")
+
+input_dirs <- c(EuropeSSP1_input, NorthAmericaSSP1_input, SouthAmericaSSP1_input, AfricaSSP1_input, AsiaSSP1_input,
+                EuropeSSP5_input, NorthAmericaSSP5_input, SouthAmericaSSP5_input, AfricaSSP5_input, AsiaSSP5_input)
 
 # loop over folders and produce one plot per folder
 for (dir in input_dirs) {
@@ -328,7 +346,7 @@ for (dir in input_dirs) {
   }) %>% bind_rows()
   
   # folder name for saving plot
-  folder_name <- basename(normalizePath(dir))
+  folder_name <- basename(dirname(dir))
   
   # plot average suitability
   p <- ggplot(folder_df, aes(x = year, y = mean, group = species)) +
@@ -341,10 +359,16 @@ for (dir in input_dirs) {
           strip.text = element_text(face = "italic")) +
     labs(x = "Year", y = "Mean suitability", title = paste("Average suitability –", folder_name))
   
-  #print(p)
+  print(p)
+  n_species <- length(unique(folder_df$species))
+  ncol <- 3
+  nrow <- ceiling(n_species / ncol)
   
-  ggsave(filename = paste0(folder_name, "_species_timeseries.png"),
-         plot = p, width = 10, height = 7, dpi = 300)
+  ggsave(filename = paste0(folder_name, "_suitabilityOverTime.png"),
+         path = "./output/metaRangeRuns/diagnostics2/",
+         plot = p, width = 12,
+         height = nrow * 3,
+         dpi = 300)
 }
 
 
