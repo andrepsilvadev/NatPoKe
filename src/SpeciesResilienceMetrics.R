@@ -58,8 +58,8 @@ stability_sps <- TNIND_yr %>%
     # find year the pop bounces back to the same value in the pre period or even surpasses it
     recovery_year = ifelse(mean == 0, 
                            NA, 
-                           ifelse(any(timestep > t_policy & TNIND >= mean_post),
-                                  min(timestep[timestep > t_policy & TNIND >= mean_post], na.rm = TRUE), 
+                           ifelse(any(timestep > impact_year & TNIND >= mean_post),
+                                  min(timestep[timestep > impact_year & TNIND >= mean_post], na.rm = TRUE), 
                                   NA)), 
     .groups = "drop") %>%
   pivot_wider(names_from = period, values_from = c(mean, min, max, impact_year, recovery_year)) %>%
@@ -221,4 +221,3 @@ ggsave(filename = "./output/SupFigure1_TimeToImpactRecovery_31Oct25.png", # path
        supfigure1, # plot
        bg = 'white', width = 230, height = 210, units = "mm", dpi = 1200, #compression = "lzw"
 ) # image parameters
-
