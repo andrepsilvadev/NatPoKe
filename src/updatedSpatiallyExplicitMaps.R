@@ -140,7 +140,6 @@ for (dir in directories) {
   all_final_data[[short_dir_name]] <- final_df
 }
 
-
 #all_final_data$`13Sep_Europe_ssp585`
 #summary(all_final_data$`13Sep_Europe_ssp585`)
 #unique(all_final_data$`13Sep_Europe_ssp585`$species)
@@ -215,9 +214,7 @@ for (dir_name in names(all_final_data)) {
 # STEP 4 # Build actual SHANNON'S INDEX change maps
 ##########
 
-# --- 2. Get world country polygons ---
 world <- ne_countries(scale = "medium", returnclass = "sf")
-
 
 ## SSP5-8.5 --------------------------------------------------------------------
 
@@ -225,9 +222,9 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 # Global Plot - SSP585 Herbivores #
 ###################################
 
-ggplot() +
+herb_ssp585 <- ggplot() +
   # borders on top
-  geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
+  geom_sf(data = world, fill = "#606060",color = "#606060", linewidth = 0.2) +
   # raster layer
   geom_tile(data = Shannon_indexes$NorthAmerica_ssp585_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
   geom_tile(data = Shannon_indexes$Europe_ssp585_31Oct25$Herbivore, aes(x = x, y = y, fill = Shannon_change)) +
@@ -240,29 +237,38 @@ ggplot() +
                "#F7DDA0",  # neutral
                "#5CA4B3",  # moderate positive
                "#1E4E79"   # strong positive
-               ), name = "Shannon Change") +
+    ), name = NULL) +
   
   #scale_fill_scico(palette = "lapaz") +
   #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
-  
   labs(x = "", y = "",
-       title = "Herbivore - SSP585") +
-  
+       title = "Herbivores") +
   # Robinson projection
   coord_sf(crs = "+proj=robin", expand = FALSE) +
-  
   theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    plot.title = element_text(hjust = 0.5),
-    axis.text = element_blank(),
-    axis.ticks = element_blank())
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        # legend inside, left bottom corner (adjust as needed)
+        legend.position = c(0.09, 0.25),
+        # keep vertical color scale
+        legend.direction = "vertical",
+        legend.key.height = unit(0.5, 'cm'), 
+        legend.key.width = unit(0.5, 'cm'),
+        # smaller box
+        legend.background = element_rect(fill = alpha("white", 0.7),
+                                         color = NA),
+        # draw a rectangle frame around the map
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7)
+  )
+
 
 ###################################
 # Global Plot - SSP585 Carnivores #
 ###################################
 
-ggplot() +
+carn_ssp585 <- ggplot() +
   # borders on top
   geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
   # raster layer
@@ -278,29 +284,37 @@ ggplot() +
                "#F7DDA0",  # neutral
                "#5CA4B3",  # moderate positive
                "#1E4E79"   # strong positive
-    ), name = "Shannon Change") +
+    ), name = NULL) +
   
   #scale_fill_scico(palette = "lapaz") +
   #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
-  
   labs(x = "", y = "",
-       title = "Carnivore - SSP585") +
-  
+       title = "Carnivores") +
   # Robinson projection
   coord_sf(crs = "+proj=robin", expand = FALSE) +
-  
   theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    plot.title = element_text(hjust = 0.5),
-    axis.text = element_blank(),
-    axis.ticks = element_blank())
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        # legend inside, left bottom corner (adjust as needed)
+        legend.position = c(0.09, 0.25),
+        # keep vertical color scale
+        legend.direction = "vertical",
+        legend.key.height = unit(0.5, 'cm'), 
+        legend.key.width = unit(0.5, 'cm'),
+        # smaller box
+        legend.background = element_rect(fill = alpha("white", 0.7),
+                                         color = NA),
+        # draw a rectangle frame around the map
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7)
+  )
 
 ###################################
 # Global Plot - SSP585 Omnivores #
 ###################################
 
-ggplot() +
+omni_ssp585 <- ggplot() +
   # borders on top
   geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
   # raster layer
@@ -316,23 +330,30 @@ ggplot() +
                "#F7DDA0",  # neutral
                "#5CA4B3",  # moderate positive
                "#1E4E79"   # strong positive
-    ), name = "Shannon Change") +
-  
+    ), name = NULL) +
   #scale_fill_scico(palette = "lapaz") +
   #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
-  
   labs(x = "", y = "",
-       title = "Carnivore - SSP585") +
-  
+       title = "Carnivores") +
   # Robinson projection
   coord_sf(crs = "+proj=robin", expand = FALSE) +
-  
   theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    plot.title = element_text(hjust = 0.5),
-    axis.text = element_blank(),
-    axis.ticks = element_blank())
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        # legend inside, left bottom corner (adjust as needed)
+        legend.position = c(0.09, 0.25),
+        # keep vertical color scale
+        legend.direction = "vertical",
+        legend.key.height = unit(0.5, 'cm'), 
+        legend.key.width = unit(0.5, 'cm'),
+        # smaller box
+        legend.background = element_rect(fill = alpha("white", 0.7),
+                                         color = NA),
+        # draw a rectangle frame around the map
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7)
+  )
 
 ## SSP1-2.6 --------------------------------------------------------------------
 
@@ -340,7 +361,7 @@ ggplot() +
 # Global Plot - SSP585 Herbivores #
 ###################################
 
-ggplot() +
+herb_ssp126 <- ggplot() +
   # borders on top
   geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
   # raster layer
@@ -355,29 +376,37 @@ ggplot() +
                "#F7DDA0",  # neutral
                "#5CA4B3",  # moderate positive
                "#1E4E79"   # strong positive
-    ), name = "Shannon Change") +
+    ), name = NULL) +
   
   #scale_fill_scico(palette = "lapaz") +
   #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
-  
   labs(x = "", y = "",
-       title = "Herbivore - SSP126") +
-  
+       title = "Herbivores") +
   # Robinson projection
   coord_sf(crs = "+proj=robin", expand = FALSE) +
-  
   theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    plot.title = element_text(hjust = 0.5),
-    axis.text = element_blank(),
-    axis.ticks = element_blank())
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        # legend inside, left bottom corner (adjust as needed)
+        legend.position = c(0.09, 0.25),
+        # keep vertical color scale
+        legend.direction = "vertical",
+        legend.key.height = unit(0.5, 'cm'), 
+        legend.key.width = unit(0.5, 'cm'),
+        # smaller box
+        legend.background = element_rect(fill = alpha("white", 0.7),
+                                         color = NA),
+        # draw a rectangle frame around the map
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7)
+  )
 
 ###################################
 # Global Plot - SSP126 Carnivores #
 ###################################
 
-ggplot() +
+carn_ssp126 <- ggplot() +
   # borders on top
   geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
   # raster layer
@@ -393,29 +422,36 @@ ggplot() +
                "#F7DDA0",  # neutral
                "#5CA4B3",  # moderate positive
                "#1E4E79"   # strong positive
-    ), name = "Shannon Change") +
-  
+    ), name = NULL) +
   #scale_fill_scico(palette = "lapaz") +
   #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
-  
   labs(x = "", y = "",
-       title = "Carnivore - SSP126") +
-  
+       title = "Carnivores") +
   # Robinson projection
   coord_sf(crs = "+proj=robin", expand = FALSE) +
-  
   theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    plot.title = element_text(hjust = 0.5),
-    axis.text = element_blank(),
-    axis.ticks = element_blank())
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        # legend inside, left bottom corner (adjust as needed)
+        legend.position = c(0.09, 0.25),
+        # keep vertical color scale
+        legend.direction = "vertical",
+        legend.key.height = unit(0.5, 'cm'), 
+        legend.key.width = unit(0.5, 'cm'),
+        # smaller box
+        legend.background = element_rect(fill = alpha("white", 0.7),
+                                         color = NA),
+        # draw a rectangle frame around the map
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7)
+  )
 
 ###################################
 # Global Plot - SSP126 Omnivores #
 ###################################
 
-ggplot() +
+omni_ssp126 <- ggplot() +
   # borders on top
   geom_sf(data = world, fill = "#606060", color = "#606060", linewidth = 0.2) +
   # raster layer
@@ -431,23 +467,58 @@ ggplot() +
                "#F7DDA0",  # neutral
                "#5CA4B3",  # moderate positive
                "#1E4E79"   # strong positive
-    ), name = "Shannon Change") +
-  
+    ), name = NULL) +
   #scale_fill_scico(palette = "lapaz") +
   #scale_fill_viridis_c(name = "Shannon's Index\nChange") +
-  
   labs(x = "", y = "",
-       title = "Carnivore - SSP126") +
-  
+       title = "Omnivores") +
   # Robinson projection
   coord_sf(crs = "+proj=robin", expand = FALSE) +
-  
   theme_minimal() +
-  theme(
-    panel.grid = element_blank(),
-    plot.title = element_text(hjust = 0.5),
-    axis.text = element_blank(),
-    axis.ticks = element_blank())
+  theme(panel.grid = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        # legend inside, left bottom corner (adjust as needed)
+        legend.position = c(0.09, 0.25),
+        # keep vertical color scale
+        legend.direction = "vertical",
+        legend.key.height = unit(0.5, 'cm'), 
+        legend.key.width = unit(0.5, 'cm'),
+        # smaller box
+        legend.background = element_rect(fill = alpha("white", 0.7),
+                                         color = NA),
+        # draw a rectangle frame around the map
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 0.7)
+  )
+
+# row headers 
+ssp126_header <- ggplot() +
+  annotate("text", x = 0.5, y = 0.5, label = "SSP126",
+           fontface = "bold", size = 5) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "grey90", color = NA))
+
+ssp585_header <- ggplot() +
+  annotate("text", x = 0.5, y = 0.5, label = "SSP585",
+           fontface = "bold", size = 5) +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "grey90", color = NA))
+
+# Convert to patchwork elements so they can span all columns
+ssp126_ribbon <- wrap_elements(full = ssp126_header)
+ssp585_ribbon <- wrap_elements(full = ssp585_header)
+
+final_plot <-
+  ssp126_ribbon /
+  (carn_ssp126 + herb_ssp126 + omni_ssp126) /
+  ssp585_ribbon /
+  (carn_ssp585 + herb_ssp585 + omni_ssp585) +
+  plot_layout(heights = c(0.08, 1, 0.08, 1)) & theme(plot.margin = margin(0,0,0,0))
+
+ggsave("./output/Figure4_ShannonIndexChangeMaps.png",
+       final_plot,
+       width = 320, height = 20, units = "mm", dpi = 900)
 
 
 
@@ -455,6 +526,7 @@ ggplot() +
 
 
 
+#### LIXO #####
 
 
 
@@ -477,7 +549,7 @@ for (region in names(Shannon_indexes)) {
       geom_tile(data = df, aes(x = x, y = y, fill = Shannon_change)) +
       scale_fill_viridis_c(name = "Shannon's Index\nChange",
                            #limits = c(-0.5, 0.5), na.value = "transparent"
-                           ) +
+      ) +
       labs(x = "Longitude", y = "Latitude", 
            title = paste(region, "-", troph)) +
       theme_minimal() +
@@ -488,8 +560,8 @@ for (region in names(Shannon_indexes)) {
     
     # save directly to a .tiff file
     #ggsave(filename = paste0("./output/", region, "_", troph, "_ShannonChange.tif"),
-     #   plot = p,
-      #  bg = 'white', width = 250, height = 300, units = "mm", dpi = 1200, compression = "lzw")
+    #   plot = p,
+    #  bg = 'white', width = 250, height = 300, units = "mm", dpi = 1200, compression = "lzw")
   }
 }
 
