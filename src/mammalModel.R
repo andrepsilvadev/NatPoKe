@@ -57,7 +57,7 @@ n_replicates <- 3 # total nº of replicates
 all_reps_list <- list() # list to save the .csv
 
 # burn-in
-burnin_t <- 100 # nº of years the model should consider
+burnin_t <- 25 # nº of years the model should consider
 
 # global setup options
 set_verbosity(2L) # 0L = silent, 1L = progress updates, 2L =  debug
@@ -210,7 +210,7 @@ for (replicateN in 1:n_replicates) {
         self[[i]]$traits[["abundance"]] <- trunc(self[[i]]$traits[["abundance"]])
       }
     },
-    execution_priority = 5
+    execution_priority = 4
   )
   
   # Tracking statistics
@@ -253,7 +253,7 @@ for (replicateN in 1:n_replicates) {
         
       }
     },
-    execution_priority = 6
+    execution_priority = 5
   )
   
   
@@ -279,7 +279,7 @@ for (replicateN in 1:n_replicates) {
         self$globals$results_paths <- c(self$globals$results_paths, results_paths)
       }
     },
-    execution_priority = 7
+    execution_priority = 6
   )
   
   
