@@ -582,11 +582,11 @@ removeSpeciesDuplicatesbyCellID <- function (dataframe) {
   return(SpeciesDataOcc)
 }
 
-################################
-## Multi species SDM function ## -----------------------------------------------
-################################
+##############################
+# Multi species SDM function #
+##############################
 
-# THIS FUNCTION IS LIKELY TO MOVE TO THE CUSTOM FUNCTIONS SCRIPT IN THE FUTURE
+## This function runs multiple SDMs and saves results for multiple species at a time
 
 SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species names
                                     speciesData, # target species occurrences file from GBIF
@@ -678,10 +678,11 @@ SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species na
     ungroup() %>%
     dplyr::filter(complete.cases(.))  # biomod excludes all cells that do not have any data
   
-  # in case we want to use a subset of the occ (DELETE IN FINAL VERSIONS)
+ # subset occurrences
   set.seed(123)
   DataSingleSpecies_unique <- DataSingleSpecies_unique %>%
-    slice_sample(n = 100) %>%
+    # use 300 occurrences or all of them if less than 300
+    slice_sample(n = min(300, n())) %>%
     as.data.frame()
   
   # format species occurence data (presence only data)
@@ -1018,3 +1019,218 @@ SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species na
   #  variableImportanceEM = variableImportanceEM)
   #)
 }
+
+#####################################
+# Beverton & Holt demographic model #
+#####################################
+
+# This funcion defines the Beverton & Holt demographic model to be used within
+# the metaRange pipeline
+
+beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survival_rate) {
+  # Safeguarding the input
+  # you may remove this part if you are sure that the input is correct
+  survival_rate <- ifelse(survival_rate > 1, 1, survival_rate)
+  survival_rate <- ifelse(survival_rate < 0, 0, survival_rate)
+  reproduction_rate <- ifelse(reproduction_rate < 0, 0, reproduction_rate)
+  
+  
+  abundance <- abundance * survival_rate
+  abundance_t1 <- (reproduction_rate * abundance) /
+    (1 + ((reproduction_rate - 1) / carrying_capacity) * abundance)
+  abundance_t1[abundance_t1 < 0] <- 0
+  return(abundance_t1)
+}
+
+####################################
+# Model Validation for one species #
+####################################
+
+# This function compares mean density estimated by model (here metaRange) per
+# cell with predicted density from independent model (here from Santini et al.) 
+
+validateModel_1sps <- function(
+    targetspecies, independentDensity, estimatedDensity, spData) {
+  
+  ## species density estimates by an independent source (akin to observed density)
+  independentDensity <- independentDensity %>% 
+    dplyr::filter(Species %in% target_sps) %>%
+    dplyr::select(Species, lw95, lw75, PredMd, up75, up95) %>%
+    mutate(
+      lw95 = as.numeric(lw95),
+      lw75 = as.numeric(lw75),
+      PredMd = as.numeric(PredMd), # Predicted population density (individuals/km2)
+      up75 = as.numeric(up75),
+      up95 = as.numeric(up95)) %>%
+    rename(
+      species = Species,
+      meanDensity = PredMd
+    )
+  
+  ## species density estimated by metaRange
+  predicted <- estimatedDensity %>%
+    mutate(species = target_sps) %>% 
+    dplyr::group_by(species, x, y) %>%
+    dplyr::summarise(
+      meanNInd = mean(lyr1),
+      .groups = 'drop') %>%
+    as.data.frame()
+  
+  spData2 <- spData %>%
+    dplyr::select(Species, ModellingRes) %>%
+    dplyr::filter(Species == target_sps) %>% 
+    rename(species = Species) %>%
+    as.data.frame()
+  
+  estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
+    mutate(estimatedDensity = meanNInd/ModellingRes)
+  
+  ## compare observed with predicted density
+  list <- list(independentDensity, estimatedDensityJoin)
+  names(list) <- c("independentDensity", "estimatedDensity")
+  return(list)
+}
+
+#########################################
+# Model validation for multiple species #
+#########################################
+
+# This is a variation of validateModel_1sps() that compares mean density
+# estimated by model per cell with predicted density from independent model
+# (here Santini et al.) for multiple species at a time
+# 1. Loads rasters; 2. Sample ~300 random cells per species (not empty)
+# 3. Calculate predicted densities; 4. Returns a comparison-ready list
+
+validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
+ 
+  
+  ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
+  independentDensity <- independentDensity %>%
+    dplyr::filter(Species %in% targetspecies) %>%
+    dplyr::select(Species, lw95, lw75, PredMd, up75, up95) %>%
+    mutate(
+      lw95 = as.numeric(lw95),
+      lw75 = as.numeric(lw75),
+      PredMd = as.numeric(PredMd), # Predicted population density (individuals/km2)
+      up75 = as.numeric(up75),
+      up95 = as.numeric(up95)
+    ) %>%
+    rename(
+      species = Species,
+      meanDensity = PredMd
+    )
+  
+  ## Species density estimated by METARANGE from multiple directories
+  abundance_files <- list()
+  for (target_sps in targetspecies) {
+    all_files <- character()
+    for (dirout in dirouts) { #Iterate through each directory
+      files <- list.files(
+        path = dirout,
+        pattern = paste0(validationYear, "_", target_sps, "_abundance\\.tif$"),
+        full.names = TRUE
+      )
+      all_files <- c(all_files, files)
+    }
+    abundance_files[[target_sps]] <- all_files
+    if(length(all_files) > 0){
+      message(paste("Used rasters for", target_sps, ":", paste(basename(all_files), collapse = ", ")))
+    } else {
+      warning(paste("No rasters found for", target_sps, "in the given directories."))
+    }
+  }
+  
+  abundance_rasters <- lapply(abundance_files, function(files) {
+    lapply(files, terra::rast)
+  })
+  
+  abundance_stack_list <- lapply(abundance_rasters, function(raster_list){
+    if(length(raster_list) > 0){
+      terra::rast(unlist(raster_list))
+    } else {
+      NULL
+    }
+  })
+  
+  # convert raster stack to df
+  species_df <- lapply(names(abundance_stack_list), function(sps_name){
+    stack <- abundance_stack_list[[sps_name]]
+    if(!is.null(stack)){
+      lapply(1:terra::nlyr(stack), function(i){
+        as.data.frame(stack[[i]], xy = TRUE) %>%
+          mutate(species = sps_name) %>%
+          rename(abundance = 3)
+      }) %>% bind_rows()
+    } else {
+      NULL
+    }
+  }) %>% bind_rows()
+  
+  # sample 300 abundance values for each species
+  species_df_sampled <- species_df %>%
+    group_by(species) %>%
+    group_modify(~ {
+      df <- .x %>% filter(abundance != 0)  # remove zeros
+      if (nrow(df) >= 300) {
+        df[sample(nrow(df), 300), ]
+      } else {
+        df  # keep all non-zero if fewer than 300
+      }
+    }) %>%
+    ungroup()
+  
+  # format raster's dataframe for validation
+  predicted <- species_df_sampled %>%
+    dplyr::filter(species %in% targetspecies) %>%
+    dplyr::group_by(species, x, y) %>% # if there are ever replicates involved
+    dplyr::summarise(
+      meanNInd = mean(abundance, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    as.data.frame()
+  
+  spData2 <- spData %>%
+    dplyr::select(Species, ModellingRes) %>%
+    rename(species = Species) %>%
+    #mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
+    as.data.frame()
+  
+  estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
+    mutate(estimatedDensity = meanNInd / ModellingRes)
+  
+  ## compare observed with predicted density
+  result_list <- list(independentDensity, estimatedDensityJoin)
+  names(result_list) <- c("independentDensity", "estimatedDensity")
+  return(result_list)
+}
+
+##############################################
+# Fixing species names for prettier plotting #
+##############################################
+
+# This function transforms names WITHOUT spaces into the correct form based on
+# the trait dataframe that exists in the data folder of this repo
+
+pretty_species_names <- function(x) {
+  library(here)
+  # import trait dataframe 
+  mammalTraits_2025_03_17 <- read_csv(here("data", "mammalTraits_2025-12-11.csv"))
+  
+  # pull the species names **WITH SPACES** column 
+  with_spaces <- unique(mammalTraits_2025_03_17$sci_name)
+  
+  # get corresponding names **WITHOUT** spaces
+  no_spaces <- gsub(" ", ".", with_spaces)
+  
+  # match and replace names
+  matched <- match(x, no_spaces)
+  
+  # show warninng if any names are not found
+  if (any(is.na(matched))) {
+    unmatched <- x[is.na(matched)]
+    warning(paste(unmatched, collapse = ", "), "was/were not matched")
+  }
+  
+  return(with_spaces[matched])
+}
+
