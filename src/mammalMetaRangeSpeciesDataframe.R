@@ -39,10 +39,10 @@
 # Step 1 # Import Trait Dataframe 
 ##########
 
-combined_traits_data <- read_csv(here("data", "mammalTraits_2025-03-17.csv")) %>% 
+combined_traits_data <- read_csv(here("data", "CompleteMammalSpsDataframe_2025-12-20.csv")) %>% 
   # filter for prefered area & species
-  dplyr::filter(BIOME_NAME %in% gsub("[/& ]", "", target_biome)) %>% 
-  dplyr::filter(CONTINENT %in% if (gsub("[/& ]", "", target_region) == "Europe") {
+  dplyr::filter(BIOME_NAME %in% target_biome) %>% 
+  dplyr::filter(CONTINENT %in% if (target_region == "Europe") {
     c("Europe", "Asia")
   } else {
     gsub("[/& ]", "", target_region)
@@ -72,19 +72,23 @@ species_traits <- tibble(
   Taxa = "Mammal",
   # body mass (kg)
   BodyMass = combined_traits_data$Mass.g / 1000, 
+  # Maximum age (years)
+  MaxAge = combined_traits_data$max_longevity_d / 365,
+  # age at first reproduction
+  AgeFirstReproduction = combined_traits_data$age_first_reproduction_d / 365,
   # cell area (km2)
   CellResolution = (0.04166667*111)^2,
   # modelling resolution based on the sps mean HomeRange (km)
-  ##ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))), # ANDRE'S MODELLING RES
+  #ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))), # ANDRE'S MODELLING RES
   #ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
+  # fixed modelling resolution
   ModellingRes = 25,
-  #ProjRes = ModellingRes*1000,
   # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
   initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd)*(ModellingRes^2)), 
   # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
   carryingCapacity = ceiling(as.numeric(combined_traits_data$up75)*(ModellingRes^2)), 
   # net reproduction rate
-  reproductionRate = combined_traits_data$litter_size_n * (combined_traits_data$MaxAge - combined_traits_data$AgeFirstReproduction),
+  reproductionRate = combined_traits_data$litter_size_n * (MaxAge - AgeFirstReproduction),
   # Mean dispersal distance according to Schloss et al. 2012 (based on trophic level)
   dispersalDistance = ifelse(
     combined_traits_data$trophic_level == "Carnivore", pmax((3.45 * BodyMass^0.89)/ModellingRes, ModellingRes), 
