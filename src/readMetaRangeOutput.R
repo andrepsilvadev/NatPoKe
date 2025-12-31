@@ -10,52 +10,52 @@ source("./src/customFunctions.R")
 # FULL DATASET # 
 ################
 
-# STEP 1 # Load all runs data
+##########
+# STEP 1 # collect TNIND paths if not already provided
+##########
 
-# Boreal Forests ---------------------------------------------------------------
+if (length(TNIND_paths) == 0) {
+  
+  runs <- read.csv("data/run_table.csv", stringsAsFactors = FALSE)
+  
+  TNIND_paths <- character(0)
+  
+  for (i in seq_len(nrow(runs))) {
+    
+    target_region <- runs$region[i]
+    target_biome <- runs$biome[i]
+    future_scenario <- runs$scenario[i]
+    
+    runname <- paste(
+      target_region,
+      future_scenario,
+      "20251228",
+      #format(Sys.time(), "%Y%m%d"),
+      sep = "_"
+    )
 
-## Europe SSP5
-europe_SSP1 <- fread("./output/metaRangeRuns/Europe_ssp126_31Oct25/Outputs/TNIND_yr_Europe_ssp126_31Oct25.csv")
-## Europe SSP1
-europe_SSP5 <- fread("./output/metaRangeRuns/Europe_ssp585_31Oct25/Outputs/TNIND_yr_Europe_ssp585_31Oct25.csv")
+    tnind_file <- file.path(
+      getwd(), "outputs",
+      runname, "Outputs",
+      paste0("TNIND_yr_", runname, ".csv")
+    )
+    
+    if (!file.exists(tnind_file)) {
+      warning("TNIND file not found (skipping): ", tnind_file)
+      next
+    }
+    
+    TNIND_paths[runname] <- tnind_file
+  }
+}
 
-## North America SSP5
-northamerica_SSP1 <- fread("./output/metaRangeRuns/NorthAmerica_ssp126_31Oct25/Outputs/TNIND_yr_NorthAmerica_ssp126_31Oct25.csv") 
-## North America SSP1
-northamerica_SSP5 <- fread("./output/metaRangeRuns/NorthAmerica_ssp585_31Oct25/Outputs/TNIND_yr_NorthAmerica_ssp585_31Oct25.csv")
+# read all dfs
+TNIND_all_runs <- lapply(TNIND_paths, data.table::fread)
 
-
-# Tropical Moist Forests -------------------------------------------------------
-
-## South America SSP5
-southamerica_SSP1 <- fread("./output/metaRangeRuns/SouthAmerica_ssp126_31Oct25/Outputs/TNIND_yr_SouthAmerica_ssp126_31Oct25.csv")
-## South America SSP1
-southamerica_SSP5 <- fread("./output/metaRangeRuns/SouthAmerica_ssp585_31Oct25/Outputs/TNIND_yr_SouthAmerica_ssp585_31Oct25.csv")
-
-## Africa SSP5
-africa_SSP1 <- fread("./output/metaRangeRuns/Africa_ssp126_31Oct25/Outputs/TNIND_yr_Africa_ssp126_31Oct25.csv")
-## Africa SSP1
-africa_SSP5 <- fread("./output/metaRangeRuns/Africa_ssp585_31Oct25/Outputs/TNIND_yr_Africa_ssp585_31Oct25.csv")
-
-## Asia SSP5
-asia_SSP1 <- fread("./output/metaRangeRuns/Asia_ssp126_31Oct25/Outputs/TNIND_yr_Asia_ssp126_31Oct25.csv")
-## Asia SSP1
-asia_SSP5 <- fread("./output/metaRangeRuns/Asia_ssp585_31Oct25/Outputs/TNIND_yr_Asia_ssp585_31Oct25.csv")
-
-invisible(gc())
-
-# STEP 2 # Combine all regions data together
-
-datasets <- list(europe_SSP5, northamerica_SSP5, asia_SSP5, africa_SSP5, southamerica_SSP5,
-                 europe_SSP1, northamerica_SSP1, asia_SSP1, africa_SSP1, southamerica_SSP1)
-
-TNIND_yr <- do.call("rbind", datasets)
-# check for species names
-#unique(TNIND_yr$species)
-
+# combine into unique df
+TNIND_yr <- data.table::rbindlist(TNIND_all_runs, use.names = TRUE, fill = TRUE)
 # clean up
-rm(europe_SSP5, northamerica_SSP5, asia_SSP5, africa_SSP5, southamerica_SSP5,
-   europe_SSP1, northamerica_SSP1, asia_SSP1, africa_SSP1, southamerica_SSP1)
+rm(TNIND_all_runs)
 invisible(gc())
 
 # get correspondence between species names and functional group
@@ -77,10 +77,12 @@ TNIND_yr <- TNIND_yr %>%
   # deal with integer 64 columns (=big big numbers)
   mutate(across(where(bit64::is.integer64), as.numeric))
 
+##########
 # STEP 3 #  Write complete dataset into .csv (RAW DATA)
+##########
 
 write_csv(TNIND_yr, 
-          file = "./output/completeMetaRangeRun_31Oct25.csv")
+          file = "./outputs/completeMetaRangeRun_31Oct25.csv")
 
 ################################
 # DIAGNOSTIC POPULATION TRENDS # 
@@ -89,7 +91,7 @@ write_csv(TNIND_yr,
 # STEP 1 # Build and excel file
 
 # create folder to save diagnostics
-diagnostics <- file.path("./output/metaRangeRuns/diagnostics2")
+diagnostics <- file.path("./outputs/diagnostics2")
 dir.create(diagnostics, showWarnings = TRUE)
 
 # get number of sps per combin
@@ -126,7 +128,7 @@ writeData(wb, "perReplicate", TNIND_diff)
 # add across-replicate sheet 
 addWorksheet(wb, "acrossReplicates")
 writeData(wb, "acrossReplicates", TNIND_mean)
-saveWorkbook(wb, file.path(diagnostics, "metaRangeRun_31Oct_diagnostics.xlsx"), overwrite = TRUE)
+saveWorkbook(wb, file.path(diagnostics, paste0("metaRangeRun_", Sys.Date(), "_diagnostics.xlsx")), overwrite = TRUE)
 invisible(gc())
 
 
@@ -164,7 +166,7 @@ for (i in seq_len(nrow(combo_list))) {
     theme(strip.text = element_text(face = "italic"))
   
   # filename
-  fname <- paste0("./output/metaRangeRuns/diagnostics2/",
+  fname <- paste0("./outputs/diagnostics2/",
                   gsub(" ", "", b), "_", gsub(" ", "", r), "_", gsub(" ", "", s),
                   "_speciesPopulationTrends.png")
   # save plot
@@ -248,38 +250,49 @@ for (i in seq_len(nrow(combo_list))) {
 # COMPLETE TRAIT DATAFRAME #
 ############################
 
-runs_path <- "/mnt/data/maria/NatPoKe/output/metaRangeRuns"
+traitdf_paths <- character(0)
 
-# Europe
-EuropeSSP1_input = file.path(runs_path, "Europe_ssp126_31Oct25/Inputs")
-EuropeSSP5_input = file.path(runs_path, "Europe_ssp585_31Oct25/Inputs")
+for (i in seq_len(nrow(runs))) {
+  
+  target_region <- runs$region[i]
+  target_biome <- runs$biome[i]
+  future_scenario <- runs$scenario[i]
+  
+  runname <- paste(
+    target_region,
+    future_scenario,
+    "20251228",
+    #format(Sys.time(), "%Y%m%d"),
+    sep = "_"
+  )
+  
+  traitdf_file <- file.path(
+    getwd(), "outputs",
+    runname, "Inputs",
+    "metaRangeSpeciesDataframe.csv")
+  
+  
+  if (!file.exists(traitdf_file)) {
+    warning("Trait Dataframe file not found (skipping): ", traitdf_file)
+    next
+  }
+  
+  traitdf_paths[runname] <- traitdf_file
+}
 
-# North America
-NorthAmericaSSP1_input = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Inputs")
-NorthAmericaSSP5_input = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Inputs")
 
-# South America
-SouthAmericaSSP1_input = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Inputs")
-SouthAmericaSSP5_input = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Inputs")
+# read all dfs
+traits_all_runs <- lapply(traitdf_paths, data.table::fread)
 
-# Africa
-AfricaSSP1_input = file.path(runs_path, "Africa_ssp126_31Oct25/Inputs")
-AfricaSS5_input = file.path(runs_path, "Africa_ssp585_31Oct25/Inputs")
+# combine into unique df
+all_traits <- data.table::rbindlist(traits_all_runs, use.names = TRUE, fill = TRUE) %>% 
+  select(!Index) %>%   # remove Index column if present 
+  distinct(Species, .keep_all = TRUE) %>% # ensure one row per species
+  mutate(Species = pretty_species_names(as.character(Species)))
 
-# Asia
-AsiaSSP1_input = file.path(runs_path, "Asia_ssp126_31Oct25/Inputs")
-AsiaSSP5_input = file.path(runs_path, "Asia_ssp585_31Oct25/Inputs")
-
-input_dirs <- c(EuropeSSP1_input, NorthAmericaSSP1_input, SouthAmericaSSP1_input, AfricaSSP1_input, AsiaSSP1_input,
-                EuropeSSP5_input, NorthAmericaSSP5_input, SouthAmericaSSP5_input, AfricaSSP5_input, AsiaSSP5_input)
-
-# Read all CSVs, merge, and keep only one row per species
-all_traits <- map_dfr(input_dirs, function(input_dir) {
-  csv_file <- list.files(input_dir, pattern = "\\.csv$", full.names = TRUE)[1]
-  read_csv(csv_file, show_col_types = FALSE) %>% 
-    select(!Index)   # remove Index column if present
-}) %>% 
-  distinct(Species, .keep_all = TRUE)  # ensure one row per species
+# clean up
+rm(traits_all_runs)
+invisible(gc())
 
 # Save merged .xlsx
 write_xlsx(all_traits, file.path(runs_path, "completeTraitDataframe_allSps.xlsx"))
@@ -288,33 +301,41 @@ write_xlsx(all_traits, file.path(runs_path, "completeTraitDataframe_allSps.xlsx"
 # AVERAGE SUITABILITY OVER TIME #
 #################################
 
-runs_path <- "/mnt/data/maria/NatPoKe/output/metaRangeRuns"
+inputFolder_paths <- character(0)
 
-# Europe
-EuropeSSP1_input = file.path(runs_path, "Europe_ssp126_31Oct25/Inputs")
-EuropeSSP5_input = file.path(runs_path, "Europe_ssp585_31Oct25/Inputs")
+for (i in seq_len(nrow(runs))) {
+  
+  target_region <- runs$region[i]
+  target_biome <- runs$biome[i]
+  future_scenario <- runs$scenario[i]
+  
+  runname <- paste(
+    target_region,
+    future_scenario,
+    "20251228",
+    #format(Sys.time(), "%Y%m%d"),
+    sep = "_"
+  )
+  
+  input_folder <- file.path(
+    getwd(), "outputs",
+    runname, "Inputs")
+  
+  
+  if (!file.exists(input_folder)) {
+    warning("Input folder not found (skipping): ", input_folder)
+    next
+  }
+  
+  inputFolder_paths[runname] <- input_folder
+}
 
-# North America
-NorthAmericaSSP1_input = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Inputs")
-NorthAmericaSSP5_input = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Inputs")
-
-# South America
-SouthAmericaSSP1_input = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Inputs")
-SouthAmericaSSP5_input = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Inputs")
-
-# Africa
-AfricaSSP1_input = file.path(runs_path, "Africa_ssp126_31Oct25/Inputs")
-AfricaSSP5_input = file.path(runs_path, "Africa_ssp585_31Oct25/Inputs")
-
-# Asia
-AsiaSSP1_input = file.path(runs_path, "Asia_ssp126_31Oct25/Inputs")
-AsiaSSP5_input = file.path(runs_path, "Asia_ssp585_31Oct25/Inputs")
-
-input_dirs <- c(EuropeSSP1_input, NorthAmericaSSP1_input, SouthAmericaSSP1_input, AfricaSSP1_input, AsiaSSP1_input,
-                EuropeSSP5_input, NorthAmericaSSP5_input, SouthAmericaSSP5_input, AfricaSSP5_input, AsiaSSP5_input)
+# clean up
+rm(input_folder)
+invisible(gc())
 
 # loop over folders and produce one plot per folder
-for (dir in input_dirs) {
+for (dir in inputFolder_paths) {
   
   # list tif files in this folder
   files <- list.files(dir, pattern = "_reprojectedKm\\.tif$", full.names = TRUE)
@@ -365,32 +386,10 @@ for (dir in input_dirs) {
   nrow <- ceiling(n_species / ncol)
   
   ggsave(filename = paste0(folder_name, "_suitabilityOverTime.png"),
-         path = "./output/metaRangeRuns/diagnostics2/",
+         path = "./outputs/diagnostics2/",
          plot = p, width = 12,
          height = nrow * 3,
          dpi = 300)
 }
 
 
-
-
-###############################################################33
-
-directory_pairs <- list(
-  # North America SSP1
-  northamerica_SSP1 = c(input = "./output/metaRangeRuns/NorthAmerica_ssp126_31Oct25/Inputs/",
-                        output = "./output/metaRangeRuns/NorthAmerica_ssp126_31Oct25/Outputs/"),
-  # North America SSP5
-  northamerica_SSP5 = c(input = "./output/metaRangeRuns/NorthAmerica_ssp585_31Oct25/Inputs/",
-                        output = "./output/metaRangeRuns/NorthAmerica_ssp585_31Oct25/Outputs/")
-  
-  # Europe SSP1
-  europe_SSP1 = c(input = "./output/metaRangeRuns/Europe_ssp126_31Oct25/Inputs/",
-                  output = "./output/metaRangeRuns/Europe_ssp126_31Oct25/Outputs/"),
-  # Europe SSP5
-  europe_SSP5 = c(input = "./output/metaRangeRuns/Europe_ssp585_31Oct25/Inputs/",
-                  output = "./output/metaRangeRuns/Europe_ssp585_31Oct25/Outputs/"),
-  #
-  
-  
-)
