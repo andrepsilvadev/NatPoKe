@@ -32,24 +32,28 @@
 
 
 ##########
-# Step 1 # Configure Targets and Parameters
+# Step 1 # Configure Targets and Model Parameters
 ##########
 
 # import species traits df
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
+# clean target biome and region names (removes special characters like /, &, and space)
+target_biome <- gsub("[/& ]", "", target_biome)
+target_region <- gsub("[/& ]", "", target_region)
 
-# biome
+# correction for biome
 if (target_biome == "Tropical & Subtropical Moist Broadleaf Forests") {
   biome <- "tropical"
 } else if (target_biome == "Boreal Forests/Taiga") {
   biome <- "boreal"
 }
 
-# clean target biome and region names (removes special characters like /, &, and space)
-target_biome <- gsub("[/& ]", "", target_biome)
-target_region <- gsub("[/& ]", "", target_region)
+# correction for region
+if (target_region == "Europe") {
+  target_region <- "Europe+Asia"
+}
 
-# select target species 
+# select target species from dataframe to avoid errors
 target_species <- species_traits$Species # by default, this selects *all* species in the traits df
 
 # set number of replicates
@@ -64,10 +68,13 @@ set_verbosity(2L) # 0L = silent, 1L = progress updates, 2L =  debug
 options(scipen = 999) # prevents scientific notation for large numbers
 set.seed(1) # reproducibility
 
-
 ##########
 # Step 2 # RUN THE METARANGE MODEL FOR MAMMAL SPECIES
 ##########
+
+# load iucn's species ranges (to initiate species only within their range)
+iucn <- vect("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/externalData/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp")
+invisible(gc())
 
 for (replicateN in 1:n_replicates) {
   
@@ -75,7 +82,7 @@ for (replicateN in 1:n_replicates) {
   
   sim_name <- paste0(replicateN, "_", str_replace_all(target_biome, " ", ""), "_", target_region, "_Mammals")
   sim_env <- sds(list.files(dirinput,
-                            pattern = paste0("_", biome, "_", scenario, "_cropped_reprojectedKm.tif"), full.names = TRUE))
+                            pattern = paste0("_", biome, "_", future_scenario, "_cropped_reprojectedKm.tif"), full.names = TRUE))
   invisible(gc())
   
   # Step 2 # Create a simulation object 
@@ -96,12 +103,17 @@ for (replicateN in 1:n_replicates) {
     # "register" the species with the simulation
     sim$add_species(this_species)
     
+    iucn_sps <- iucn[iucn$sci_name == gsub("[.]", " ", this_species)]
+    iucn_sps <- project(iucn_sps, crs(sim_env[[i]]))
+    #plot(iucn_sps)
+    range_raster <- rasterize(iucn_sps, sim_env[[i]], values = 1)
+    range_raster <- subst(range_raster, NA, 0)
+    
     # traits that need to be stored at the population level
     sim$add_traits(
       species = this_species,
       population_level = TRUE,
-      
-      "abundance" = species_traits[["initialAbundance"]][1],
+      "abundance" = as.matrix(range_raster * species_traits[["initialAbundance"]][i], wide = TRUE),
       "abundance_before" = 0,
       "reproductionRate" = species_traits[["reproductionRate"]][i],
       "carryingCapacity" = species_traits[["carryingCapacity"]][i],
@@ -152,7 +164,7 @@ for (replicateN in 1:n_replicates) {
     species = species_names,
     process_name = "suitability_influence_population_parameter",
     process_fun = function() {
-      species_suitability_name <- paste0(self$name, "_", biome, "_", scenario, "_cropped_reprojectedKm")
+      species_suitability_name <- paste0(self$name, "_", biome, "_", future_scenario, "_cropped_reprojectedKm")
       
       self$traits[["carryingCapacity"]] <-
         self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -187,7 +199,7 @@ for (replicateN in 1:n_replicates) {
       # i.e. individuals disperse more likely into more suitable cells
       abundance_after <- dispersal(
         abundance = self$traits[["abundance"]],
-        weights = self$sim$environment$current[[paste0(self$name, "_", biome, "_", scenario, "_cropped_reprojectedKm")]],
+        weights = self$sim$environment$current[[paste0(self$name, "_", biome, "_", future_scenario, "_cropped_reprojectedKm")]],
         dispersal_kernel = self$traits[["dispersalKernel"]])
       
       # adding randomness?
@@ -303,7 +315,7 @@ for (replicateN in 1:n_replicates) {
                                       sim$globals[[species]]$mean_rrate,
                                       sim$globals[[species]]$mean_ccap,
                                       sim$globals[[species]]$n_occupied) %>% 
-      mutate(Scenario = scenario,
+      mutate(Scenario = future_scenario,
              biome = target_biome,
              region = target_region,
              species = species,
@@ -314,7 +326,7 @@ for (replicateN in 1:n_replicates) {
   # combine all species together
   TNIND_yr <- do.call(rbind, df_list)
   colnames(TNIND_yr) <- c("TNIND", "MNIND", "mean_repRate", "mean_carrCap",
-                          "occupancy", "scenario", "biome", "region",
+                          "occupancy", "future_scenario", "biome", "region",
                           "species", "timestep", "rep")
   
   # append the current replicate's data to the full list
