@@ -7,5 +7,6 @@
 # Ignore deleteLater folder
 src/deprecatedScripts/
 data/
+data/old/
 output/
 outputs/
