@@ -315,10 +315,8 @@ occ_df <- data.frame(
 ##########
 
 # In the case of bird species, these are going to be filtered by:
-## Body masses over 5 kg?????
-## Number of occurrences above 30 records with coordinates
-## If many species result from here a mannual selection can be done by carefully
-## analysing the .csv and .xlsx files produce in STEP 5
+## Body masses over 0.5 kg
+## Number of occurrences above 30 records with coordinates since 2015
 
 birdTraits_processed <- birdTraits_processed %>% 
   # join with occ numbers
@@ -396,3 +394,16 @@ saveWorkbook(wb, "./data/BirdSpecies_selection.xlsx", overwrite = TRUE)
 
 # final message 
 message("✅ Traits selection for bird species done!\n\nCheck BirdSpecies_selection.xlsx and CompleteBirdpsDataframe.csv")
+
+##########
+# STEP 6 # write a .csv file with all mammals and bird species per region
+##########
+
+df <- bind_rows(mammalTraits_processed %>%
+                               dplyr::select(BIOME_NAME, CONTINENT, sci_name),
+                             birdTraits_processed %>%
+                               dplyr::select(BIOME_NAME, CONTINENT, sci_name))
+write.csv(df, 
+          file = "./data/species_by_region.csv",
+          row.names = FALSE)
+
