@@ -60,6 +60,7 @@ get_taxa_occurrences <- function(
     pred("OCCURRENCE_STATUS","PRESENT"),
     pred_in("basisOfRecord", c("HUMAN_OBSERVATION", "OBSERVATION", "MACHINE_OBSERVATION", "OCCURRENCE")),
     pred("hasCoordinate", TRUE),
+    pred_gte("year", 2015),
     pred_notnull("decimalLatitude"),
     pred_notnull("decimalLongitude"),
     format = "SIMPLE_CSV",
@@ -74,7 +75,7 @@ get_taxa_occurrences <- function(
   invisible(gc())
   
   # retrieve and import download
-  d <- occ_download_get(key = "0052479-251009101135966")
+  d <- occ_download_get(key = download_key)
   gbif_data <- occ_download_import(d)
   rm(d)
   invisible(gc())
@@ -85,11 +86,6 @@ get_taxa_occurrences <- function(
   
   gbif_data_filtered <- gbif_data %>%
     drop_na(decimalLatitude, decimalLongitude, year) %>% 
-    # dplyr::filter(# keep only species (exclude subspecies for instance)
-    #               #taxonRank == "SPECIES",
-    #               #infraspecificEpithet == "",
-    #               # only keep occ with year info.
-    #               year > 0) %>% 
     group_by(species) %>% 
     # keep only species with over 30 occ
     dplyr::filter(n() > 30) %>% 
@@ -137,24 +133,25 @@ get_taxa_occurrences <- function(
 
 # these are taregt sps for NatPoKe
 targetSpecies <- c(## BOREAL SPS ##
-  "Alces alces", "Canis lupus", "Bison bonasus", "Cervus elaphus", 
-  "Sus scrofa", "Vulpes vulpes", "Canis latrans", "Lynx rufus",
-  "Martes americana", "Taxidea taxus", "Ursus americanus", "Panthera tigris",
-  "Lynx lynx", "Ursus arctos", "Rangifer tarandus",
-  "Puma concolor", "Bison bison",
-  
-  ## TROPICAL SPS ##
-  "Leontopithecus caissara", # has only 4 occurences
-  "Leopardus pardalis", "Nasua nasua", "Aepyceros melampus",
-  "Colobus angolensis", "Daubentonia madagascariensis",
-  "Diceros bicornis", "Erythrocebus patas", "Gorilla beringei",
-  "Gorilla gorilla", "Orycteropus afer", "Pan paniscus",
-  "Pan troglodytes", "Papio anubis", "Papio ursinus", "Cervus nippon",
-  "Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii",
-  "Pongo pygmaeus",  "Panthera onca", "Crocuta crocuta", "Mandrillus sphinx",
-  "Panthera pardus", "Syncerus caffer", "Acinonyx jubatus",
-  "Panthera leo", "Connochaetes taurinus", "Loxodonta africana",
-  "Puma concolor"
+  "Alces alces", "Canis lupus"
+  # , "Bison bonasus", "Cervus elaphus", 
+  # "Sus scrofa", "Vulpes vulpes", "Canis latrans", "Lynx rufus",
+  # "Martes americana", "Taxidea taxus", "Ursus americanus", "Panthera tigris",
+  # "Lynx lynx", "Ursus arctos", "Rangifer tarandus",
+  # "Puma concolor", "Bison bison",
+  # 
+  # ## TROPICAL SPS ##
+  # "Leontopithecus caissara", # has only 4 occurences
+  # "Leopardus pardalis", "Nasua nasua", "Aepyceros melampus",
+  # "Colobus angolensis", "Daubentonia madagascariensis",
+  # "Diceros bicornis", "Erythrocebus patas", "Gorilla beringei",
+  # "Gorilla gorilla", "Orycteropus afer", "Pan paniscus",
+  # "Pan troglodytes", "Papio anubis", "Papio ursinus", "Cervus nippon",
+  # "Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii",
+  # "Pongo pygmaeus",  "Panthera onca", "Crocuta crocuta", "Mandrillus sphinx",
+  # "Panthera pardus", "Syncerus caffer", "Acinonyx jubatus",
+  # "Panthera leo", "Connochaetes taurinus", "Loxodonta africana",
+  # "Puma concolor"
 )
 
 keys <- yaml::read_yaml("./config/api_keys.yml")
@@ -272,14 +269,14 @@ invisible(gc(rm(GBIF_data, species_name_check)))
 
 # occurrences file
 write.csv(GBIF_data_df[, c("species", "decimalLatitude", "decimalLongitude", "year")],
-          "./data/GBIF_occurrences.csv")
+          "./data/GBIF_occurrences_mammals.csv")
 
 # taxonomic info file
-sps_names <- GBIF_data_df %>% 
-  dplyr::select(species, order, family, genus) %>% 
-  st_drop_geometry() %>% 
-  unique()
-write.csv(sps_names, paste0("output/27October25/mammalSpeciesTaxonomy.csv"), row.names = FALSE)
+# sps_names <- GBIF_data_df %>% 
+#   dplyr::select(species, order, family, genus) %>% 
+#   st_drop_geometry() %>% 
+#   unique()
+# write.csv(sps_names, paste0("output/27October25/mammalSpeciesTaxonomy.csv"), row.names = FALSE)
 
 
 message("✅ Screened GBIF data exported to 'GBIF_occurrences.csv'.")
