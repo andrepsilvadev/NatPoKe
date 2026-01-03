@@ -4,31 +4,74 @@
 ## Date: 27 April 2025 updated on 10 Nov. 2025
 
 source("./src/customFunctions.R")
+source("./src/customFunctions2.R")
 
 ##########
 # STEP 1 # Define run output's directories
 ##########
 
-runs_path <- "/mnt/data/maria/NatPoKe/output/metaRangeRuns"
+runs <- read.csv("data/run_table.csv", stringsAsFactors = FALSE)
 
-# Define multiple pairs of input and output directories
-directory_pairs <- list(
-  # Europe
-  EuropeSSP1 = c(input = file.path(runs_path, "Europe_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Europe_ssp126_31Oct25/Outputs")),
-  EuropeSSP5 = c(input = file.path(runs_path, "Europe_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Europe_ssp585_31Oct25/Outputs")),
-  # North America
-  NorthAmericaSSP1 = c(input = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Outputs")),
-  NorthAmericaSSP5 = c(input = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Outputs")),
-  # South America
-  SouthAmericaSSP1 = c(input = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Outputs")),
-  SouthAmericaSSP5 = c(input = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Outputs")),
-  # Africa
-  AfricaSSP1 = c(input = file.path(runs_path, "Africa_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Africa_ssp126_31Oct25/Outputs")),
-  AfricaSS5 = c(input = file.path(runs_path, "Africa_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Africa_ssp585_31Oct25/Outputs")),
-  # Asia
-  AsiaSSP1 = c(input = file.path(runs_path, "Asia_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Asia_ssp126_31Oct25/Outputs")),
-  AsiaSSP5 = c(input = file.path(runs_path, "Asia_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Asia_ssp585_31Oct25/Outputs"))
-)
+# build input & output folder paths
+
+inputFolder_paths <- character(0)
+outputFolder_paths <- character(0)
+
+for (i in seq_len(nrow(runs))) {
+  
+  target_region <- runs$region[i]
+  target_biome <- runs$biome[i]
+  future_scenario <- runs$scenario[i]
+  
+  runname <- paste(
+    target_region,
+    future_scenario,
+    format(Sys.time(), "%Y%m%d"),
+    sep = "_"
+  )
+  # save input path
+  input_folder <- file.path(
+    getwd(), "outputs",
+    runname, "Inputs")
+  if (!file.exists(input_folder)) {
+    warning("Input folder not found (skipping): ", input_folder)
+    next
+  }
+    # save output path
+    output_folder <- file.path(
+      getwd(), "outputs",
+      runname, "Outputs")
+    if (!file.exists(output_folder)) {
+      warning("Output folder not found (skipping): ", output_folder)
+      next
+  }
+  # append input path to list
+  inputFolder_paths[runname] <- input_folder
+  # append output path to list
+  outputFolder_paths[runname] <- output_folder
+}
+
+
+# runs_path <- "/mnt/data/maria/NatPoKe/output/metaRangeRuns"
+# 
+# # Define multiple pairs of input and output directories
+# directory_pairs <- list(
+#   # Europe
+#   EuropeSSP1 = c(input = file.path(runs_path, "Europe_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Europe_ssp126_31Oct25/Outputs")),
+#   EuropeSSP5 = c(input = file.path(runs_path, "Europe_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Europe_ssp585_31Oct25/Outputs")),
+#   # North America
+#   NorthAmericaSSP1 = c(input = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Outputs")),
+#   NorthAmericaSSP5 = c(input = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Outputs")),
+#   # South America
+#   SouthAmericaSSP1 = c(input = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Outputs")),
+#   SouthAmericaSSP5 = c(input = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Outputs")),
+#   # Africa
+#   AfricaSSP1 = c(input = file.path(runs_path, "Africa_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Africa_ssp126_31Oct25/Outputs")),
+#   AfricaSS5 = c(input = file.path(runs_path, "Africa_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Africa_ssp585_31Oct25/Outputs")),
+#   # Asia
+#   AsiaSSP1 = c(input = file.path(runs_path, "Asia_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Asia_ssp126_31Oct25/Outputs")),
+#   AsiaSSP5 = c(input = file.path(runs_path, "Asia_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Asia_ssp585_31Oct25/Outputs"))
+# )
 
 ##########
 # STEP 2 # Run validation function
@@ -38,22 +81,39 @@ directory_pairs <- list(
 plot_data_list <- list()
 
 # go through each pair of directories
-for (name in names(directory_pairs)) {
-  dirs <- directory_pairs[[name]]
-  dirinput <- dirs[["input"]]
-  dirout <- dirs[["output"]]
+for (i in seq_len(nrow(runs))) {
+  
+  target_region <- runs$region[i]
+  target_biome <- runs$biome[i]
+  future_scenario <- runs$scenario[i]
+  
+  runname <- paste(
+    target_region,
+    future_scenario,
+    format(Sys.time(), "%Y%m%d"),
+    sep = "_"
+  )
+  
+  # select correct folders 
+  dirinput <- inputFolder_paths[[runname]]
+  dirout <- outputFolder_paths[[runname]]
 
+  if (length(list.files(dirinput, pattern = "\\.tif$", full.names = TRUE)) == 0) {
+    warning("Input folder is empty! Someone shoudl go check what went wrong: ")
+    next
+  }
+  
   # (1) get targetspecies
   species_names <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv")) %>%
     dplyr::pull(Species)
+  
 
-  # (2) get independentDensity
+  # (2) get independentDensity (from Santini et al. 2022)
   santini2022 <- read_excel("./data/geb13476-sup-0002-tables1.xls") %>%
     mutate(Species = str_replace_all(Species, " ", "."))
 
   # (3) get spData (modelling resolution)
   spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
-
 
   # (4) apply the function for the current pair of directories
   aa <- validateModel1.2(
@@ -61,25 +121,25 @@ for (name in names(directory_pairs)) {
     independentDensity = santini2022,
     dirouts = dirout,
     spData = spData,
-    validationYear = 101
+    validationYear = 26 # make sure this year is the timestep after the burn-in period ends
   )
 
   # store results in list
   if (
     is.list(aa) && !is.null(aa$independentDensity) && !is.null(aa$estimatedDensity) &&
       is.data.frame(aa$independentDensity) && is.data.frame(aa$estimatedDensity)) {
-    plot_data_list[[name]] <- list(
+    plot_data_list[[runname]] <- list(
       independentDensity = aa$independentDensity,
       estimatedDensity = aa$estimatedDensity,
-      name = name
-    ) # Store the data and the name
+      runname = runname
+    ) 
   } else {
-    cat("Warning: 'aa' for", name, "SOMETHING WENT WRONG! Check origin data or function.\n")
+    cat("Warning: 'aa' for", runname, "SOMETHING WENT WRONG! Check origin data or function.\n")
   }
 }
 
 # check results
-# plot_data_list$EuropeSSP1
+#plot_data_list$`Europe+Asia_ssp126_20260102`
 
 ##########
 # STEP 3 # Plot each sps validation per region & scenario separately
@@ -91,8 +151,8 @@ all_independent <- list()
 
 # get all dfs together
 for (data in plot_data_list) {
-  all_estimated[[data$name]] <- data$estimatedDensity
-  all_independent[[data$name]] <- data$independentDensity
+  all_estimated[[data$runname]] <- data$estimatedDensity
+  all_independent[[data$runname]] <- data$independentDensity
 }
 
 # bind everything together
@@ -116,7 +176,10 @@ plot_list <- list()
 
 for (ds in datasets) {
   # subset current dataset
-  df_indep <- combined_independent %>% filter(Dataset == ds)
+  df_indep <- combined_independent %>%
+    filter(Dataset == ds) %>% 
+    mutate(species = reorder(species, meanDensity))
+  
   df_est <- combined_estimated %>% filter(Dataset == ds)
 
   p <- ggplot(df_indep, aes(x = species, y = meanDensity)) +
@@ -134,8 +197,9 @@ for (ds in datasets) {
       data = df_est, aes(x = species, y = estimatedDensity),
       color = "red",
       position = position_jitter(width = 0.2),
-      size = 1.5
+      size = 1
     ) +
+    #coord_flip() +
     ylab(expression("Independent density estimate (individuals/km"^2 * ")")) +
     xlab("") +
     ggtitle(paste("Model validation:", ds)) +
@@ -144,83 +208,21 @@ for (ds in datasets) {
       axis.text.x = element_text(angle = 45, hjust = 1),
       strip.text = element_text(face = "italic")
     )
+  
+  # save each run's plot (organise based on n of species)
+  n_species <- n_distinct(df_indep$species)
+  validation_dir <- file.path(output_root, "modelValidation")
+  dir.create(validation_dir, recursive = TRUE, showWarnings = FALSE)
+  ggsave(
+    filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
+    plot = p,
+    bg = "white",
+    width = max(8, n_species * 0.25),  # 0.25–0.35 works well
+    height = 6,
+    units = "in",
+    dpi = 300
+  )
 
   # store plots in list
-  plot_list[[ds]] <- p
+  #plot_list[[ds]] <- p
 }
-
-##########
-# STEP 4 # Save validtaion figures
-##########
-
-# Europe SSP1
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/Europe_SSP1.png",
-  plot_list[["EuropeSSP1"]] + plot_list[["EuropeSSP1"]] + scale_y_continuous(limits = c(0, 25)),
-  bg = "white", width = 300, height = 150, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-# Europe SSP5
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/Europe_SSP5.png",
-  plot_list[["EuropeSSP5"]] + plot_list[["EuropeSSP5"]] + scale_y_continuous(limits = c(0, 25)),
-  bg = "white", width = 300, height = 150, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-# North America SSP1
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/NorthAmerica_SSP1.png",
-  plot_list[["NorthAmericaSSP1"]] + plot_list[["NorthAmericaSSP1"]] + scale_y_continuous(limits = c(0, 25)),
-  bg = "white", width = 300, height = 150, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-# North America SSP5
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/NorthAmerica_SSP5.png",
-  plot_list[["NorthAmericaSSP5"]],
-  bg = "white", width = 300, height = 150, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-# South America SSP1
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/SouthAmerica_SSP1.png",
-  plot_list[["SouthAmericaSSP1"]] + plot_list[["SouthAmericaSSP1"]] + scale_y_continuous(limits = c(0, 15)),
-  bg = "white", width = 300, height = 150, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-
-# South America SSP5
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/SouthAmerica_SSP5.png",
-  plot_list[["SouthAmericaSSP5"]] + plot_list[["SouthAmericaSSP5"]] + scale_y_continuous(limits = c(0, 20)),
-  bg = "white", width = 300, height = 150, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-
-# Africa SSP1
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/Africa_SSP1.png",
-  plot_list[["AfricaSSP1"]] / plot_list[["AfricaSSP1"]] + scale_y_continuous(limits = c(0, 30)),
-  bg = "white", width = 300, height = 200, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-# Africa SSP5
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/Africa_SSP5.png",
-  plot_list[["AfricaSS5"]] / plot_list[["AfricaSS5"]] + scale_y_continuous(limits = c(0, 30)),
-  bg = "white", width = 300, height = 200, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-# Asia SSP1
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/Asia_SSP1.png",
-  plot_list[["AsiaSSP1"]] / plot_list[["AsiaSSP1"]] + scale_y_continuous(limits = c(0, 35)),
-  bg = "white", width = 300, height = 200, units = "mm", dpi = 300 # , compression = "lzw"
-)
-
-# Asia SSP5
-ggsave(
-  filename = "./output/metaRangeRuns/modelValidation/Asia_SSP5.png",
-  plot_list[["AsiaSSP5"]] / plot_list[["AsiaSSP5"]] + scale_y_continuous(limits = c(0, 35)),
-  bg = "white", width = 300, height = 200, units = "mm", dpi = 300 # , compression = "lzw"
-)
