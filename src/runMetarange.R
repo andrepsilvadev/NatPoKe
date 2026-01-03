@@ -27,8 +27,7 @@ for (i in seq_len(nrow(runs))) {
   runname <- paste(
     target_region,
     future_scenario,
-    "20251228",
-    #format(Sys.time(), "%Y%m%d"),
+    format(Sys.time(), "%Y%m%d"),
     sep = "_"
   )
   
@@ -80,24 +79,13 @@ for (i in seq_len(nrow(runs))) {
     # run metaRange custom model
     source(file.path("src", "mammalModel.R"))
     
-    cat("Run finished:", Sys.time(), "\n")
+    # run meanTraitValuesAcrossReplicate.R (build an average raster per timestep)
+    source(file.path("src", "meanTraitValuesAcrossReplicate.R"))
+    
+    cat("Run finished:", round(
+      as.numeric(difftime(Sys.time(), start_time, units = "mins")), 2
+    ), "\n")
     sink()
-    
-    # --------------------------------------------------------
-    # Collect TNIND_yr.csv paths for each run
-    # --------------------------------------------------------
-    tnind_file <- file.path(
-      dirout,
-      paste0(
-        "TNIND_yr_", runname, ".csv"
-      )
-    )
-    
-    if (!file.exists(tnind_file)) {
-      stop("TNIND file not found: ", tnind_file)
-    }
-    # store in list
-    TNIND_paths[[runname]] <- tnind_file
     
   }, error = function(e) {
     
@@ -115,9 +103,11 @@ message("All runs finished")
 message("============================================")
 
 ##########
-# STEP 3 #
+# STEP 3 # Diganostics & basic validation outputs
 ##########
 
 # produce diagnostic plots and dataframes
-
 source(file.path("src", "readMetaRangeOutput.R"))
+
+# run model Validation & produce plots
+source(file.path("src", "modelValidation.R"))
