@@ -97,8 +97,8 @@ write_csv(TNIND_yr,
 # STEP 1 # Build and excel file
 
 # create folder to save diagnostics
-diagnostics <- file.path("./outputs/diagnostics2")
-dir.create(diagnostics, showWarnings = TRUE)
+diagnostics_dir <- file.path("./outputs/diagnostics")
+dir.create(diagnostics_dir, showWarnings = TRUE)
 
 # get number of sps per combin
 n_sps <- TNIND_yr %>% 
@@ -134,7 +134,7 @@ writeData(wb, "perReplicate", TNIND_diff)
 # add across-replicate sheet 
 addWorksheet(wb, "acrossReplicates")
 writeData(wb, "acrossReplicates", TNIND_mean)
-saveWorkbook(wb, file.path(diagnostics, paste0("metaRangeRun_", Sys.Date(), "_diagnostics.xlsx")), overwrite = TRUE)
+saveWorkbook(wb, file.path(diagnostics_dir, paste0("metaRangeRun_", Sys.Date(), "_diagnostics.xlsx")), overwrite = TRUE)
 invisible(gc())
 
 
@@ -175,7 +175,7 @@ for (i in seq_len(nrow(combo_list))) {
     theme(strip.text = element_text(face = "italic"))
   
   # filename
-  fname <- paste0("./outputs/diagnostics2/",
+  fname <- paste0(diagnostics_dir,
                   gsub(" ", "", b), "_", gsub(" ", "", r), "_", gsub(" ", "", s),
                   "_speciesPopulationTrends.png")
   # save plot
@@ -246,7 +246,7 @@ for (i in seq_len(nrow(combo_list))) {
                      gsub(" ", "_", region_to_plot), "_", gsub(" ", "_", scen_to_plot), ".png")
   
   # save plots
-  ggsave(filename, combined_plot, path = diagnostics,
+  ggsave(filename, combined_plot, path = diagnostics_dir,
          width = 16, height = 6, dpi = 300)
   
   message("Saved: ", filename)
@@ -395,7 +395,7 @@ for (dir in inputFolder_paths) {
   nrow <- ceiling(n_species / ncol)
   
   ggsave(filename = paste0(folder_name, "_suitabilityOverTime.png"),
-         path = "./outputs/diagnostics2/",
+         path = diagnostics_dir,
          plot = p, width = 12,
          height = nrow * 3,
          dpi = 300)
