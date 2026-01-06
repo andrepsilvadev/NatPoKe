@@ -12,6 +12,13 @@ data_dir <- file.path(project_root, "data")
 # output root (all runs live here)
 output_root <- file.path(project_root, "outputs")
 
+# create directories for extra outputs
+dir.create(file.path(output_root, "diagnostics"), showWarnings = FALSE)
+diagnostics_dir <- file.path(output_root, "diagnostics")
+
+dir.create(file.path(output_root, "modelValidation"), showWarnings = FALSE)
+validation_dir <- file.path(output_root, "modelValidation")
+
 # create run-specific directory
 runpath <- file.path(output_root, runname)
 
