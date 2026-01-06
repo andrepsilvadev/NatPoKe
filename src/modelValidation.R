@@ -51,28 +51,6 @@ for (i in seq_len(nrow(runs))) {
   outputFolder_paths[runname] <- output_folder
 }
 
-
-# runs_path <- "/mnt/data/maria/NatPoKe/output/metaRangeRuns"
-# 
-# # Define multiple pairs of input and output directories
-# directory_pairs <- list(
-#   # Europe
-#   EuropeSSP1 = c(input = file.path(runs_path, "Europe_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Europe_ssp126_31Oct25/Outputs")),
-#   EuropeSSP5 = c(input = file.path(runs_path, "Europe_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Europe_ssp585_31Oct25/Outputs")),
-#   # North America
-#   NorthAmericaSSP1 = c(input = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "NorthAmerica_ssp126_31Oct25/Outputs")),
-#   NorthAmericaSSP5 = c(input = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "NorthAmerica_ssp585_31Oct25/Outputs")),
-#   # South America
-#   SouthAmericaSSP1 = c(input = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "SouthAmerica_ssp126_31Oct25/Outputs")),
-#   SouthAmericaSSP5 = c(input = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "SouthAmerica_ssp585_31Oct25/Outputs")),
-#   # Africa
-#   AfricaSSP1 = c(input = file.path(runs_path, "Africa_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Africa_ssp126_31Oct25/Outputs")),
-#   AfricaSS5 = c(input = file.path(runs_path, "Africa_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Africa_ssp585_31Oct25/Outputs")),
-#   # Asia
-#   AsiaSSP1 = c(input = file.path(runs_path, "Asia_ssp126_31Oct25/Inputs"), output = file.path(runs_path, "Asia_ssp126_31Oct25/Outputs")),
-#   AsiaSSP5 = c(input = file.path(runs_path, "Asia_ssp585_31Oct25/Inputs"), output = file.path(runs_path, "Asia_ssp585_31Oct25/Outputs"))
-# )
-
 ##########
 # STEP 2 # Run validation function
 ##########
@@ -211,8 +189,8 @@ for (ds in datasets) {
   
   # save each run's plot (organise based on n of species)
   n_species <- n_distinct(df_indep$species)
-  validation_dir <- file.path(output_root, "modelValidation")
-  dir.create(validation_dir, recursive = TRUE, showWarnings = FALSE)
+  #validation_dir <- file.path(output_root, "modelValidation")
+  #dir.create(validation_dir, recursive = TRUE, showWarnings = FALSE)
   ggsave(
     filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
     plot = p,
