@@ -73,7 +73,7 @@ set.seed(1) # reproducibility
 ##########
 
 # load iucn's species ranges (to initiate species only within their range)
-iucn <- vect("C:/Users/maria/OneDrive - Universidade de Lisboa/ANDRE/externalData/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp")
+iucn <- vect("./data/externaldata/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp")
 invisible(gc())
 
 for (replicateN in 1:n_replicates) {
