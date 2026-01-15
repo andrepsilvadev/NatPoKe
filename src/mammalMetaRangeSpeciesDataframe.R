@@ -10,42 +10,29 @@
 ## Select Target Region (choose one)
 #target_region <- "Europe" # Options: "North America", "South America", "Europe", "Asia", "Africa"
 
-## Select scenario
-#scenario <- "ssp126"
-
-# # target species
-# targetSpecies <- c(## BOREAL SPS ##
-#   "Alces alces", "Canis lupus", "Bison bonasus", "Cervus elaphus", 
-#   "Sus scrofa", "Vulpes vulpes", "Canis latrans", "Lynx rufus",
-#   "Martes americana", "Taxidea taxus", "Ursus americanus", "Panthera tigris",
-#   "Lynx lynx", "Ursus arctos", "Rangifer tarandus",
-#   "Puma concolor", "Bison bison"#,
-#   
-#   ## TROPICAL SPS ##
-#   #"Leontopithecus caissara", # has only 4 occurences
-#   #"Leopardus pardalis", "Nasua nasua", "Aepyceros melampus",
-#   #"Colobus angolensis", "Daubentonia madagascariensis",
-#   #"Diceros bicornis", "Erythrocebus patas", "Gorilla beringei",
-#   #"Gorilla gorilla", "Orycteropus afer", "Pan paniscus",
-#   #"Pan troglodytes", "Papio anubis", "Papio ursinus", "Cervus nippon",
-#   #"Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii",
-#   #"Pongo pygmaeus",  "Panthera onca", "Crocuta crocuta", "Mandrillus sphinx",
-#   #"Panthera pardus", "Syncerus caffer", "Acinonyx jubatus",
-#   #"Panthera leo", "Connochaetes taurinus", "Loxodonta africana",
-#   #"Puma concolor"
-# )
+# species_table <- read.csv(
+#   file.path(data_dir, "species_by_region.csv"),
+#   stringsAsFactors = FALSE)
+# 
+# target_species <- species_table |>
+#   dplyr::filter(
+#     BIOME_NAME == target_biome,
+#     CONTINENT  == target_region
+#   ) |>
+#   dplyr::pull(sci_name) |>
+#   unique()
 
 ##########
 # Step 1 # Import Trait Dataframe 
 ##########
 
-combined_traits_data <- read_csv(here("data", "CompleteMammalSpsDataframe_2025-12-20.csv")) %>% 
+combined_traits_data <- read_csv(here("data", "traitData", "CompleteMammalSpsDataframe_2025-12-20.csv")) %>% 
   # filter for prefered area & species
   dplyr::filter(BIOME_NAME %in% target_biome) %>% 
   dplyr::filter(CONTINENT %in% if (target_region == "Europe") {
     c("Europe", "Asia")
   } else {
-    gsub("[/& ]", "", target_region)
+    target_region
   }
   ) %>% 
   dplyr::filter(sci_name %in% target_species) 
