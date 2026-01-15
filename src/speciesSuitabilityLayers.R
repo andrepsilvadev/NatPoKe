@@ -10,13 +10,7 @@ source("./src/customFunctions2.R")
 # STEP 1 # Define parameters 
 ##########
 
-# target_species <- c( "Dama dama", "Alces alces", "Bison bonasus", "Lynx lynx")
-# 
-# target_region <- "Europe+Asia"
-# target_biome <- "Boreal Forests/Taiga"
-# future_scenario <- "ssp126"
 target_species <- gsub(" ", ".", target_species)
-#target_biome <- "Boreal Forests/Taiga"
 
 # biome
 if (target_biome == "Tropical & Subtropical Moist Broadleaf Forests") {
@@ -30,12 +24,13 @@ if (target_region == "Europe+Asia") {
   target_region <- "Europe"
   }
 
-#biomes <- c("tropical", "boreal")  
-basePathSDM <- "./data/SDMlandscapes_October25"
+  
+#processedSDM_dir # OR basePathSDM <- "./data/sdm/SDMlandscapes_October25"
+
 # path for each biomes' SDM outputs
 biome_paths <- list(                      
-  tropical = "./data/NatPoke_October25_tropical",
-  boreal   = "./data/NatPoke_October25_boreal"
+  tropical = "./data/sdm/tropical_SDMS",
+  boreal   = "./data/sdm/boreal_SDMS"
 )
 
 ##########
@@ -86,7 +81,7 @@ for (sp in target_species) {
   names(r_interp) <- as.character(2015:2125)
   #plot(r_interp$`2125`)
   
-  out_dir <- file.path(basePathSDM, "biome")
+  out_dir <- file.path(processedSDM_dir, "biome")
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   out_file <- file.path(out_dir, paste0(sp, "_", biome, "_", future_scenario, ".tif"))
   # write biome-wide raster
@@ -103,14 +98,6 @@ for (sp in target_species) {
 ##########
 
 message("Start Rescaling, Cropping and Masking Output Rasters")
-
-# # list of all our target sps, biome & scenario stacked rasters
-# raster_files <- list.files(
-#   path = "./data/SDMlandscapes_October25/biome",
-#   pattern = paste0("^(", paste(gsub(" ", ".", target_species), collapse = "|"), ")_", biome, "_", scenario, ".*\\.tif$"),
-#   full.names = TRUE)
-
-output_cropped <- file.path(basePathSDM, "biome_cropped")
 
 for (sp in target_species) {
   
@@ -229,7 +216,6 @@ for (landscape in landscapes) {
   
   # build an output filename
   output_filename <- gsub("\\.tif$", "_reprojectedKm.tif", landscape)
-  #file.path(dirinput, paste0(gsub("\\.", "", species_name), "_", biome, "_", scenario, "_cropped_reprojectedKm.tif"))
   
   # save aggregated raster
   writeRaster(r_agg, output_filename, overwrite = TRUE)
