@@ -10,7 +10,7 @@
 message("Starting to average rasters across replicates")
 
 # directory with output rasters
-dirout  
+#dirout  
 # species to find
 #target_species
 # specify the number of timesteps 
