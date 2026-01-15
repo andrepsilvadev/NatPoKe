@@ -10,7 +10,7 @@ source("./src/customFunctions2.R")
 # STEP 1 # Define run output's directories
 ##########
 
-runs <- read.csv("data/run_table.csv", stringsAsFactors = FALSE)
+runs <- read.csv("./data/run_table.csv", stringsAsFactors = FALSE)
 
 # build input & output folder paths
 
@@ -87,7 +87,7 @@ for (i in seq_len(nrow(runs))) {
   
 
   # (2) get independentDensity (from Santini et al. 2022)
-  santini2022 <- read_excel("./data/geb13476-sup-0002-tables1.xls") %>%
+  santini2022 <- read_excel("./data/externaldata/geb13476-sup-0002-tables1.xls") %>%
     mutate(Species = str_replace_all(Species, " ", "."))
 
   # (3) get spData (modelling resolution)
