@@ -8,7 +8,7 @@
 # Functions to load and modify rasters-------------------------------------------
 # Function to load and select the biome shapefile
 load_select_biome <- function(biome_name) {
-  biome_sf <- st_read("~/data/data/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
+  biome_sf <- st_read("./data/externaldata/Ecoregions2017/Ecoregions2017/Ecoregions2017.shp")
   biome_sf[biome_sf$BIOME_NAME == biome_name, ]
 }
 
