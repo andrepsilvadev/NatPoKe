@@ -6,24 +6,22 @@
 # Settings & libraries ---------------------------------------------------------
 source("src/libraries.R") # libraries
 source("src/customFunctions2.R") # functions
-setwd("/mnt/data/maria/NatPoKe")
+#setwd("/mnt/data/maria/NatPoKe")
 gc()
+
 # paths for outputs
 pathSMDoutputs <- c(# Tropical region
-  "output/NatPoke_October25_tropical",
+  "./data/sdm/tropical_SDMS",
   # Boreal region
-  "output/NatPoke_October25_boreal"
-)
+  "./data/sdm/boreal_SDMS")
 
-# new folder to save figures
-outputPathSDMfigures <- "output/SDMoutputs_27Oct25" # adapt if needed
-
-if (!dir.exists(outputPathSDMfigures)) {
-  dir.create(outputPathSDMfigures, recursive = TRUE)
+SMDsFigures_dir <- file.path(output_root, "SDMsFigures")
+if (!dir.exists(SMDsFigures_dir)) {
+  dir.create(SMDsFigures_dir, recursive = TRUE)
 }
 
 # Create main output folder if missing
-presencePlotBase <- file.path(outputPathSDMfigures, "presencePlots")
+presencePlotBase <- file.path(SMDsFigures_dir, "presencePlots")
 if (!dir.exists(presencePlotBase)) {
   dir.create(presencePlotBase, recursive = TRUE)
 }
@@ -51,26 +49,10 @@ scenario_labels <- c(
   ssp585_2100_boreal = "SSP5-8.5 (2100)"
 )
 
-targetSpecies <- c(
-  # BOREAL SPS
-  "Alces alces", "Canis lupus", "Bison bonasus", "Cervus elaphus", 
-  "Sus scrofa", "Vulpes vulpes", "Canis latrans", "Lynx rufus",
-  "Martes americana", "Taxidea taxus", "Ursus americanus", "Panthera tigris",
-  "Lynx lynx", "Ursus arctos", "Rangifer tarandus", "Puma concolor", "Bison bison",
-  
-  # TROPICAL SPS
-  "Leontopithecus caissara", "Leopardus pardalis", "Nasua nasua", "Aepyceros melampus",
-  "Colobus angolensis", "Daubentonia madagascariensis", "Diceros bicornis",
-  "Erythrocebus patas", "Gorilla beringei", "Gorilla gorilla", "Orycteropus afer",
-  "Pan paniscus", "Pan troglodytes", "Papio anubis", "Papio ursinus", "Cervus nippon",
-  "Cuon alpinus", "Felis chaus", "Macaca fuscata", "Pongo abelii", "Pongo pygmaeus",
-  "Panthera onca", "Crocuta crocuta", "Mandrillus sphinx", "Panthera pardus",
-  "Syncerus caffer", "Acinonyx jubatus", "Panthera leo", "Connochaetes taurinus",
-  "Loxodonta africana", "Puma concolor"
-)
+species_table <- read.csv("./data/species_by_region.csv", stringsAsFactors = FALSE)
+target_species <- gsub(" ", ".", species_table$sci_name)
 
 # get basemaps objects
-#extent <- "GlobalTerrestrial"
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
 ############
@@ -78,8 +60,7 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 ############
 
 # complete GBIF occ data
-gbif_file <- "data/GBIF_occurrences.csv"
-gbif_all <- readr::read_csv(gbif_file, show_col_types = FALSE)
+gbif_all <- readr::read_csv("./data/sdm/GBIF_occurrences.csv", show_col_types = FALSE)
 gbif_all <- gbif_all[,2:5]
 # carefull here not to swithc axis!!
 colnames(gbif_all)[1:3] <- c("species", "Latitude", "Longitude")
@@ -159,7 +140,9 @@ occOverTime <- gbif_all %>%
   theme(strip.text = element_text(face = "italic"))
 
 ggsave(plot = occOverTime,
-       file = "./output/gbifOccurrencesOverTime.png" , bg = 'white', width = 300, height = 150, units = "mm", dpi = 300)
+       file = file.path(SDMsFigures_dir, "gbifMammalOccurrencesOverTime.png"),
+       bg = 'white', width = 300, height = 150, units = "mm", dpi = 300)
+
 
 ############
 # OUTPUT 2 # Variable Importance for Ensemble Models Table
@@ -209,10 +192,10 @@ importance_summary <- var_importance_em_filtered %>%
 
 # write table to .csv and .xslx (for easy copy paste later)
 write.csv(importance_summary,
-          file = file.path(outputPathSDMfigures,
+          file = file.path(SMDsFigures_dir,
                            paste0("VariableImportanceSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
 writexl::write_xlsx(importance_summary,
-                    path = file.path(outputPathSDMfigures,
+                    path = file.path(SMDsFigures_dir,
                                      paste0("VariableImportanceSummaryTable", Sys.Date(), ".xlsx")))
 
 ############
@@ -255,10 +238,10 @@ eval_table_em <- all_EvalScoresEM %>%
 
 # write table to .csv and .xslx (for easy copy paste later)
 write.csv(eval_table_em,
-          file = file.path(outputPathSDMfigures,
+          file = file.path(SMDsFigures_dir,
                            paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
 writexl::write_xlsx(eval_table_em,
-                    path = file.path(outputPathSDMfigures,
+                    path = file.path(SMDsFigures_dir,
                                      paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".xlsx")))
 
 ############
