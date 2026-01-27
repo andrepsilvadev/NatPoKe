@@ -58,7 +58,7 @@ rm(TNIND_all_runs)
 invisible(gc())
 
 # get correspondence between species names and functional group
-combined_traits_data <- read_csv(here("data", "traitData", "mammalTraits_2025-12-11.csv")) %>% 
+combined_traits_data <- read_csv(here("data", "externaldata", "mammalTraits_2025-12-11.csv")) %>% 
   dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>% 
   mutate(
     CONTINENT = case_when(
@@ -88,7 +88,7 @@ TNIND_yr <- TNIND_yr %>%
 ##########
 
 write_csv(TNIND_yr, 
-          file = file.path(output_root, paste0("outputs/completeMetaRangeRun_", format(Sys.time(), "%Y%m%d"), ".csv")))
+          file = file.path(output_root, paste0("completeMetaRangeRun_", format(Sys.time(), "%Y%m%d"), ".csv")))
 
 ################################
 # DIAGNOSTIC POPULATION TRENDS # 
