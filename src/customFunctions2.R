@@ -1250,3 +1250,138 @@ pretty_species_names <- function(x) {
   return(with_spaces[matched])
 }
 
+
+#######################################
+# RETRiEVE TAXA OCCURRENCES FROM GBIF #
+#######################################
+# Description:
+# Downloads GBIF occurrence records for a set of species, applies quality
+# filters, and crops occurrences to IUCN range polygons. Retruns: An sf object
+# of GBIF occurrences spatially restricted to IUCN ranges.
+# Parameters:
+#   iucn_shapefile : path to IUCN or BirdLife species range shapefile
+#   taxa_filter : optional vector of species names to keep
+#   gbif_user : GBIF username
+#   gbif_pwd : GBIF password
+#   gbif_email : GBIF account email
+
+get_taxa_occurrences <- function(
+    iucn_shapefile, # IUCN spatial file
+    taxa_filter = NULL, # use in case we want to subset specific species
+    gbif_user = "", # GBIF username
+    gbif_pwd = "", # GBIF password
+    gbif_email = "") # GBIF account email
+{
+  
+  ##########
+  # STEP 1 # Read IUCN ranges and species list
+  ##########
+  
+  # progess message
+  message("Selecting species names from IUCN ranges file")
+  
+  IUCN_ranges <- sf::st_read(iucn_shapefile)
+  invisible(gc())
+  
+  # keep unique species names
+  taxa_spp <- unique(IUCN_ranges$sci_name)
+  
+  # filter taxa if provided
+  if (!is.null(taxa_filter)) {
+    taxa_spp <- taxa_spp[taxa_spp %in% taxa_filter]}
+  
+  ##########
+  # STEP 2 # Get GBIF taxon keys
+  ##########
+  
+  gbif_taxon_keys <- name_backbone_checklist(name = taxa_spp) %>%
+    filter(matchType == "EXACT") %>%
+    pull(usageKey)
+  invisible(gc())
+  
+  ##########
+  # STEP 3 # Download occurrences with coordinates only
+  ##########
+  
+  download_key <- occ_download(
+    pred_in("taxonKey", gbif_taxon_keys),
+    # living species
+    pred("OCCURRENCE_STATUS","PRESENT"),
+    # type of occurrences
+    pred_in("basisOfRecord", c("HUMAN_OBSERVATION", "OBSERVATION", "MACHINE_OBSERVATION", "OCCURRENCE")),
+    # with coordinate values
+    pred("hasCoordinate", TRUE),
+    pred_notnull("decimalLatitude"),
+    pred_notnull("decimalLongitude"),
+    # from 2015 onwards
+    pred_gte("year", 2015),
+    # file format to download
+    format = "SIMPLE_CSV",
+    # GBIF credentials
+    user = gbif_user,
+    pwd = gbif_pwd,
+    email = gbif_email
+  )
+  
+  # wait until finished
+  message("Downloading occurrences file from GBIF. Please wait...")
+  occ_download_wait(download_key)
+  invisible(gc())
+  
+  # retrieve and import download
+  d <- occ_download_get(key = download_key)
+  gbif_data <- occ_download_import(d)
+  rm(d)
+  invisible(gc())
+  
+  ##########
+  # STEP 4 # Filter species with >30 records
+  ##########
+  
+  gbif_data_filtered <- gbif_data %>%
+    drop_na(decimalLatitude, decimalLongitude, year) %>% 
+    group_by(species) %>% 
+    # keep only species with over 30 occ
+    dplyr::filter(n() > 30) %>% 
+    ungroup()
+  
+  # are there species with no occurrence records match?
+  missing_spp <- setdiff(taxa_spp,  unique(gbif_data_filtered$species))
+  
+  # Check and report
+  if (length(missing_spp) > 0) {
+    message("!! WARNING !! The following species do not have enough records:")
+    message(paste(missing_spp, collapse = ", "))
+  } else {
+    message("All taxa_spp species have more than 30 occurrence records! Continuing...")
+  }
+  
+  ##########
+  # STEP 5 # Crop GBIF occurrences within IUCN range
+  ##########
+  
+  # progress message
+  message("Cropping occurrences by species IUCN range...")
+  
+  # convert GBIF data to sf points
+  gbif_sf <- st_as_sf(
+    gbif_data_filtered,
+    coords = c("decimalLongitude", "decimalLatitude"),
+    crs = st_crs(IUCN_ranges))
+  invisible(gc())
+  
+  # work in a flat earth
+  sf_use_s2(FALSE)
+  # loop species-by-species to avoid geometry issues
+  occurrences_in_range <- bind_rows(lapply(taxa_spp, function(sp) {
+    message(sp)
+    poly <- IUCN_ranges %>% filter(sci_name == sp)
+    pts  <- gbif_sf %>% filter(species == sp)
+    if (nrow(poly) == 0 || nrow(pts) == 0) return(NULL)
+    return(st_join(pts, poly, join = st_within, left = FALSE))
+  }))
+  
+  # final output
+  return(occurrences_in_range)
+}
+
