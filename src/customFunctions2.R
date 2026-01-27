@@ -1230,7 +1230,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
 pretty_species_names <- function(x) {
   library(here)
   # import trait dataframe 
-  mammalTraits_2025_03_17 <- read_csv(here("data", "mammalTraits_2025-12-11.csv"))
+  mammalTraits_2025_03_17 <- read_csv(here("data", "externaldata", "mammalTraits_2025-12-11.csv"))
   
   # pull the species names **WITH SPACES** column 
   with_spaces <- unique(mammalTraits_2025_03_17$sci_name)
