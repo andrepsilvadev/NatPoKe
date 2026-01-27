@@ -8,6 +8,7 @@
 # Expected folder structure:
 # project_root/
 #   data/
+#       externalData/
 #        mammalTraits_2025-12-11.csv
 #        birdTraits_2025-12-11.csv
 #   src/
@@ -46,7 +47,7 @@ message("Processing trait data for MAMMAL SPECIES ")
 # STEP 1 # Load raw trait dataset $ select target traits
 ##########
 
-raw_mammalTraits <- read.csv("./data/mammalTraits_2025-12-11.csv")
+raw_mammalTraits <- read.csv("./data/externaldata/mammalTraits_2025-12-11.csv")
 
 # check available traits names
 #colnames(raw_mammalTraits)  
@@ -161,7 +162,7 @@ mammalTraits_processed <- mammalTraits_processed %>%
     # filter out tropical forests in north america (not our goal here)
     !(BIOME_NAME == "Tropical & Subtropical Moist Broadleaf Forests" & CONTINENT == "North America"),
     # homeRange (ResClass) over 2km
-    ResClass %in% c("2_10 km", ">10 km"),
+    ResClass %in% c("<2 km", "2_10 km", ">10 km"),
     # number of occurrences over 30 with coordinates
     occ_count_2015 >= 30,
     # body mass over 5 kg (= 5000 g)
