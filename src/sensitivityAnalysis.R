@@ -93,13 +93,18 @@ for(i in seq_len(nrow(sens_runs))){
       # build "normal" metaRange formatted trait dataframe
       source(file.path("src", "mammalMetaRangeSpeciesDataframe.R"))
       
-      # see which parameter this run is changing 
+      # see which parameter this run is changing and by how much
       sens_param <- sens_runs$parameter[i]
-      # add change for sensitivity run (multiply by x%)
-      species_traits <- species_traits |>
-        dplyr::mutate(
-          !!sens_param := .data[[sens_param]] * sens_runs$multiplier[i]
-        )
+      sens_mult  <- sens_runs$multiplier[i]
+      
+      if (sens_param != "NONE") {
+        species_traits <- species_traits |>
+          dplyr::mutate(
+            !!sens_param := .data[[sens_param]] * sens_mult
+          )
+      } else {
+        message("Baseline run: no trait parameters modified.")
+      }
       
       # overwrite table to .csv file in the same input folder
       write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"), append = FALSE)
