@@ -26,28 +26,42 @@
 # the future if we stick with MAXNET but I am still leaving it here)
 # (4) function stops if one species has an error SOLUTION? use TryCatch()
 
-#setwd("./data") # only necessary on gunvor
 # settings & libraries
 source("./src/libraries.R") # libraries
 source("./src/customFunctions2.R") # functions
 
 ##########
-# STEP 1 # Load target species from .csv
+# STEP 1 # Load target species, full environmental training raster & occurrences (done only once!)
 ##########
 
-species_table <- read.csv("./data/species_by_region.csv", stringsAsFactors = FALSE)
-target_species <- gsub(" ", ".", species_table$sci_name)
+# target species
+species_table <- read.csv("./data/traitData/CompleteMammalSpsDataframe_2025-12-20.csv",
+                          stringsAsFactors = FALSE)
 
-##########
-# STEP 2 # Load full environmental training raster & occurrences (done only once!)
-##########
+# environmental variables to keep in landscapes & models
+vars_to_keep <- c("Elevation",
+                  "Urban",
+                  "Cropland",
+                  "Pasture_Grassland",
+                  "Forest",
+                  "Nonforest_vegetation",
+                  "Water",
+                  "Barren_other",
+                  #"bio1", # Annual Mean Temperature
+                  #"bio10", # Mean Temp. Warmest Quarter
+                  "bio11", # Mean Temp. Coldest Quarter
+                  "bio12"#, # Annual Percipitation
+                  #"bio16", # Percipitation Wettest Quarter
+                  #"bio17" # Percipitation Driest Quarter
+)
 
 # training raster
 myExpl_full <- rast("./data/sdm/Landscapes/trainingLandscapes_2015_5km.tif")
+myExpl_full <- myExpl_full[[vars_to_keep]]
 invisible(gc())
 
 # species occurrences
-speciesData <- read.csv("./data/sdm/GBIF_occurrences.csv")
+speciesData <- read.csv("./data/sdm/GBIF_occurrences_mammals_2026-02-04.csv")
 speciesData$species <- gsub(" ", ".", speciesData$species)
 invisible(gc())
 
@@ -56,8 +70,12 @@ years <- c(2030, 2050, 2100)
 future_scenario <- c("ssp126", "ssp585")
 
 ##########
-# STEP 4 # Loop over biomes
+# STEP 2 # Loop over biomes
 ##########
+
+biomes <- c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")
+target_biome <- "Boreal Forests/Taiga"
+#target_biome <- "Tropical & Subtropical Moist Broadleaf Forests"
 
 for (target_biome in biomes) {
   
@@ -70,34 +88,45 @@ for (target_biome in biomes) {
   
   ## output directory per biome
   sdm_output_dir <- file.path(
-    "/mnt/data/maria/NatPoKe/data/sdm",
+    "C:/Users/maria/Desktop/test",
     paste0(biome_short, "_SDMS"))
   dir.create(sdm_output_dir, recursive = TRUE, showWarnings = FALSE)
   
-  # STEP 4.1 # load and crop biome extent
+  ############
+  # STEP 2.1 # load and crop biome extent
+  ############
   extent_sf  <- load_biome(target_biome)
   extent_crs <- sf::st_transform(extent_sf, crs = crs(myExpl_full))
-  extent_sp  <- terra::vect(extent_crs)
+  extent_bm  <- terra::vect(extent_crs)
   invisible(gc())
   
-  # STEP 4.2 # crop CURRENT landscape to the target biome
+  ############
+  # STEP 2.2 # crop CURRENT landscape to the target biome
+  ############
+  # crop to biome
   myExpl_current <- crop(
-    rast("./Landscapes/trainingLandscapes_2015_5km.tif"),
-    extent_sp)
+    rast("./data/sdm/Landscapes/trainingLandscapes_2015_5km.tif"),
+    extent_bm)
+  # select approapriate environmental variables 
+  myExpl_current <- myExpl_current[[vars_to_keep]]
   invisible(gc())
   
-  # STEP 4.3 # crop FUTURE landscapes
-  
+  ############
+  # STEP 2.3 # crop FUTURE landscapes
+  ############
   myExpl_future <- list()
   
   # dynamically crop teh landscapes rasters per year and scenario by the biome
-  for (scen in scenarios) {
+  for (scen in future_scenario) {
     for (yr in years) {
       name <- paste0(scen, "_", yr, "_", biome_short)
       message(paste0("Cropping Landscapes for ", name))
       path <- sprintf("./data/sdm/Landscapes/predictionLandscapes_%s_%s_5km.tif", scen, yr)
-      myExpl_future[[name]] <- crop(rast(path), extent_sp)
-      rm(name, path)
+      # Load & crop
+      r <- crop(rast(path), extent_bm)
+      # Select same variables as current
+      myExpl_future[[name]] <- r[[vars_to_keep]]
+      rm(name, path, r)
       invisible(gc())
     }
   }
@@ -106,8 +135,9 @@ for (target_biome in biomes) {
   myExplCurrent <- list(myExpl_current)
   myExplFuture  <- myExpl_future
   
+  ############
   # STEP 4.4 # run SDMs for this biome
-  
+  ############
   # SDMensembleMultiSpecies() – this function automates the full SDM workflow for
   # each species: filtering and formatting GBIF data, generating pseudo-absences, 
   # fitting multiple algorithms (RF, XGBoost, ANN, MAXNET), building ensemble models, 
@@ -118,7 +148,21 @@ for (target_biome in biomes) {
   # store timing info
   species_times <- list()   
   
-  SDM_NatPoke <- lapply(targetSpecies, function(sp) {
+  # select taregt species for specific biome
+  target_species <- species_table %>% 
+    # replace spaces with . to match biomod2
+    mutate(sci_name = gsub(" ", ".", sci_name)) %>% 
+    # filter species for target biome
+    dplyr::filter(BIOME_NAME == target_biome) %>% 
+    # keep only names
+    dplyr::pull(sci_name) %>% 
+    unique()
+  
+  #testing
+  target_species <- target_species[1:3]
+  #sp <- target_species[[1]]  
+  
+  SDM_NatPoke <- lapply(target_species, function(sp) {
     tryCatch({
       # measure start time
       start_time <- Sys.time()
@@ -131,7 +175,8 @@ for (target_biome in biomes) {
         myExplFuture = myExplFuture,
         extent = biome_short,
         output_folder = sdm_output_dir,
-        maxent_source = "/mnt/data/maria/NatPoKe/maxent/maxent/maxent.jar", 
+        maxent_source = "C:/Users/maria/Desktop/maxent/maxent/maxent.jar",
+          #"/mnt/data/maria/NatPoKe/maxent/maxent/maxent.jar", 
         ncoresToUse = 6)
       
       # measure time gone by
@@ -148,13 +193,15 @@ for (target_biome in biomes) {
     })
   })
   
+  ############
   # STEP 4.5 # save timming results
+  ############
   
   timing_df <- data.frame(Species = names(species_times),
                           Time_difference_mins = as.numeric(species_times),
                           stringsAsFactors = FALSE)
   
-  write_xlsx(timing_df, file.path(output_dir,
+  write_xlsx(timing_df, file.path(sdm_output_dir,
                                   paste0(biome_short, "_species_times.xlsx")))
   
   rm(extent_sf, extent_crs, extent_sp, myExpl_current, myExpl_future,
