@@ -162,7 +162,8 @@ mammalTraits_processed <- mammalTraits_processed %>%
     # filter out tropical forests in north america (not our goal here)
     !(BIOME_NAME == "Tropical & Subtropical Moist Broadleaf Forests" & CONTINENT == "North America"),
     # homeRange (ResClass) over 2km
-    ResClass %in% c("<2 km", "2_10 km", ">10 km"),
+    ResClass %in% c(#"<2 km",
+      "2_10 km", ">10 km"),
     # number of occurrences over 30 with coordinates
     occ_count_2015 >= 30,
     # body mass over 5 kg (= 5000 g)
@@ -203,7 +204,7 @@ writeData(
     "This Excel file contains trait data for mammal species available for metaRange that meet the following criteria: over 30 occ records in GBIF with coordinates (2015-2024), over 5000 g body mass and a homerange size of at least 2 km2",
     "",
     "Sheets:",
-    paste0("- CompleteSpeciesDf: complete filtered dataset for ", length(unique(mammalTraits_processed$sci_name)), " species"),
+    paste0("- CompleteSpeciesDf: complete filtered dataset for ", length(unique(mammalTraits_processed$sci_name)), " species and ", length(unique(mammalTraits_processed$familiy.x)), " families."),
     "- BiomeContTrophic_SPP: species counts per biome, continent and trophic level",
     "- One sheet per continent with species meeting filter criteria"
   ))
@@ -246,8 +247,8 @@ bird_target_traits <- c("sci_name", # scientific species name (from IUCN)
                    "BIOME_NAME", "CONTINENT", # ecosystem typology
                    "Trophic.Level",
                    "adult_body_mass_g", # adult weight (grams)
-                   "Maximum_longevity_M", # maximum longevity (months)
-                   "Age_at_first_reproduction_M", # age of first reproduction (months)
+                   "Maximum_longevity_M", # maximum longevity (years)
+                   "Age_at_first_reproduction_M", # age of first reproduction (years)
                    "Clutch", # clutch size (egg number) 
                    "Adult_survival_M",
                    "Predicted_Density_n_km2", # predicted density (ind/km2)
