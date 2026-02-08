@@ -43,6 +43,9 @@ GBIF_data <- get_taxa_occurrences(
   gbif_pwd = keys$gbif_pwd,
   gbif_email = keys$gbif_email)
 
+# get citation for the occurrences file being retrieved
+gbif_citation(download_key) # using the downloadkey
+
 # clean memory space
 invisible(gc())
 invisible(gc(rm(IUCN_ranges, gbif_taxon_keys, keys)))
