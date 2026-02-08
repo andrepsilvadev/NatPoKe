@@ -19,6 +19,13 @@ extract_legend <- function(plot) {
   return(legend)
 }
 
+#######################
+# LOAD SPECIFIC BIOME #
+#######################
+
+# This function retrieve a spatial object for a specific biome (function input)
+# from the Dinerstein et al. 2017
+
 # Function to load and select the biome shapefile
 load_biome <- function(biome_name) {
   biome_sf <- sf::st_read("data/externaldata/Ecoregions2017/Ecoregions2017.shp")
@@ -680,9 +687,10 @@ SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species na
   
  # subset occurrences
   set.seed(123)
+  n_sample <- min(300, nrow(DataSingleSpecies_unique))
   DataSingleSpecies_unique <- DataSingleSpecies_unique %>%
     # use 300 occurrences or all of them if less than 300
-    slice_sample(n = min(300, n())) %>%
+    slice_sample(n = n_sample) %>%
     as.data.frame()
   
   # format species occurence data (presence only data)
@@ -1230,7 +1238,8 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
 pretty_species_names <- function(x) {
   library(here)
   # import trait dataframe 
-  mammalTraits_2025_03_17 <- read_csv(here("data", "externaldata", "mammalTraits_2025-12-11.csv"))
+  mammalTraits_2025_03_17 <- read_csv(here("data", "externaldata", "mammalTraits_2025-12-11.csv"),
+                                      show_col_types = FALSE)
   
   # pull the species names **WITH SPACES** column 
   with_spaces <- unique(mammalTraits_2025_03_17$sci_name)
