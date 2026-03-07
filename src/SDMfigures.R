@@ -10,9 +10,11 @@ gc()
 
 # paths for outputs
 pathSMDoutputs <- c(# Tropical region
-  "./data/sdm/tropical_SDMS",
+  "D:/NatPoKe_SDMs/tropical_SDMS",
   # Boreal region
-  "C:/Users/maria/Desktop/test/boreal_SDMS")
+  "D:/NatPoKe_SDMs/boreal_SDMS")
+
+output_root <- "D:/NatPoKe_SDMs"
 
 # folder to save figure and tables on SDM outputs
 SDMsFigures_dir <- file.path(output_root, "SDMsFigures")
@@ -20,7 +22,7 @@ if (!dir.exists(SDMsFigures_dir)) {
   dir.create(SDMsFigures_dir, recursive = TRUE)
 }
 # create subfolder for presence plots
-presencePlotBase <- file.path(SMDsFigures_dir, "presencePlots")
+presencePlotBase <- file.path(SDMsFigures_dir, "presencePlots")
 if (!dir.exists(presencePlotBase)) {
   dir.create(presencePlotBase, recursive = TRUE)
 }
@@ -297,6 +299,7 @@ for (path in pathSMDoutputs) {
       
       # load raster
       rast_obj <- rast(tif_path)
+      invisible(gc())
       
       # choose mask based on path (either boreal or tropical)
       if (grepl("boreal", path, ignore.case = TRUE)) {
@@ -331,6 +334,7 @@ for (path in pathSMDoutputs) {
         labs(x = "Longitude", y = "Latitude", 
              title = scenario_labels[scenario]) +
         theme_minimal()
+      invisible(gc())
       
       # figure out region hint from path
       if (grepl("boreal", path, ignore.case = TRUE)) {
@@ -340,6 +344,7 @@ for (path in pathSMDoutputs) {
       
       # Store plot with region in the name
       continuous_list[[paste(species, scenario, region_hint, sep = "_")]] <- p
+      invisible(gc())
     }
   }
 }
@@ -378,6 +383,7 @@ for (species in target_species) {
                   guides = "collect") +
       plot_annotation(title = bquote(italic(.(species)) ~ "-" ~ .(region))) &
       theme(legend.position = "bottom")
+    invisible(gc())
     
     # store a per-species × region patchwork
     species_layouts[[paste(species, region, sep = "_")]] <- species_plot
@@ -393,5 +399,6 @@ for (species in target_species) {
                        paste0("SDMlandscapes_", species, "_", region, ".png")),
       bg = 'white', width = 400, height = 150, units = "mm", dpi = 1200
     )
+    invisible(gc())
   }
 }
