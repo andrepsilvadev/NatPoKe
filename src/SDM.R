@@ -74,7 +74,7 @@ future_scenario <- c("ssp126", "ssp585")
 ##########
 
 biomes <- c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")
-target_biome <- "Boreal Forests/Taiga"
+#target_biome <- "Boreal Forests/Taiga"
 #target_biome <- "Tropical & Subtropical Moist Broadleaf Forests"
 
 for (target_biome in biomes) {
@@ -88,7 +88,7 @@ for (target_biome in biomes) {
   
   ## output directory per biome
   sdm_output_dir <- file.path(
-    "C:/Users/maria/Desktop/test",
+    "D:/NatPoKe_SDMs",
     paste0(biome_short, "_SDMS"))
   dir.create(sdm_output_dir, recursive = TRUE, showWarnings = FALSE)
   
@@ -159,7 +159,7 @@ for (target_biome in biomes) {
     unique()
   
   #testing
-  target_species <- target_species[1:3]
+  #target_species <- target_species[1:3]
   #sp <- target_species[[1]]  
   
   SDM_NatPoke <- lapply(target_species, function(sp) {
