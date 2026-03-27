@@ -1084,7 +1084,6 @@ beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survi
   
   abundance <- abundance * survival_rate
   abundance_t1 <- (reproduction_rate * abundance * carrying_capacity) / (carrying_capacity + ((reproduction_rate - 1)) * abundance)
-    (1 + ((reproduction_rate - 1) / carrying_capacity) * abundance)
   abundance_t1[abundance_t1 < 0] <- 0
   return(abundance_t1)
 }
