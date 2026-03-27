@@ -1,11 +1,12 @@
 ## Name: customFunctions2.R ##
-## Authors: Jorinde-M. Rieger ##
-## Description: Loads all developed customised functions for LandUseChange.R, ClimateChange.R, inputClimate.R, inputLandUse.R, SDMRun.R ##
+## Authors: Jorinde-M. Rieger & InÊs Silva
+## Description: Loads all developed customised functions ##
 ## Date: August 5th 2025 ##
 
-#####################################
-# General Functions
-#####################################
+#####################
+# General Functions #
+#####################
+
 # Functions to load and modify rasters-------------------------------------------
 # Function to crop and mask rasters
 crop_mask_raster <- function(raster, biome_sp) {
@@ -20,11 +21,13 @@ extract_legend <- function(plot) {
 }
 
 #######################
-# LOAD SPECIFIC BIOME #
+# BIOMES & CONTINENTS # MIS revised
 #######################
 
-# This function retrieve a spatial object for a specific biome (function input)
-# from the Dinerstein et al. 2017
+### Load specific biome --------------------------------------------------------
+
+## This function retrieve a spatial object for a specific biome (function input)
+## from the Dinerstein et al. 2017
 
 # Function to load and select the biome shapefile
 load_biome <- function(biome_name) {
@@ -32,7 +35,8 @@ load_biome <- function(biome_name) {
   biome_sf[biome_sf$BIOME_NAME == biome_name, ]
 }
 
-# Function to load and select continents
+### Select & load continents ---------------------------------------------------
+
 load_select_continents <- function(continent_names) {
   continents <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
   merged_continents <- list() # Initialize an empty list to store merged continents
@@ -84,7 +88,8 @@ load_select_continents <- function(continent_names) {
   return(all_continents)
 }
 
-# Function to intersect biome with continents
+### Function to intersect biome with continents (NOT CURRENTLY IN USE) ---------
+
 intersect_extent_continents <- function(extent_sf, continent_geoms) {
   # Validate and fix geometries
   extent_sf <- st_make_valid(extent_sf)
@@ -102,14 +107,16 @@ intersect_extent_continents <- function(extent_sf, continent_geoms) {
   return(biome_continents)
 }
 
-# Function to crop the biome boundaries to the continents
+### Function to crop the biome boundaries to the continents --------------------
+
 crop_biome_to_continent <- function(biome, continent_geom) {
   st_intersection(biome, continent_geom)
 }
 
-#####################################
-# Climate realated Functions #
-#####################################
+##############################
+# Climate realated Functions # **NOT REVISED BY MIS**
+##############################
+
 # Functions to load rasters -------------------------------------------
 load_baseline_clim <- function(variable, baseline_year){
   file_path <- file.path(basePathClim, paste0("CHELSA_", variable, "_", baseline_year, "_V.2.1.tif"))
@@ -279,9 +286,10 @@ plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_lab
   return(plot)
 }
 
-#####################################
-# Land-Use Change Functions #
-#####################################
+#############################
+# Land-Use Change Functions # NOT REVISED BY MIS
+#############################
+
 # Functions to load rasters-------------------------------------------
 # Baseline raster
 load_baseline_landUse <- function(baseline_year){
@@ -570,11 +578,13 @@ plot_landUse_spatialChanges <- function(raster, biome_geom, color_ramp, fill_lab
   return(plot)
 }
 
-#####################################
-#  Format species input data Functions for SDMRun.R #
-#####################################
 
-# Function to remove species duplicates by cell ID
+##################################
+# SPECIES DISTRIBUTION MODELLING # MIS REVISED
+##################################
+
+### Function to remove species duplicates by cell ID -----------------------------
+
 removeSpeciesDuplicatesbyCellID <- function (dataframe) {
   SpeciesDataOcc <- dataframe %>%
     drop_na(cell) %>%
@@ -589,11 +599,22 @@ removeSpeciesDuplicatesbyCellID <- function (dataframe) {
   return(SpeciesDataOcc)
 }
 
-##############################
-# Multi species SDM function #
-##############################
+### Function to run SDMs for multiple sps --------------------------------------
 
-## This function runs multiple SDMs and saves results for multiple species at a time
+## Runs an ensemble Species Distribution Modeling (SDM) workflow for multiple
+## species using the biomod2 framework. For each target species, the function
+## formats occurrence data, generates pseudo-absences, fits multiple
+## machine-learning models, evaluates model performance, builds ensemble models,
+## and projects habitat suitability under current and future environmental
+## conditions. The workflow is organized into eight main steps:
+##    (1) Setup and folder Preparation;
+##    (2) Occurrence data filtering and formatting;
+##    (3) Singel model calibration;
+##    (4) Projection of single models;
+##    (5) Ensemble model construction;
+##    (6) Ensemble Projections (current conditions);
+##    (7) Projections to future conditions and
+##    (8) output generation and saving.
 
 SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species names
                                     speciesData, # target species occurrences file from GBIF
@@ -698,7 +719,7 @@ SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species na
   myRespXY <- DataSingleSpecies_unique[, c("decimalLongitude", "decimalLatitude")]
   
   n.pres <- sum(myResp == 1)
-  nb.PA <- c(n.pres, n.pres, n.pres, 1000, 1000, 1000) # number of pseudo-absences per set
+  nb.PA <- c(n.pres, n.pres, n.pres, 10000, 10000, 10000) # number of pseudo-absences per set
   
   # format input data (with initial pseudo-absences set) 
   myBiomodData.PA <- BIOMOD_FormatingData(
@@ -1028,9 +1049,11 @@ SDMensembleMultiSpecies <- function(targetSpecies, # vector of target species na
   #)
 }
 
-#####################################
-# Beverton & Holt demographic model #
-#####################################
+############################################
+# METARANGE MODELLING & RESULTS ASSESSMENT # MIS REVISED
+############################################
+
+### Beverton & Holt demographic model ------------------------------------------
 
 # This funcion defines the Beverton & Holt demographic model to be used within
 # the metaRange pipeline
@@ -1066,9 +1089,7 @@ beverton_holt <- function(abundance, reproduction_rate, carrying_capacity, survi
   return(abundance_t1)
 }
 
-####################################
-# Model Validation for one species #
-####################################
+### Function for model validation one species ----------------------------------
 
 # This function compares mean density estimated by model (here metaRange) per
 # cell with predicted density from independent model (here from Santini et al.) 
@@ -1115,9 +1136,8 @@ validateModel_1sps <- function(
   return(list)
 }
 
-#########################################
-# Model validation for multiple species #
-#########################################
+
+### Function to do multisps model validation -----------------------------------
 
 # This is a variation of validateModel_1sps() that compares mean density
 # estimated by model per cell with predicted density from independent model
@@ -1228,9 +1248,8 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   return(result_list)
 }
 
-##############################################
-# Fixing species names for prettier plotting #
-##############################################
+
+### Fixing species names for prettier plotting ---------------------------------
 
 # This function transforms names WITHOUT spaces into the correct form based on
 # the trait dataframe that exists in the data folder of this repo
@@ -1259,11 +1278,8 @@ pretty_species_names <- function(x) {
   return(with_spaces[matched])
 }
 
+### Function to retrieve taxa occ from GBIF ------------------------------------
 
-#######################################
-# RETRiEVE TAXA OCCURRENCES FROM GBIF #
-#######################################
-# Description:
 # Downloads GBIF occurrence records for a set of species, applies quality
 # filters, and crops occurrences to IUCN range polygons. Retruns: An sf object
 # of GBIF occurrences spatially restricted to IUCN ranges.
