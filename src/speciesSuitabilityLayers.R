@@ -1,7 +1,7 @@
 ## Name: Creating SDM-based environmental layer ##
 ## Author: Inês Silva & Sarina ##
 ## Description: stack .tif outputs from SDMs, for multiple species and multiple environmental scenarios ##
-## Date: December 27th 2025 ##
+## Date: December 27th 2025 ## Updated on March 27th 2026
 
 source("./src/libraries.R")
 source("./src/customFunctions2.R")
@@ -10,28 +10,31 @@ source("./src/customFunctions2.R")
 # STEP 1 # Define parameters 
 ##########
 
+## target species
 target_species <- gsub(" ", ".", target_species)
 
-# biome
+## target Coordinate Reference System (CRS) to project landscapes
+targetRegionCRS <- "ESRI:54030"
+## scale values factor 
+scale_factor <- 1000
+
+## biomes names
 if (target_biome == "Tropical & Subtropical Moist Broadleaf Forests") {
   biome <- "tropical"
 } else if (target_biome == "Boreal Forests/Taiga") {
   biome <- "boreal"
 }
 
-# correction for region
+## correction for region
 if (target_region == "Europe+Asia") {
   target_region <- "Europe"
   }
 
-  
-#processedSDM_dir # OR basePathSDM <- "./data/sdm/SDMlandscapes_October25"
-
-# path for each biomes' SDM outputs
-biome_paths <- list(                      
-  tropical = "./data/sdm/tropical_SDMS",
-  boreal   = "./data/sdm/boreal_SDMS"
-)
+# ## path for biomes' SDM outputs
+# biome_paths <- list(                      
+#   tropical = "D:/NatPoKe_SDMs/tropical_SDMS", #"./data/sdm/tropical_SDMS",
+#   boreal   = "D:/NatPoKe_SDMs/boreal_SDMS" #"./data/sdm/boreal_SDMS"
+# )
 
 ##########
 # STEP 2 # Stack projections per species & Interpolate (Save intermeadiate output)
@@ -81,15 +84,13 @@ for (sp in target_species) {
   names(r_interp) <- as.character(2015:2125)
   #plot(r_interp$`2125`)
   
-  out_dir <- file.path(processedSDM_dir, "biome")
-  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-  out_file <- file.path(out_dir, paste0(sp, "_", biome, "_", future_scenario, ".tif"))
+  out_file <- file.path(processedSDM_dir, paste0(sp, "_", biome, "_", future_scenario, ".tif"))
   # write biome-wide raster
   writeRaster(r_interp, out_file, overwrite = TRUE)
   message("Saved interpolated raster: ", out_file)
   
   # remove unecessary objects
-  rm(r, r_interp, interpolated_raster, current_file, future_files, path, last_known)
+  #rm(r, r_interp, interpolated_raster, current_file, future_files, path, last_known)
   gc()
 }
 
@@ -103,7 +104,7 @@ for (sp in target_species) {
   
   # expected input raster
   raster_file <- file.path(
-    out_dir,
+    processedSDM_dir,
     paste0(sp, "_", biome, "_", future_scenario, ".tif")
   )
   
@@ -114,7 +115,7 @@ for (sp in target_species) {
   sp_raster <- rast(raster_file)
   
   # RESCALE 0-1000 → 0-1
-  sp_raster <- sp_raster / 1000
+  sp_raster <- sp_raster / scale_factor
   invisible(gc())
   
   # load biome and continent geometries
@@ -150,13 +151,6 @@ for (sp in target_species) {
 # STEP 4 # Reprojected Rasters & save output
 ##########
 
-# define target CRS to reproject landscapes
-targetRegionCRS <- ifelse(target_region == "Europe", "ESRI:54030",
-                          ifelse(target_region == "North America", "ESRI:54030",
-                                 ifelse(target_region == "Africa", "ESRI:54030",
-                                        ifelse(target_region == "South America", "ESRI:54030",
-                                               ifelse(target_region == "Asia", "ESRI:54030",
-                                                      NA)))))
 # list all cropped rasters
 landscapes <- list.files(path = dirinput,
                          pattern = ".*_cropped\\.tif$",
@@ -186,8 +180,9 @@ for (landscape in landscapes) {
   sf_use_s2(FALSE)
   target_geom <- crop_biome_to_continent(biome_sf, continent_sf)
   # project target region to ronbinson
-  target_geom_robinson <- st_transform(target_geom, crs = "ESRI:54030")
+  target_geom_robinson <- st_transform(target_geom, crs = targetRegionCRS)
   invisible(gc())
+  
   # CROP and MASK raster
   r_utm_masked <- terra::crop(r_utm, target_geom_robinson)
   r_utm_masked <- terra::mask(r_utm_masked, target_geom_robinson)
@@ -200,7 +195,7 @@ for (landscape in landscapes) {
   orig_crs <- crs(r_utm_masked)
   
   # rescale extent (divide by 1000 to convert meters to kilometers)
-  extent(r_raster) <- extent(r_raster) / 1000
+  #extent(r_raster) <- extent(r_raster) / 1000
   
   # extract species name from filename
   species_name <- gsub("_.*", "", file_path_sans_ext(basename(landscape)))
@@ -215,7 +210,7 @@ for (landscape in landscapes) {
   r_agg <- aggregate(r_utm, fact = species_fact, fun = mean, na.rm = TRUE)
   
   # build an output filename
-  output_filename <- gsub("\\.tif$", "_reprojectedKm.tif", landscape)
+  output_filename <- gsub("\\.tif$", "_reprojectedm.tif", landscape)
   
   # save aggregated raster
   writeRaster(r_agg, output_filename, overwrite = TRUE)
