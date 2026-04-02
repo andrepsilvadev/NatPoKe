@@ -9,7 +9,7 @@ source("src/customFunctions2.R") # functions
 gc()
 
 # paths for outputs
-pathSMDoutputs <- c(# Tropical region
+pathSDMoutputs <- c(# Tropical region
   "D:/NatPoKe_SDMs/tropical_SDMS",
   # Boreal region
   "D:/NatPoKe_SDMs/boreal_SDMS")
@@ -69,7 +69,7 @@ gbif_all$species <- gsub(" ", ".", gbif_all$species)
 
 presencePlots <- list()
 
-for (path in pathSMDoutputs) {
+for (path in pathSDMoutputs) {
   
   # Infer region name from folder name
   region <- if (grepl("Boreal", path, ignore.case = TRUE)) "boreal" else "tropical"
@@ -162,7 +162,7 @@ for (i in seq_along(species_groups)) {
 # create data frame for all variable importance of EM
 all_var_importance_em <- data.frame() 
 
-for (path in pathSMDoutputs) {
+for (path in pathSDMoutputs) {
   for (species in target_species) {
     
     # Infer region name from folder name
@@ -206,7 +206,7 @@ write.csv(importance_summary,
           file = file.path(SDMsFigures_dir,
                            paste0("VariableImportanceSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
 writexl::write_xlsx(importance_summary,
-                    path = file.path(SMDsFigures_dir,
+                    path = file.path(SDMsFigures_dir,
                                      paste0("VariableImportanceSummaryTable", Sys.Date(), ".xlsx")))
 
 ############
@@ -215,7 +215,7 @@ writexl::write_xlsx(importance_summary,
 
 all_EvalScoresEM <- data.frame() 
 
-for (path in pathSMDoutputs) {
+for (path in pathSDMoutputs) {
   for (species in target_species) {
     
     # get region name from folder name
@@ -245,7 +245,7 @@ eval_table_em <- all_EvalScoresEM %>%
     mean_validation = mean(validation, na.rm = TRUE),
     .groups = "drop"
   ) %>% 
-  pivot_wider(names_from = metric.eval, values_from = mean_calibration)
+  pivot_wider(names_from = metric.eval, values_from = mean_validation)
 
 # write table to .csv and .xslx (for easy copy paste later)
 write.csv(eval_table_em,
@@ -278,7 +278,7 @@ if (!dir.exists(continuous_base)) dir.create(continuous_base, recursive = TRUE)
 continuous_list <- list()
 
 # first loop to produce a continuous map per sps and scenario
-for (path in pathSMDoutputs) {
+for (path in pathSDMoutputs) {
   for (species in target_species) {
     for (scenario in scenarios) {
       
