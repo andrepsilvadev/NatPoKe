@@ -82,7 +82,7 @@ for (replicateN in 1:n_replicates) {
   
   sim_name <- paste0(replicateN, "_", str_replace_all(target_biome, " ", ""), "_", target_region, "_Mammals")
   sim_env <- sds(list.files(dirinput,
-                            pattern = paste0("_", biome, "_", future_scenario, "_cropped_reprojectedKm.tif"), full.names = TRUE))
+                            pattern = paste0("_", biome, "_", future_scenario, "_cropped_reprojectedm.tif"), full.names = TRUE))
   invisible(gc())
   
   # Step 2 # Create a simulation object 
@@ -103,11 +103,11 @@ for (replicateN in 1:n_replicates) {
     # "register" the species with the simulation
     sim$add_species(this_species)
     
-    iucn_sps <- iucn[iucn$sci_name == gsub("[.]", " ", this_species)]
+    iucn_sps <- iucn[iucn$sci_name == species_traits$sci_name[i]]
     iucn_sps <- project(iucn_sps, crs(sim_env[[i]]))
     #plot(iucn_sps)
     range_raster <- rasterize(iucn_sps, sim_env[[i]], values = 1)
-    range_raster <- subst(range_raster, NA, 0)
+    range_raster <- terra::subst(range_raster, NA, 0)
     
     # traits that need to be stored at the population level
     sim$add_traits(
