@@ -67,19 +67,17 @@ species_traits <- tibble(
   MaxAge = combined_traits_data$max_longevity_d / 365,
   # age at first reproduction (years)
   AgeFirstReproduction = combined_traits_data$age_first_reproduction_d / 365,
-  # fixed modelling resolution
+  # fixed modelling resolution to aggregate landscapes (m)
   ModellingRes = 25000,
-  # cell area (km2)
-  CellResolution = (ModellingRes/1000)^2,  # (0.04166667*111)^2,
+  # orignal landscape's cell resolution (m)
+  CellResolution =  0.04166667*111139,
   # modelling resolution based on the sps mean HomeRange (km)
-  #ModellingRes = ceiling(sqrt(2/as.numeric(combined_traits_data$IndsHaCell))), # ANDRE'S MODELLING RES
-  #ModellingRes = ceiling(sqrt(combined_traits_data$Mean_HomeRange_km2)), 
   # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
-  initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd) * CellResolution), 
+  initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd) * ((ModellingRes/1000)^2)), 
   # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
-  carryingCapacity = ceiling(as.numeric(combined_traits_data$up75) * CellResolution), 
+  carryingCapacity = ceiling(as.numeric(combined_traits_data$up75) * ((ModellingRes/1000)^2)), 
   # net reproduction rate
-  reproductionRate = combined_traits_data$litter_size_n * (MaxAge - AgeFirstReproduction),
+  reproductionRate = combined_traits_data$litter_size_n2 * (MaxAge - AgeFirstReproduction),
   # Mean dispersal distance according to Schloss et al. 2012 (based on trophic level)
   dispersalDistance = {
     disp_km <- ifelse(
@@ -88,10 +86,6 @@ species_traits <- tibble(
     )
     pmax(1, (disp_km * 1000) / ModellingRes)   # cells
   },
-    #ifelse(
-    #combined_traits_data$trophic_level == "Carnivore", pmax((3.45 * BodyMass^0.89)/ModellingRes, ModellingRes), 
-    #ifelse(combined_traits_data$trophic_level == "Herbivore", pmax((1.45 * BodyMass^0.54)/ModellingRes, ModellingRes),
-     #      ifelse(combined_traits_data$trophic_level == "Omnivore", pmax((1.45 * BodyMass^0.54)/ModellingRes, ModellingRes), NA))), # If the computed value is smaller than the modelling resolution, it is adjusted to be at least (ModellingRes + 1).
   # Maximum long-distance dispersal according to Schloss et al. 2012 (based on trophic level)
   dispersalMaxDistance = ceiling({
     max_km <- ifelse(
@@ -100,10 +94,6 @@ species_traits <- tibble(
     )
     as.integer(pmax(1, ceiling((max_km * 1000) / ModellingRes)))  # cells (integer)
   }),
-    #ifelse(
-    #combined_traits_data$trophic_level == "Carnivore", pmax((40.7 * BodyMass^0.81)/ModellingRes,ModellingRes),
-    #ifelse(combined_traits_data$trophic_level == "Herbivore", pmax((3.31 * BodyMass^0.65)/ModellingRes, ModellingRes),
-     #      ifelse(combined_traits_data$trophic_level == "Omnivore", pmax((3.31 * BodyMass^0.65)/ModellingRes, ModellingRes), NA)))),
   # yearly survival rate (from mortality rate based on McCarthy 2008 and Savage 2004)
   yearlySurvivalRate = 1 - (BodyMass^-0.25)
 ) %>% 
