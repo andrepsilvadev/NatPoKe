@@ -49,55 +49,83 @@ combined_traits_data <- read_csv(here("data", "traitData", "CompleteMammalSpsDat
 species_traits <- tibble(
   # species index
   Index = 1:nrow(combined_traits_data), 
+  
   # BIOME
   #Biome = combined_traits_data$BIOME_NAME,
+  
   # scientific name WITHOUT spaces
   Species = stringr::str_replace_all(combined_traits_data$sci_name, " ", "."), 
+  
   # family
   Family = combined_traits_data$family.x,
+  
   # order
   Order = combined_traits_data$order_,
+  
   # trophic level (with 3 factors)
   TrophicLevel = combined_traits_data$trophic_level, 
+  
   # taxa
   Taxa = "Mammal",
-  # body mass (kg)
+  
+  # Body mass converted (g → kg)
   BodyMass = combined_traits_data$Mass.g / 1000, 
-  # Maximum age (years)
+  
+  # Maximum longevity (days → years)
   MaxAge = combined_traits_data$max_longevity_d / 365,
-  # age at first reproduction (years)
+  
+  # Age at first reproduction (days → years)
   AgeFirstReproduction = combined_traits_data$age_first_reproduction_d / 365,
-  # fixed modelling resolution to aggregate landscapes (m)
+  
+  # Resolution after spatial aggregation  used by metaRange (m)
   ModellingRes = 25000,
-  # orignal landscape's cell resolution (m)
+  
+  # Original raster resolution converted (degrees → m)
   CellResolution =  0.04166667*111139,
-  # modelling resolution based on the sps mean HomeRange (km)
-  # initial number of individuals per cell (from PredMd, in Ind/km2, Santini et al. 2022)
+  
+  # Initial abundance (Ind/km2)
+  # Derived from predicted median density (Santini et al. 2022)
   initialAbundance = ceiling(as.numeric(combined_traits_data$PredMd) * ((ModellingRes/1000)^2)), 
-  # maximum number of individuals per cell (from up75, in Ind/km2, Santini et al. 2022)
+  
+  # Carrying capacity (Ind/km2, maximum no individuals per cell)
+  # Based on upper 75% density estimate (Santini et al. 2022)
   carryingCapacity = ceiling(as.numeric(combined_traits_data$up75) * ((ModellingRes/1000)^2)), 
-  # net reproduction rate
+  
+  # net reproduction rate 
   reproductionRate = combined_traits_data$litter_size_n2 * (MaxAge - AgeFirstReproduction),
-  # Mean dispersal distance according to Schloss et al. 2012 (based on trophic level)
+  
+  # Mean dispersal distance (from m → cells)
+  # Based on allometric relationships from: Schloss et al. (2012)
   dispersalDistance = {
     disp_km <- ifelse(
-      combined_traits_data$trophic_level == "Carnivore", (3.45 * BodyMass^0.89),
-      ifelse(combined_traits_data$trophic_level %in% c("Herbivore","Omnivore"), (1.45 * BodyMass^0.54), NA)
-    )
-    pmax(1, (disp_km * 1000) / ModellingRes)   # cells
+      combined_traits_data$trophic_level == "Carnivore",
+      (3.45 * BodyMass^0.89),
+      ifelse(combined_traits_data$trophic_level %in%
+               c("Herbivore","Omnivore"),
+             (1.45 * BodyMass^0.54), NA))
+    # Convert km → meters →  cells
+    pmax(1, (disp_km * 1000) / ModellingRes)   
   },
-  # Maximum long-distance dispersal according to Schloss et al. 2012 (based on trophic level)
+  
+  # Maximum long-distance dispersal (from m → cells)
+  # Based on allometric relationships from: Schloss et al. (2012)
   dispersalMaxDistance = ceiling({
     max_km <- ifelse(
-      combined_traits_data$trophic_level == "Carnivore", (40.7 * BodyMass^0.81),
-      ifelse(combined_traits_data$trophic_level %in% c("Herbivore","Omnivore"), (3.31 * BodyMass^0.65), NA)
-    )
-    as.integer(pmax(1, ceiling((max_km * 1000) / ModellingRes)))  # cells (integer)
+      combined_traits_data$trophic_level == "Carnivore",
+      (40.7 * BodyMass^0.81),
+      ifelse(combined_traits_data$trophic_level %in%
+               c("Herbivore","Omnivore"),
+             (3.31 * BodyMass^0.65), NA))
+    # Convert km → meters →  cells
+    as.integer(pmax(1, ceiling((max_km * 1000) / ModellingRes)))  
   }),
-  # yearly survival rate (from mortality rate based on McCarthy 2008 and Savage 2004)
-  yearlySurvivalRate = 1 - (BodyMass^-0.25)
-) %>% 
+  
+  # yearly survival rate
+  # from mortality rate based on McCarthy 2008 and Savage 2004
+  yearlySurvivalRate = 1 - (BodyMass^-0.25)) %>%
+  # Remove duplicated species entries
   distinct(Species, .keep_all = TRUE) %>%
+  # Remove rows containing missing trait values
   drop_na() 
 
 # check NA's
