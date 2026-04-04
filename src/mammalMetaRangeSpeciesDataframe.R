@@ -92,7 +92,7 @@ species_traits <- tibble(
   carryingCapacity = ceiling(as.numeric(combined_traits_data$up75) * ((ModellingRes/1000)^2)), 
   
   # net reproduction rate 
-  reproductionRate = combined_traits_data$litter_size_n2 * (MaxAge - AgeFirstReproduction),
+  reproductionRate = combined_traits_data$litter_size_n * (MaxAge - AgeFirstReproduction),
   
   # Mean dispersal distance (from m → cells)
   # Based on allometric relationships from: Schloss et al. (2012)
