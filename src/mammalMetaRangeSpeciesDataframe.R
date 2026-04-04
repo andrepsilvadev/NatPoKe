@@ -104,6 +104,9 @@ species_traits <- tibble(
 sapply(species_traits, function(x) sum(is.na(x))) # number NA per column
 sapply(species_traits, function(x) sum(is.na(x)/length(x))) # proportion NA per column
 
+##########
+# STEP 3 # Write final trait dataframe
+##########
 
 # write table to .csv file
 write_csv(species_traits, file = file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
