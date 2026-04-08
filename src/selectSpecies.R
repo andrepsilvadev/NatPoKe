@@ -179,6 +179,8 @@ write.csv(mammalTraits_processed,
           file = paste0("./data/CompleteMammalSpsDataframe_", Sys.Date(), ".csv"),
           row.names = FALSE)
 
+mammalTraits_processed <- read.csv("data/traitData/CompleteMammalSpsDataframe_2025-12-20.csv")
+
 # check number of available sps for target areas
 biome_cont_troph_spp <- mammalTraits_processed %>%
   dplyr::count(BIOME_NAME, CONTINENT, trophic_level, name = "n_species") %>%
@@ -402,9 +404,10 @@ message("✅ Traits selection for bird species done!\n\nCheck BirdSpecies_select
 ##########
 
 df <- bind_rows(mammalTraits_processed %>%
-                               dplyr::select(BIOME_NAME, CONTINENT, sci_name),
-                             birdTraits_processed %>%
-                               dplyr::select(BIOME_NAME, CONTINENT, sci_name))
+                               dplyr::select(BIOME_NAME, CONTINENT, sci_name)#,
+                             #birdTraits_processed %>%
+                              # dplyr::select(BIOME_NAME, CONTINENT, sci_name)
+                )
 write.csv(df, 
           file = "./data/species_by_region.csv",
           row.names = FALSE)
