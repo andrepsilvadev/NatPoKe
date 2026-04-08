@@ -12,6 +12,7 @@ source("./src/customFunctions2.R")
 
 ## target species
 target_species <- gsub(" ", ".", target_species)
+#target_species  <- c("Panthera leo","Ursus arctos")
 
 ## target Coordinate Reference System (CRS) to project landscapes
 targetRegionCRS <- "ESRI:54030"
@@ -31,10 +32,12 @@ if (target_region == "Europe+Asia") {
   }
 
 # ## path for biomes' SDM outputs
-# biome_paths <- list(                      
-#   tropical = "D:/NatPoKe_SDMs/tropical_SDMS", #"./data/sdm/tropical_SDMS",
-#   boreal   = "D:/NatPoKe_SDMs/boreal_SDMS" #"./data/sdm/boreal_SDMS"
-# )
+biome_paths <- list(                      
+   tropical = "D:/NatPoKe_SDMs/tropical_SDMS", #"./data/sdm/tropical_SDMS",
+   boreal   = "D:/NatPoKe_SDMs/boreal_SDMS" #"./data/sdm/boreal_SDMS"
+ )
+
+processedSDM_dir <- "D:/NatPoKe_SDMs/processedSDMs"
 
 ##########
 # STEP 2 # Stack projections per species & Interpolate (Save intermeadiate output)
@@ -84,7 +87,7 @@ for (sp in target_species) {
   names(r_interp) <- as.character(2015:2125)
   #plot(r_interp$`2125`)
   
-  out_file <- file.path(processedSDM_dir, paste0(sp, "_", biome, "_", future_scenario, ".tif"))
+  out_file <- file.path(processedSDM_dir, paste0(sp, "_", biome, "_", future_scenario, "interpolated.tif"))
   # write biome-wide raster
   writeRaster(r_interp, out_file, overwrite = TRUE)
   message("Saved interpolated raster: ", out_file)
@@ -105,7 +108,7 @@ for (sp in target_species) {
   # expected input raster
   raster_file <- file.path(
     processedSDM_dir,
-    paste0(sp, "_", biome, "_", future_scenario, ".tif")
+    paste0(sp, "_", biome, "_", future_scenario, "interpolated.tif")
   )
   
   # skip if file does not exist
@@ -156,7 +159,7 @@ landscapes <- list.files(path = dirinput,
                          pattern = ".*_cropped\\.tif$",
                          full.names = TRUE)
 invisible(gc())
-message("Start Reprojecting and Converting to km...")
+message("Start Reprojecting to Robinson...")
 
 for (landscape in landscapes) {
   message("Processing: ", basename(landscape))
@@ -204,7 +207,7 @@ for (landscape in landscapes) {
   species_traits <- read.csv(file.path(dirinput,"metaRangeSpeciesDataframe.csv"))
   
   # get an aggregation factor from species traits
-  species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name] / sqrt(species_traits$CellResolution[species_traits$Species == species_name]))
+  species_fact <- ceiling(species_traits$ModellingRes[species_traits$Species == species_name] / species_traits$CellResolution[species_traits$Species == species_name])
   
   # aggregate raster using terra
   r_agg <- aggregate(r_utm, fact = species_fact, fun = mean, na.rm = TRUE)

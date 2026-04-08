@@ -69,14 +69,37 @@ invisible(gc())
 years <- c(2030, 2050, 2100)
 future_scenario <- c("ssp126", "ssp585")
 
+# set up a temporary folder for writeRatser() from terra package
+### Because the terra package function writeRaster needs to write supporting rasters
+### during its processes, and because the SDM function we have can write quite 
+### heavy raster we should clean up teh temporary files to avoid filling up our
+### RAM space and stopping the whole process. For that the solution MIS has found 
+### starts by creating a folder path that we know exactely where it is (so we can monitor)
+### using terraOptions() and then cleaning the temporary files from that folder.
+### WHY CREATE A NEW FOLDER AND NOT USE THE DEFAULT? because terra is used inside
+### biomod2 if we define the path oursefs we ensure the folder exists and terra
+### does not fall back to the another location or default folder it builds on
+### each R session
+
+# # set terra temporary folder
+# terra::terraOptions(
+#   # set teh temporary files folder to a path we now where it is
+#   tempdir = "C:/Users/maria/Desktop/testing",
+#   # fraction of RAM the PC is allowed to use
+#   memfrac = 0.7,
+#   # wether or not to show a progress bar
+#   progress = 1)
+
+
 ##########
 # STEP 2 # Loop over biomes
 ##########
 
-biomes <- c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")
+biomes <- c("Tropical & Subtropical Moist Broadleaf Forests"#,
+  #"Boreal Forests/Taiga"
+            )
+target_biome <- "Tropical & Subtropical Moist Broadleaf Forests"
 #target_biome <- "Boreal Forests/Taiga"
-#target_biome <- "Tropical & Subtropical Moist Broadleaf Forests"
-
 for (target_biome in biomes) {
   
   message("====================================")
@@ -88,7 +111,9 @@ for (target_biome in biomes) {
   
   ## output directory per biome
   sdm_output_dir <- file.path(
-    "D:/NatPoKe_SDMs",
+    #"C:/Users/maria/Desktop/testing"
+    "D:/NatPoKe_SDMs"
+    ,
     paste0(biome_short, "_SDMS"))
   dir.create(sdm_output_dir, recursive = TRUE, showWarnings = FALSE)
   
@@ -130,6 +155,7 @@ for (target_biome in biomes) {
       invisible(gc())
     }
   }
+
   
   # get results into lists (IMPORTANT STEP! Do not skip!!)
   myExplCurrent <- list(myExpl_current)
@@ -159,7 +185,7 @@ for (target_biome in biomes) {
     unique()
   
   #testing
-  #target_species <- target_species[1:3]
+  target_species <- c("Ateles.belzebuth", "Lycalopex.griseus", "Puma.concolor")
   #sp <- target_species[[1]]  
   
   SDM_NatPoke <- lapply(target_species, function(sp) {
@@ -178,6 +204,11 @@ for (target_biome in biomes) {
         maxent_source = "C:/Users/maria/Desktop/maxent/maxent/maxent.jar",
           #"/mnt/data/maria/NatPoKe/maxent/maxent/maxent.jar", 
         ncoresToUse = 6)
+      
+      # clean temporary files to avoid filling RAM up
+      # message("Cleaning temporary raster files")
+      # terra::tmpFiles(remove = TRUE)
+      # invisible(gc())
       
       # measure time gone by
       elapsed <- difftime(Sys.time(), start_time, units = "mins")
@@ -202,7 +233,7 @@ for (target_biome in biomes) {
                           stringsAsFactors = FALSE)
   
   write_xlsx(timing_df, file.path(sdm_output_dir,
-                                  paste0(biome_short, "_species_times.xlsx")))
+                                  paste0(biome_short, "_species_times6.xlsx")))
   
   rm(extent_sf, extent_crs, extent_sp, myExpl_current, myExpl_future,
     myExplCurrent, myExplFuture, species_times, SDM_NatPoke)
