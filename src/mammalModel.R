@@ -37,9 +37,6 @@
 
 # import species traits df
 species_traits <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
-# clean target biome and region names (removes special characters like /, &, and space)
-target_biome <- gsub("[/& ]", "", target_biome)
-target_region <- gsub("[/& ]", "", target_region)
 
 # correction for biome
 if (target_biome == "Tropical & Subtropical Moist Broadleaf Forests") {
@@ -47,6 +44,9 @@ if (target_biome == "Tropical & Subtropical Moist Broadleaf Forests") {
 } else if (target_biome == "Boreal Forests/Taiga") {
   biome <- "boreal"
 }
+# clean target biome and region names (removes special characters like /, &, and space)
+target_biome <- gsub("[/& ]", "", target_biome)
+target_region <- gsub("[/& ]", "", target_region)
 
 # correction for region
 if (target_region == "Europe") {
@@ -74,6 +74,7 @@ set.seed(1) # reproducibility
 
 # load iucn's species ranges (to initiate species only within their range)
 iucn <- vect("./data/externaldata/MAMMALS_TERRESTRIAL_ONLY/MAMMALS_TERRESTRIAL_ONLY.shp")
+iucn$sci_name <- gsub(" ", ".", iucn$sci_name)
 invisible(gc())
 
 for (replicateN in 1:n_replicates) {
@@ -103,7 +104,7 @@ for (replicateN in 1:n_replicates) {
     # "register" the species with the simulation
     sim$add_species(this_species)
     
-    iucn_sps <- iucn[iucn$sci_name == species_traits$sci_name[i]]
+    iucn_sps <- iucn[iucn$sci_name == species_traits$Species[i]]
     iucn_sps <- project(iucn_sps, crs(sim_env[[i]]))
     #plot(iucn_sps)
     range_raster <- rasterize(iucn_sps, sim_env[[i]], values = 1)
@@ -164,7 +165,7 @@ for (replicateN in 1:n_replicates) {
     species = species_names,
     process_name = "suitability_influence_population_parameter",
     process_fun = function() {
-      species_suitability_name <- paste0(self$name, "_", biome, "_", future_scenario, "_cropped_reprojectedKm")
+      species_suitability_name <- paste0(self$name, "_", biome, "_", future_scenario, "_cropped_reprojectedm")
       
       self$traits[["carryingCapacity"]] <-
         self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -199,7 +200,7 @@ for (replicateN in 1:n_replicates) {
       # i.e. individuals disperse more likely into more suitable cells
       abundance_after <- dispersal(
         abundance = self$traits[["abundance"]],
-        weights = self$sim$environment$current[[paste0(self$name, "_", biome, "_", future_scenario, "_cropped_reprojectedKm")]],
+        weights = self$sim$environment$current[[paste0(self$name, "_", biome, "_", future_scenario, "_cropped_reprojectedm")]],
         dispersal_kernel = self$traits[["dispersalKernel"]])
       
       # adding randomness?
