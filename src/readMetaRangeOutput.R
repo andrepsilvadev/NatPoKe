@@ -9,6 +9,7 @@ source("./src/customFunctions2.R")
 ################
 # FULL DATASET # 
 ################
+TNIND_paths <- list()
 
 ##########
 # STEP 1 # collect TNIND paths if not already provided
@@ -29,12 +30,13 @@ if (length(TNIND_paths) == 0) {
     runname <- paste(
       target_region,
       future_scenario,
-      format(Sys.time(), "%Y%m%d"),
+      "20260405",
+      #format(Sys.time(), "%Y%m%d"),
       sep = "_"
     )
 
     tnind_file <- file.path(
-      getwd(), "outputs",
+      "D:/metaRange_April26", 
       runname, "Outputs",
       paste0("TNIND_yr_", runname, ".csv")
     )
@@ -88,7 +90,9 @@ TNIND_yr <- TNIND_yr %>%
 ##########
 
 write_csv(TNIND_yr, 
-          file = file.path(output_root, paste0("completeMetaRangeRun_", format(Sys.time(), "%Y%m%d"), ".csv")))
+          file = file.path(output_root, paste0("completeMetaRangeRun_", #format(Sys.time(), "%Y%m%d"),
+                                               "20260405",
+                                               ".csv")))
 
 ################################
 # DIAGNOSTIC POPULATION TRENDS # 
@@ -97,7 +101,7 @@ write_csv(TNIND_yr,
 # STEP 1 # Build and excel file
 
 # create folder to save diagnostics
-diagnostics_dir <- file.path("./outputs/diagnostics")
+diagnostics_dir <- file.path("D:/metaRange_April26", "diagnostics")
 dir.create(diagnostics_dir, showWarnings = TRUE)
 
 # get number of sps per combin
@@ -134,7 +138,10 @@ writeData(wb, "perReplicate", TNIND_diff)
 # add across-replicate sheet 
 addWorksheet(wb, "acrossReplicates")
 writeData(wb, "acrossReplicates", TNIND_mean)
-saveWorkbook(wb, file.path(diagnostics_dir, paste0("metaRangeRun_", Sys.Date(), "_diagnostics.xlsx")), overwrite = TRUE)
+saveWorkbook(wb, file.path(diagnostics_dir, paste0("metaRangeRun_", 
+                                                   "20260405",
+                                                   #Sys.Date(),
+                                                   "_diagnostics.xlsx")), overwrite = TRUE)
 invisible(gc())
 
 
@@ -175,9 +182,9 @@ for (i in seq_len(nrow(combo_list))) {
     theme(strip.text = element_text(face = "italic"))
   
   # filename
-  fname <- paste0(diagnostics_dir,
-                  gsub(" ", "", b), "_", gsub(" ", "", r), "_", gsub(" ", "", s),
-                  "_speciesPopulationTrends.png")
+  fname <- file.path(diagnostics_dir,
+                  paste0(gsub(" ", "", b), "_", gsub(" ", "", r), "_", gsub(" ", "", s),
+                  "_speciesPopulationTrends.png"))
   # save plot
   ggsave(filename = fname, plot = p,
          bg = "white", width = 350, height = 210, units = "mm", dpi = 300)
@@ -270,13 +277,13 @@ for (i in seq_len(nrow(runs))) {
   runname <- paste(
     target_region,
     future_scenario,
-    #"20260102",
-    format(Sys.time(), "%Y%m%d"),
+    "20260405",
+    #format(Sys.time(), "%Y%m%d"),
     sep = "_"
   )
   
   traitdf_file <- file.path(
-    getwd(), "outputs",
+    "D:/metaRange_April26", 
     runname, "Inputs",
     "metaRangeSpeciesDataframe.csv")
   
@@ -304,7 +311,7 @@ rm(traits_all_runs)
 invisible(gc())
 
 # Save merged .xlsx
-write_xlsx(all_traits, file.path("./outputs/completeTraitDataframe_allSps.xlsx"))
+write_xlsx(all_traits, file.path("D:/metaRange_April26", "completeTraitDataframe_allSps.xlsx"))
 
 #################################
 # AVERAGE SUITABILITY OVER TIME #
@@ -321,13 +328,13 @@ for (i in seq_len(nrow(runs))) {
   runname <- paste(
     target_region,
     future_scenario,
-    #"20260103",
-    format(Sys.time(), "%Y%m%d"),
+    "20260405",
+    #format(Sys.time(), "%Y%m%d"),
     sep = "_"
   )
   
   input_folder <- file.path(
-    getwd(), "outputs",
+    "D:/metaRange_April26", 
     runname, "Inputs")
   
   
@@ -347,7 +354,7 @@ invisible(gc())
 for (dir in inputFolder_paths) {
   
   # list tif files in this folder
-  files <- list.files(dir, pattern = "_reprojectedKm\\.tif$", full.names = TRUE)
+  files <- list.files(dir, pattern = "_reprojectedm\\.tif$", full.names = TRUE)
   if (length(files) == 0) next
   
   message("Average Suitability Over Time plot for: ", dir)
