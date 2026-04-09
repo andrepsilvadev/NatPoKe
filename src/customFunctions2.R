@@ -287,7 +287,7 @@ plot_ClimatespatialChanges <- function(raster, extent_geom, color_ramp, fill_lab
 }
 
 #############################
-# Land-Use Change Functions # NOT REVISED BY MIS
+# Land-Use Change Functions # MIS REVISED HOWEVER SOME ARE UNECESSARY DISCUSS WITH APS
 #############################
 
 # Functions to load rasters-------------------------------------------
@@ -1165,12 +1165,15 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   
   ## Species density estimated by METARANGE from multiple directories
   abundance_files <- list()
+  validationYear <- sprintf("%03d", validationYear)
+  
   for (target_sps in targetspecies) {
     all_files <- character()
     for (dirout in dirouts) { #Iterate through each directory
       files <- list.files(
         path = dirout,
-        pattern = paste0(validationYear, "_", target_sps, "_abundance\\.tif$"),
+        pattern = 
+          paste0(target_sps, "_abundance_meanAcrossReplicates_0*", validationYear, "\\.tif$"),
         full.names = TRUE
       )
       all_files <- c(all_files, files)
@@ -1198,6 +1201,7 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   # convert raster stack to df
   species_df <- lapply(names(abundance_stack_list), function(sps_name){
     stack <- abundance_stack_list[[sps_name]]
+    
     if(!is.null(stack)){
       lapply(1:terra::nlyr(stack), function(i){
         as.data.frame(stack[[i]], xy = TRUE) %>%
@@ -1239,7 +1243,8 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
     as.data.frame()
   
   estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
-    mutate(estimatedDensity = meanNInd / (ModellingRes^2))
+    mutate(estimatedDensity = meanNInd / ((ModellingRes/1000)^2))
+  # note 20260409 - because landscapes are now in meters we we need to put them back into km2 to compare with santini's values
   
   ## compare observed with predicted density
   result_list <- list(independentDensity, estimatedDensityJoin)
