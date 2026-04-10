@@ -7,6 +7,9 @@
 ##########
 # Step 1 # Check directories and get reference objects to locate rasters
 ##########
+source(file.path("src", "libraries.R"))
+source(file.path("src", "customFunctions2.R"))
+
 message("Starting to average rasters across replicates")
 
 # directory with output rasters
@@ -14,20 +17,21 @@ message("Starting to average rasters across replicates")
 # species to find
 #target_species
 # specify the number of timesteps 
-timesteps <- seq_len(111)
+timesteps <- seq(from = 26, to = 136)
 # specify which traits to average
 traits_of_interrest <- c("abundance", "reproductionRate", "dispersalChange")
-
+#dirout <- "D:/metaRange_April26/Europe+Asia_ssp126_20260405/Outputs"
 ##########
 # Step 2 # Average rasters specified above per species and timestep 
 ##########
 
 for (sp in target_species) {
+  
+  sp <- gsub(" ", ".", sp)
+  message("Averaging for ", sp)
+  
   for (i in timesteps) {
     for (trait in traits_of_interrest) {
-      
-      sp <- gsub(" ", ".", sp)
-      #message("Averaging for ", sp)
       
       filepath <- list.files(dirout,
                              pattern = paste0(sprintf("%03d", i), '_', sp, '_', trait, ".tif"),
@@ -47,6 +51,8 @@ for (sp in target_species) {
     }
   }
 }
+
+message("Finished averaging rasters!")
 
 # # Import all abundance rasters for Alces alces
 # alces_abundance_files <- list.files(
