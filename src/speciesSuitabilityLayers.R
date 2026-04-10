@@ -12,7 +12,6 @@ source("./src/customFunctions2.R")
 
 ## target species
 target_species <- gsub(" ", ".", target_species)
-#target_species  <- c("Panthera leo","Ursus arctos")
 
 ## target Coordinate Reference System (CRS) to project landscapes
 targetRegionCRS <- "ESRI:54030"
@@ -31,7 +30,7 @@ if (target_region == "Europe+Asia") {
   target_region <- "Europe"
   }
 
-# ## path for biomes' SDM outputs
+## path for biomes' SDM outputs
 biome_paths <- list(                      
    tropical = "D:/NatPoKe_SDMs/tropical_SDMS", #"./data/sdm/tropical_SDMS",
    boreal   = "D:/NatPoKe_SDMs/boreal_SDMS" #"./data/sdm/boreal_SDMS"
