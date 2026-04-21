@@ -340,7 +340,7 @@ birdTraits_processed <- birdTraits_processed %>%
     !(BIOME_NAME == "Tropical & Subtropical Moist Broadleaf Forests" & CONTINENT == "North America"),
     # number of occurrences over 30 with coordinates
     occ_count_2015 >= 30,
-    # body mass over 5 kg (= 5000 g)
+    # body mass over 500 g
     adult_body_mass_g >= 500
   )
 
