@@ -69,10 +69,10 @@ for (sp in target_species) {
   interpolated_raster <- rast(current_file) # template
   # set SDM scenarios in the correct layer order
   nlyr(interpolated_raster) <- 111
-  interpolated_raster[[1]] <- rast(current_file)
-  interpolated_raster[[15]] <- rast(future_files[[1]])
-  interpolated_raster[[35]] <- rast(future_files[[2]])
-  interpolated_raster[[85]] <- rast(future_files[[3]])
+  interpolated_raster[[1]] <- rast(current_file) # 2015
+  interpolated_raster[[15]] <- rast(future_files[[1]]) # 2030
+  interpolated_raster[[35]] <- rast(future_files[[2]]) # 2050
+  interpolated_raster[[85]] <- rast(future_files[[3]]) # 2100
   
   message("Interpolating raster layers across years")
   
