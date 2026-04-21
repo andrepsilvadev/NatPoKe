@@ -8,6 +8,7 @@ setwd("C:/Users/Admin/OneDrive - Stockholm University/FinBio/R_scripts/NatPoKe-d
 library(dplyr)
 library(estar)
 library(readr)
+library(tidyverse)
 
 
 # ---------------------------
@@ -264,5 +265,124 @@ for (biome_name in unique(TNIND_yr$biome)) {
 
 
 results
+
+summary.statistics <-
+  
 # 
 # write.csv(results, "metric_results_region&trophic.csv", row.names = FALSE)
+  
+
+
+# Keep only species-level results
+species_results <- results %>%
+  filter(!is.na(species)) %>%
+  filter(!is.na(trophic_level))
+summary_statistics <- species_results %>%
+  group_by(biome, scenario, trophic_level) %>%
+  summarise(
+    across(
+      c(invariability, resistance, extent_recovery,
+        rate_recovery, persistence),
+      ~mean(.x, na.rm = TRUE),
+      .names = "mean_{.col}"
+    ),
+    across(
+      c(invariability, resistance, extent_recovery,
+        rate_recovery, persistence),
+      ~sd(.x, na.rm = TRUE) / sqrt(sum(!is.na(.x))),
+      .names = "se_{.col}"
+    ),
+    .groups = "drop"
+  )
+
+# Pivot means
+means_long <- summary_statistics %>%
+  pivot_longer(
+    cols = starts_with("mean_"),
+    names_to = "metric",
+    values_to = "mean"
+  ) %>%
+  mutate(metric = sub("mean_", "", metric))
+
+# Pivot SE
+se_long <- summary_statistics %>%
+  pivot_longer(
+    cols = starts_with("se_"),
+    names_to = "metric",
+    values_to = "se"
+  ) %>%
+  mutate(metric = sub("se_", "", metric))
+
+# Join them
+plot_data <- left_join(
+  means_long,
+  se_long,
+  by = c("biome", "scenario", "trophic_level", "metric")
+)
+
+
+plot_data$metric <- recode(plot_data$metric,
+                           invariability   = "Invariability",
+                           resistance      = "Resistance",
+                           extent_recovery = "Extent of Recovery",
+                           rate_recovery   = "Rate of Recovery",
+                           persistence     = "Persistence"
+)
+
+plot_data$metric <- factor(
+  plot_data$metric,
+  levels = c("Resistance", "Extent of Recovery",
+             "Rate of Recovery", "Invariability", "Persistence")
+)
+
+plot_data$trophic_level <- factor(
+  plot_data$trophic_level,
+  levels = c("Carnivore", "Herbivore", "Omnivore")
+)
+
+facet_grid(metric ~ biome, scales = "free_y")
+
+plot <- ggplot(plot_data,
+       aes(x = trophic_level,
+           y = mean,
+           fill = scenario)) +
+  
+  geom_bar(stat = "identity",
+           position = position_dodge(width = 0.7),
+           width = 0.6) +
+  
+  geom_errorbar(aes(ymin = mean - se,
+                    ymax = mean + se),
+                position = position_dodge(width = 0.7),
+                width = 0.2) +
+  
+  facet_grid(metric ~ biome,
+             scales = "free_y") +
+  
+  geom_hline(yintercept = 0, color = "black") +
+  
+  scale_fill_manual(
+    values = c("ssp126" = "#8DAA3F",
+               "ssp585" = "#E69F00")
+  ) +
+  
+  theme_minimal(base_size = 13) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  ) +
+  
+  labs(
+    x = "Trophic Level",
+    y = "Metric Value",
+    fill = "Socio-economic scenario"
+  )
+#save plot
+ggsave(
+  filename = "resilience metrics plot.png",
+  plot = plot,
+  width = 14,
+  height = 10,
+  dpi = 300
+)
