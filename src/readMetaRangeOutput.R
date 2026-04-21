@@ -55,6 +55,18 @@ TNIND_all_runs <- lapply(TNIND_paths, data.table::fread)
 
 # combine into unique df
 TNIND_yr <- data.table::rbindlist(TNIND_all_runs, use.names = TRUE, fill = TRUE)
+
+# correction for biome column
+TNIND_yr[biome == "TropicalSubtropicalMoistBroadleafForests",
+         biome := "Tropical & Subtropical Moist Broadleaf Forests"]
+
+TNIND_yr[biome == "BorealForestsTaiga",
+         biome := "Boreal Forests/Taiga"]
+
+# corresction for region name
+TNIND_yr[region == "SouthAmerica", region := "South America"]
+TNIND_yr[region == "NorthAmerica", region := "North America"]
+
 # clean up
 rm(TNIND_all_runs)
 invisible(gc())
@@ -65,8 +77,12 @@ combined_traits_data <- read_csv(here("data", "externaldata", "mammalTraits_2025
   mutate(
     CONTINENT = case_when(
       BIOME_NAME == "Boreal Forests/Taiga" & CONTINENT == "Europe" ~ "Europe+Asia",
-      TRUE ~ CONTINENT
-    )
+      TRUE ~ CONTINENT),
+    trophic_level = case_when(
+      trophic_level == 1 ~ "Herbivore",
+      trophic_level == 2 ~ "Omnivore",
+      trophic_level == 3 ~ "Carnivore",
+      TRUE ~ as.character(trophic_level))
   )
 
 # clean up the dataset
@@ -81,13 +97,19 @@ TNIND_yr <- TNIND_yr %>%
   # simplify replicates numbering
   mutate(rep_num = str_extract(rep, "^[0-9]+")) %>% 
   # correction for tigers that are from asia but asian boreal forest are modelled together with europe
-  mutate(trophic_level = replace(trophic_level, species== "Panthera tigris", "Carnivore"))%>%
+  mutate(trophic_level = case_when(
+      species == "Panthera tigris" ~ "Carnivore",
+      species == "Ursus thibetanus" ~ "Omnivore",
+      TRUE ~ trophic_level)
+    )%>%
   # deal with integer 64 columns (=big big numbers)
   mutate(across(where(bit64::is.integer64), as.numeric))
 
 ##########
 # STEP 3 #  Write complete dataset into .csv (RAW DATA)
 ##########
+# output root (all runs live here)
+output_root <- "D:/metaRange_April26"
 
 write_csv(TNIND_yr, 
           file = file.path(output_root, paste0("completeMetaRangeRun_", #format(Sys.time(), "%Y%m%d"),
@@ -181,6 +203,9 @@ for (i in seq_len(nrow(combo_list))) {
     theme_minimal() +
     theme(strip.text = element_text(face = "italic"))
   
+  # safe biome name for files
+  b <- gsub("[/& ]", "", b)
+  
   # filename
   fname <- file.path(diagnostics_dir,
                   paste0(gsub(" ", "", b), "_", gsub(" ", "", r), "_", gsub(" ", "", s),
@@ -247,6 +272,9 @@ for (i in seq_len(nrow(combo_list))) {
   combined_plot <- p_right + p_left +
     plot_annotation(title = paste("Temporal dynamics of TNIND", "\nBiome:", biome_to_plot,
                                   "| Region:", region_to_plot, "| Scenario:", scen_to_plot))
+  
+  # safe biome name for files
+  biome_to_plot <- gsub("[/& ]", "", biome_to_plot)
   
   # filename 
   filename <- paste0("TNIND_", gsub(" ", "_", sp), "_", gsub(" ", "_", biome_to_plot), "_",
@@ -406,6 +434,7 @@ for (dir in inputFolder_paths) {
          plot = p, width = 12,
          height = nrow * 3,
          dpi = 300)
+  invisible(gc())
 }
 
 message("✅ All diagnostic plots & files were created successfully!")
