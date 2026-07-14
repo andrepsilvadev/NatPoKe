@@ -10,11 +10,11 @@ gc()
 
 # paths for outputs
 pathSDMoutputs <- c(# Tropical region
-  "D:/NatPoKe_SDMs/tropical_SDMS",
+  "E:/NatPoKe_SDMs/tropical_SDMS",
   # Boreal region
-  "D:/NatPoKe_SDMs/boreal_SDMS")
+  "E:/NatPoKe_SDMs/boreal_SDMS")
 
-output_root <- "D:/NatPoKe_SDMs"
+output_root <- "E:/NatPoKe_SDMs" 
 
 # folder to save figure and tables on SDM outputs
 SDMsFigures_dir <- file.path(output_root, "SDMsFigures")
@@ -201,59 +201,127 @@ importance_summary <- var_importance_em_filtered %>%
   pivot_wider(names_from = expl.var, values_from = importance) %>%
   dplyr::arrange(biome, species, metrics)
 
+# Replace "." with spaces
+importance_summary2 <- importance_summary %>%
+  mutate(species = str_replace_all(species, "\\.", " "))
+
+value_cols <- names(importance_summary2)[!(names(importance_summary2) %in%
+                                             c("biome", "species", "metrics"))]
+
+library(gt)
+
+gt_tbl <- importance_summary2 %>%
+  gt(groupname_col = "biome") %>%
+  fmt_number(columns = all_of(value_cols),
+             decimals = 3)
+
+for(i in seq_len(nrow(importance_summary2))){
+  
+  max_col <- value_cols[
+    which.max(as.numeric(importance_summary2[i, value_cols]))
+  ]
+  
+  gt_tbl <- gt_tbl %>%
+    tab_style(
+      style = cell_text(weight = "bold"),
+      locations = cells_body(
+        columns = all_of(max_col),
+        rows = i
+      )
+    )
+}
+
+gtsave(gt_tbl, 
+       file = file.path(SDMsFigures_dir,
+                        paste0("VariableImportanceSummaryTable", Sys.Date(), ".docx")))
+
+importance_across_species <- var_importance_em_filtered %>%
+  group_by(biome, expl.var) %>%
+  summarise(
+    mean_importance = mean(var.imp, na.rm = TRUE),
+    min_importance = min(var.imp, na.rm = TRUE),
+    max_importance = max(var.imp, na.rm = TRUE),
+    sd_importance = sd(var.imp, na.rm = TRUE),
+    n_species = n_distinct(species),
+    .groups = "drop"
+  )
+
+importance_ranked <- importance_across_species %>%
+  group_by(biome) %>%
+  arrange(desc(mean_importance)) %>%
+  mutate(rank = row_number()) %>%
+  ungroup()
 # write table to .csv and .xslx (for easy copy paste later)
-write.csv(importance_summary,
-          file = file.path(SDMsFigures_dir,
-                           paste0("VariableImportanceSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
-writexl::write_xlsx(importance_summary,
-                    path = file.path(SDMsFigures_dir,
-                                     paste0("VariableImportanceSummaryTable", Sys.Date(), ".xlsx")))
+#write.csv(importance_summary,
+ #         file = file.path(SDMsFigures_dir,
+  #                         paste0("VariableImportanceSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
+#writexl::write_xlsx(importance_summary,
+ #                   path = file.path(SDMsFigures_dir,
+  #                                   paste0("VariableImportanceSummaryTable", Sys.Date(), ".xlsx")))
+
 
 ############
-# OUTPUT 3 # Evaluation metrics table for Ensemble Models
+# OUTPUT 3 # Evaluation plots for Ensemble Models
 ############
 
-all_EvalScoresEM <- data.frame() 
+all_EvalScores <- data.frame() 
 
 for (path in pathSDMoutputs) {
+  
+  region <- if (grepl("Boreal", path, ignore.case = TRUE)) "boreal" else "tropical"
+  
   for (species in target_species) {
     
-    # get region name from folder name
-    region <- if (grepl("Boreal", path, ignore.case = TRUE)) "boreal" else "tropical"
+    file_path <- file.path(path, paste0("EvalScores_", gsub(" ", ".", species), "_", region, ".csv"))
     
-    # find teh path for the .csv with metrics value
-    file_path <- file.path(path, paste0("EvalScoresEM_", gsub(" ", ".", species), "_", region, ".csv"))
     if (file.exists(file_path)) {
       eval_scores <- read.csv(file_path)
-      # add species column 
       eval_scores$species <- species
-      # add biome column
-      eval_scores$biome <- ifelse(grepl("Boreal", path, ignore.case = TRUE), "Boreal Forests/Taiga",
-                                  ifelse(grepl("Tropical", path, ignore.case = TRUE), "Tropical & Subtropical Moist Broadleaf Forests", NA))
-      # bind all together
-      all_EvalScoresEM <- rbind(all_EvalScoresEM, eval_scores)
-      rm(eval_scores)
+      eval_scores$region <- region
+      all_EvalScores <- rbind(all_EvalScores, eval_scores)
     }
   }
 }
 
-# summarize calibration scores 
-eval_table_em <- all_EvalScoresEM %>%
-  group_by(biome, species, metric.eval) %>%
-  # get mean value for the calibration metric
+all_EvalScores %>% 
+  group_by(region, metric.eval) %>% 
   summarise(
-    mean_validation = mean(validation, na.rm = TRUE),
+    mean_calibration = mean(calibration, na.rm = TRUE),
+    min_calibration = min(calibration, na.rm = TRUE),
+    max_calibration = max(calibration, na.rm = TRUE),
+    n = n(),
     .groups = "drop"
-  ) %>% 
-  pivot_wider(names_from = metric.eval, values_from = mean_validation)
+  )
 
-# write table to .csv and .xslx (for easy copy paste later)
-write.csv(eval_table_em,
-          file = file.path(SDMsFigures_dir,
-                           paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
-writexl::write_xlsx(eval_table_em,
-                    path = file.path(SDMsFigures_dir,
-                                     paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".xlsx")))
+plots_eval <- list()
+
+for (g in unique(all_EvalScores$region)) {
+  
+  df_g <- all_EvalScores %>%
+    dplyr::filter(region == g)%>%
+    mutate(species = str_replace_all(species, "\\.", " "))
+  
+  p <- ggplot(df_g, aes(x = species, y = calibration, fill = metric.eval)) +
+    geom_boxplot() +
+    labs(title = paste("Evaluation Metrics (EM) -", g),
+         x = "Species",
+         y = "Calibration Score",
+         fill = "Metric") +
+    coord_flip() +
+    scale_fill_viridis_d(name = "Metric") +
+    theme_minimal() +
+    theme(axis.text.y = element_text(face = "italic"))
+  
+  plots_eval[[g]] <- p
+}
+
+ggsave(plot = plots_eval$tropical,
+       file = file.path(SDMsFigures_dir, "EvaluationMetrics_tropicalSps.tif"),
+       bg = 'white', width = 200, height = 300, units = "mm", dpi = 1200, compression ="lzw")
+
+ggsave(plot = plots_eval$boreal,
+       file = file.path(SDMsFigures_dir, "EvaluationMetrics_borealSps.tif"),
+       bg = 'white', width = 200, height = 300, units = "mm", dpi = 1200, compression ="lzw")
 
 ############
 # OUTPUT 4 # Continuous landscapes 
@@ -402,3 +470,51 @@ for (species in target_species) {
     invisible(gc())
   }
 }
+
+
+# ############
+# # OUTPUT 3 # Evaluation metrics table for Ensemble Models
+# ############
+# 
+# all_EvalScoresEM <- data.frame() 
+# 
+# for (path in pathSDMoutputs) {
+#   for (species in target_species) {
+#     
+#     # get region name from folder name
+#     region <- if (grepl("Boreal", path, ignore.case = TRUE)) "boreal" else "tropical"
+#     
+#     # find teh path for the .csv with metrics value
+#     file_path <- file.path(path, paste0("EvalScoresEM_", gsub(" ", ".", species), "_", region, ".csv"))
+#     if (file.exists(file_path)) {
+#       eval_scores <- read.csv(file_path)
+#       # add species column 
+#       eval_scores$species <- species
+#       # add biome column
+#       eval_scores$biome <- ifelse(grepl("Boreal", path, ignore.case = TRUE), "Boreal Forests/Taiga",
+#                                   ifelse(grepl("Tropical", path, ignore.case = TRUE), "Tropical & Subtropical Moist Broadleaf Forests", NA))
+#       # bind all together
+#       all_EvalScoresEM <- rbind(all_EvalScoresEM, eval_scores)
+#       rm(eval_scores)
+#     }
+#   }
+# }
+# 
+# # summarize calibration scores 
+# eval_table_em <- all_EvalScoresEM %>%
+#   group_by(biome, species, metric.eval) %>%
+#   # get mean value for the calibration metric
+#   summarise(
+#     mean_validation = mean(validation, na.rm = TRUE),
+#     .groups = "drop"
+#   ) %>% 
+#   pivot_wider(names_from = metric.eval, values_from = mean_validation)
+# 
+# # write table to .csv and .xslx (for easy copy paste later)
+# write.csv(eval_table_em,
+#           file = file.path(SDMsFigures_dir,
+#                            paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
+# writexl::write_xlsx(eval_table_em,
+#                     path = file.path(SDMsFigures_dir,
+#                                      paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".xlsx")))
+
