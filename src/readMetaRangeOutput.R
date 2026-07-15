@@ -30,13 +30,13 @@ if (length(TNIND_paths) == 0) {
     runname <- paste(
       target_region,
       future_scenario,
-      "20260405",
+      "20260517",
       #format(Sys.time(), "%Y%m%d"),
       sep = "_"
     )
 
     tnind_file <- file.path(
-      "D:/metaRange_April26", 
+      "E:/metaRange_May26", 
       runname, "Outputs",
       paste0("TNIND_yr_", runname, ".csv")
     )
@@ -109,11 +109,11 @@ TNIND_yr <- TNIND_yr %>%
 # STEP 3 #  Write complete dataset into .csv (RAW DATA)
 ##########
 # output root (all runs live here)
-output_root <- "D:/metaRange_April26"
+output_root <- "E:/metaRange_May26"
 
 write_csv(TNIND_yr, 
           file = file.path(output_root, paste0("completeMetaRangeRun_", #format(Sys.time(), "%Y%m%d"),
-                                               "20260405",
+                                               "20260517",
                                                ".csv")))
 
 ################################
@@ -123,7 +123,7 @@ write_csv(TNIND_yr,
 # STEP 1 # Build and excel file
 
 # create folder to save diagnostics
-diagnostics_dir <- file.path("D:/metaRange_April26", "diagnostics")
+diagnostics_dir <- file.path("E:/metaRange_May26", "diagnostics")
 dir.create(diagnostics_dir, showWarnings = TRUE)
 
 # get number of sps per combin
@@ -161,7 +161,7 @@ writeData(wb, "perReplicate", TNIND_diff)
 addWorksheet(wb, "acrossReplicates")
 writeData(wb, "acrossReplicates", TNIND_mean)
 saveWorkbook(wb, file.path(diagnostics_dir, paste0("metaRangeRun_", 
-                                                   "20260405",
+                                                   "20260517",
                                                    #Sys.Date(),
                                                    "_diagnostics.xlsx")), overwrite = TRUE)
 invisible(gc())
@@ -208,8 +208,8 @@ for (i in seq_len(nrow(combo_list))) {
   
   # filename
   fname <- file.path(diagnostics_dir,
-                  paste0(gsub(" ", "", b), "_", gsub(" ", "", r), "_", gsub(" ", "", s),
-                  "_speciesPopulationTrends.png"))
+                     paste0(gsub(" ", "", b), "_", gsub(" ", "", r), "_", gsub(" ", "", s),
+                            "_speciesPopulationTrends.png"))
   # save plot
   ggsave(filename = fname, plot = p,
          bg = "white", width = 350, height = 210, units = "mm", dpi = 300)
@@ -261,7 +261,7 @@ for (i in seq_len(nrow(combo_list))) {
     group = factor(rep_num),
     color = factor(rep_num))) +
     geom_line(size = 0.8, alpha = 0.7) +
-    geom_vline(xintercept = 100, linetype = "dashed") +
+    geom_vline(xintercept = 25, linetype = "dashed") +
     labs(
       title = paste(sp, "- Replicates"),
       x = "Timestep", y = "TNIND", color = "Replicate") +
@@ -269,7 +269,7 @@ for (i in seq_len(nrow(combo_list))) {
     theme(legend.position = "bottom")
   
   # combine both
-  combined_plot <- p_right + p_left +
+  combined_plot <- p_left + p_right + 
     plot_annotation(title = paste("Temporal dynamics of TNIND", "\nBiome:", biome_to_plot,
                                   "| Region:", region_to_plot, "| Scenario:", scen_to_plot))
   
@@ -305,13 +305,13 @@ for (i in seq_len(nrow(runs))) {
   runname <- paste(
     target_region,
     future_scenario,
-    "20260405",
+    "20260517",
     #format(Sys.time(), "%Y%m%d"),
     sep = "_"
   )
   
   traitdf_file <- file.path(
-    "D:/metaRange_April26", 
+    "E:/metaRange_May26", 
     runname, "Inputs",
     "metaRangeSpeciesDataframe.csv")
   
@@ -339,7 +339,7 @@ rm(traits_all_runs)
 invisible(gc())
 
 # Save merged .xlsx
-write_xlsx(all_traits, file.path("D:/metaRange_April26", "completeTraitDataframe_allSps.xlsx"))
+write_xlsx(all_traits, file.path("E:/metaRange_May26", "completeTraitDataframe_allSps.xlsx"))
 
 #################################
 # AVERAGE SUITABILITY OVER TIME #
@@ -356,13 +356,13 @@ for (i in seq_len(nrow(runs))) {
   runname <- paste(
     target_region,
     future_scenario,
-    "20260405",
+    "20260517",
     #format(Sys.time(), "%Y%m%d"),
     sep = "_"
   )
   
   input_folder <- file.path(
-    "D:/metaRange_April26", 
+    "E:/metaRange_May26", 
     runname, "Inputs")
   
   
@@ -377,6 +377,8 @@ for (i in seq_len(nrow(runs))) {
 # clean up
 rm(input_folder)
 invisible(gc())
+
+all_changes <- list()
 
 # loop over folders and produce one plot per folder
 for (dir in inputFolder_paths) {
@@ -410,8 +412,35 @@ for (dir in inputFolder_paths) {
     
   }) %>% bind_rows()
   
+  
   # folder name for saving plot
   folder_name <- basename(dirname(dir))
+  
+  # Average across species for each year
+  avg_df <- folder_df %>%
+    group_by(year) %>%
+    summarise(
+      mean_suitability = mean(mean, na.rm = TRUE),
+      .groups = "drop"
+    )
+  
+  # Change from 2015 to 2100
+  change <- avg_df %>%
+    filter(year %in% c(2015, 2100)) %>%
+    summarise(
+      change = mean_suitability[year == 2100] -
+        mean_suitability[year == 2015]
+    )
+  
+  all_changes[[folder_name]] <- avg_df %>%
+    filter(year %in% c(2015, 2100)) %>%
+    summarise(
+      change = mean_suitability[year == 2100] -
+        mean_suitability[year == 2015]
+    ) %>%
+    mutate(folder = folder_name)
+  
+  
   
   # plot average suitability
   p <- ggplot(folder_df, aes(x = year, y = mean, group = species)) +
@@ -429,13 +458,37 @@ for (dir in inputFolder_paths) {
   ncol <- 3
   nrow <- ceiling(n_species / ncol)
   
-  ggsave(filename = paste0(folder_name, "_suitabilityOverTime.png"),
-         path = diagnostics_dir,
-         plot = p, width = 12,
-         height = nrow * 3,
-         dpi = 300)
+  #ggsave(filename = paste0(folder_name, "_suitabilityOverTime.png"),
+   #      path = diagnostics_dir,
+    #     plot = p, width = 12,
+     #    height = nrow * 3,
+      #   dpi = 300)
   invisible(gc())
 }
+
+all_changes <- bind_rows(all_changes)
+
+all_changes
+
+library(dplyr)
+library(stringr)
+
+scenario_change <- all_changes %>%
+  mutate(
+    scenario = str_extract(folder, "ssp\\d+")
+  ) %>%
+  group_by(scenario) %>%
+  summarise(
+    mean_change = mean(change, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    percent_change = mean_change * 100
+  )
+
+scenario_change
+
+mean(all_changes$change)
 
 message("✅ All diagnostic plots & files were created successfully!")
 
