@@ -27,13 +27,13 @@ for (i in seq_len(nrow(runs))) {
   runname <- paste(
     target_region,
     future_scenario,
-    "20260405",
+    "20260517",
     #format(Sys.time(), "%Y%m%d"),
     sep = "_"
   )
   # save input path
   input_folder <- file.path(
-    "D:/metaRange_April26",
+    "E:/metaRange_May26",
     runname, "Inputs")
   if (!file.exists(input_folder)) {
     warning("Input folder not found (skipping): ", input_folder)
@@ -41,7 +41,7 @@ for (i in seq_len(nrow(runs))) {
   }
     # save output path
     output_folder <- file.path(
-      "D:/metaRange_April26",
+      "E:/metaRange_May26",
       runname, "Outputs")
     if (!file.exists(output_folder)) {
       warning("Output folder not found (skipping): ", output_folder)
@@ -70,7 +70,7 @@ for (i in seq_len(nrow(runs))) {
   runname <- paste(
     target_region,
     future_scenario,
-    "20260405",
+    "20260517",
     #format(Sys.time(), "%Y%m%d"),
     sep = "_"
   )
@@ -121,6 +121,7 @@ for (i in seq_len(nrow(runs))) {
 
 # check results
 #plot_data_list$`Europe+Asia_ssp126_20260405`
+#plot_data_list$Asia_ssp126_20260517$independentDensity
 
 ##########
 # STEP 3 # Plot each sps validation per region & scenario separately
@@ -153,7 +154,7 @@ combined_independent$species <- as.factor(combined_independent$species)
 datasets <- unique(combined_independent$Dataset)
 
 
-TNIND_yr <- read.csv("D:/metaRange_April26/completeMetaRangeRun_20260405.csv") %>% 
+TNIND_yr <- read.csv("E:/metaRange_May26/completeMetaRangeRun_20260517.csv") %>% 
   mutate(species = str_replace(species, " ", "."))
 
 combined_estimated <- combined_estimated %>%
@@ -181,7 +182,7 @@ for (ds in datasets) {
     mutate(species = reorder(species, meanDensity))
   
   df_est <- combined_estimated %>% filter(Dataset == ds)
-
+  
   p <- ggplot(df_indep, aes(x = species, y = meanDensity)) +
     # independent densities from santini
     geom_boxplot(
@@ -210,25 +211,23 @@ for (ds in datasets) {
   # save each run's plot (organise based on n of species)
   n_species <- n_distinct(df_indep$species)
   
-  validation_dir <- file.path(output_root, "modelValidation")
+  validation_dir <- file.path("E:/metaRange_May26/", "modelValidation")
   dir.create(validation_dir, recursive = TRUE, showWarnings = FALSE)
   
-   ggsave(
-     filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
-     plot = p,
-     bg = "white",
-     width = max(8, n_species * 0.25),  # 0.25–0.35 works well
-     height = 6,
-     units = "in",
-     dpi = 300
-   )
-
+  ggsave(
+    filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
+    plot = p,
+    bg = "white",
+    width = max(8, n_species * 0.25),  # 0.25–0.35 works well
+    height = 6,
+    units = "in",
+    dpi = 300
+  )
+  
   # store plots in list
   plot_list[[ds]] <- p
 }
 
-plot_list$Asia_ssp126_20260405
-plot_list$Asia_ssp126_20260405
 
 ##########
 # STEP 4 # Proportion outside known density estimates
@@ -264,20 +263,51 @@ estimated_summary_by_species <- estimated_with_ci %>%
     prop_outside75 = mean(outside75, na.rm = TRUE),
     n_cells = dplyr::n(),
     .groups = "drop"
-  )
+  ) %>% 
+  # remove erroneous species in asia
+  dplyr:: filter(
+    !(Dataset %in% c("Asia_ssp126_20260517", "Asia_ssp585_20260517") &
+      species %in% c("Lynx.lynx", "Ursus.arctos")))
 
 print(estimated_summary_by_species, n = Inf)
 
+str(combined_estimated)
+str(combined_independent)
+
+## HIGHLIGHT VALUES ABOVE 70% ##
+
+highlighted <- estimated_summary_by_species %>%
+  mutate(flag95 = prop_outside95 > 0.70,
+         flag75 = prop_outside75 > 0.70) %>%
+  filter(flag95 | flag75)
+
+gt_tbl <- highlighted %>%
+  select(Dataset, species, prop_outside95,
+    prop_outside75, prop_below95, prop_above95, n_cells) %>%
+  gt::gt() %>%
+  fmt_percent(columns = c(prop_outside95, prop_outside75,
+                prop_below95, prop_above95), decimals = 1) %>%
+  data_color(columns = prop_outside95,
+             rows = prop_outside95 > 0.70,
+             palette = c("white", "red")) %>%
+  data_color(columns = prop_outside75,
+             rows = prop_outside75 > 0.70,
+             palette = c("white", "red")) %>%
+  tab_header(title = "Validation table, highlighted cells represent proportions outside 95% and 75% confidence intervals")
+
+gt::gtsave(gt_tbl, file.path(validation_dir, "comparison_estimated_independent_species_density.docx"))
+
+
 # convert to data.table
 dt <- as.data.table(estimated_summary_by_species)
-
-fwrite(
-  dt,
-  file = file.path(validation_dir, "comparison_estimated_independent_species_density.csv"))
+fwrite(dt,
+       file = file.path(validation_dir, "comparison_estimated_independent_species_density.csv"))
 
 prop_outside_species <- estimated_summary_by_species %>%
   dplyr::summarise(
-    prop_outside95 = mean(prop_outside95, na.rm = TRUE),
+    min_prop_outside95 = min(prop_outside95, na.rm = TRUE),
+    mean_prop_outside95 = mean(prop_outside95, na.rm = TRUE),
+    max_prop_outside95 = max(prop_outside95, na.rm = TRUE),
     prop_outside75 = mean(prop_outside75, na.rm = TRUE),
     prop_below95   = mean(prop_below95, na.rm = TRUE),
     prop_above95   = mean(prop_above95, na.rm = TRUE),
