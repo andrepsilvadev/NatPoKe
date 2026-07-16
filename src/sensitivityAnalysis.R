@@ -31,7 +31,8 @@ for(i in seq_len(nrow(sens_runs))){
     runname <- paste(
       target_region,
       sensitivity_label,
-      format(Sys.time(), "%Y%m%d"),
+      "20260517",
+      #format(Sys.time(), "%Y%m%d"),
       sep = "_"
     )
     
@@ -49,7 +50,7 @@ for(i in seq_len(nrow(sens_runs))){
       output_root <- file.path(project_root, "outputs")
       # sensitivity root
       dir.create(file.path(output_root, "sensitivity_runs"), showWarnings = FALSE)
-      sens_output_root <- file.path(output_root, "sensitivity_runs")
+      sens_output_root <- "E:/metaRange_May26/sensitivity_runs"
       # create run-specific directory (inside sensitivity root)
       runpath <- file.path(sens_output_root, runname)
       dir.create(runpath, recursive = TRUE, showWarnings = FALSE)
@@ -128,11 +129,11 @@ for(i in seq_len(nrow(sens_runs))){
         target_region <- "Europe"
       }
 
-      basePathSDM <- "./data/sdm/SDMlandscapes_October25"
+      basePathSDM <- "E:/NatPoKe_SDMs"
       # path for each biomes' SDM outputs
       biome_paths <- list(
-        tropical = "./data/sdm/tropical_SDMS",
-        boreal   = "./data/sdm/boreal_SDMS"
+        tropical = "E:/NatPoKe_SDMs/tropical_SDMS",
+        boreal   = "E:/NatPoKe_SDMs/boreal_SDMS"
       )
 
       output_cropped <- file.path(basePathSDM, "biome_cropped")
