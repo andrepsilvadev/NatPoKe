@@ -132,7 +132,7 @@ for (replicateN in 1:n_replicates) {
       "dispersalKernel" = calculate_dispersal_kernel(
         max_dispersal_dist = as.integer(species_traits[["dispersalMaxDistance"]][i]),
         kfun = negative_exponential_function,
-        mean_dispersal_dist = species_traits[["dispersalDistance"]][i] / 2,
+        mean_dispersal_dist = species_traits[["dispersalDistance"]][i],
       )
     )
   }
