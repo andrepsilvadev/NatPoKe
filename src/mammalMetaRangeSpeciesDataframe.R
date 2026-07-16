@@ -99,10 +99,12 @@ species_traits <- tibble(
   dispersalDistance = {
     disp_km <- ifelse(
       combined_traits_data$trophic_level == "Carnivore",
-      (3.45 * BodyMass^0.89),
+      3.45 * BodyMass^0.89,
       ifelse(combined_traits_data$trophic_level %in%
                c("Herbivore","Omnivore"),
-             (1.45 * BodyMass^0.54), NA))
+             1.45 * BodyMass^0.54,
+             NA)
+      )
     # Convert km → meters →  cells
     pmax(1, (disp_km * 1000) / ModellingRes)   
   },
@@ -112,13 +114,20 @@ species_traits <- tibble(
   dispersalMaxDistance = ceiling({
     max_km <- ifelse(
       combined_traits_data$trophic_level == "Carnivore",
-      (40.7 * BodyMass^0.81),
+      40.7 * BodyMass^0.81,
       ifelse(combined_traits_data$trophic_level %in%
                c("Herbivore","Omnivore"),
-             (3.31 * BodyMass^0.65), NA))
+             3.31 * BodyMass^0.65, 
+             NA)
+      )
     # Convert km → meters →  cells
-    as.integer(pmax(1, ceiling((max_km * 1000) / ModellingRes)))  
-  }),
+    max_cells <- pmax(1, ceiling((max_km * 1000) / ModellingRes))
+    
+    # ENFORCEMENT RULE -  dispersalMaxDistance >= 2 × dispersalDistance
+    pmax(max_cells, 2 * dispersalDistance)
+    
+    }),
+  
   
   # yearly survival rate
   # from mortality rate based on McCarthy 2008 and Savage 2004
