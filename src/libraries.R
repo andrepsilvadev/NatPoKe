@@ -27,7 +27,7 @@ easypackages::packages(
   "rnaturalearthdata",
   "rworldmap",
   
-  #Species Distribution Modelling
+  # Species Distribution Modelling
   "biomod2", 
   "gam",
   "mda", 
@@ -42,6 +42,9 @@ easypackages::packages(
   
   # modelling
   "metaRange",
+  
+  # resilience metrics
+  "estar",
   
   # data manipulation & visulisation
   "dplyr",
