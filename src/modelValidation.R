@@ -262,12 +262,20 @@ estimated_summary_by_species <- estimated_with_ci %>%
     prop_above95   = mean(above95, na.rm = TRUE),
     prop_outside75 = mean(outside75, na.rm = TRUE),
     n_cells = dplyr::n(),
-    .groups = "drop"
-  ) %>% 
+    .groups = "drop") %>% 
   # remove erroneous species in asia
   dplyr:: filter(
     !(Dataset %in% c("Asia_ssp126_20260517", "Asia_ssp585_20260517") &
-      species %in% c("Lynx.lynx", "Ursus.arctos")))
+        species %in% c("Lynx.lynx", "Ursus.arctos"))) %>% 
+  separate(Dataset,
+    into = c("region", "scenario", "date"),
+    sep = "_",
+    remove = TRUE) %>% 
+  mutate(species = gsub(".", " ", species, fixed = TRUE),
+         scenario = case_when(scenario == "ssp126" ~ "SSP1-2.6",
+                              scenario == "ssp585" ~ "SSP5-8.5",
+                              TRUE ~ scenario)) %>% 
+  dplyr::select(-date)
 
 print(estimated_summary_by_species, n = Inf)
 
@@ -281,8 +289,10 @@ highlighted <- estimated_summary_by_species %>%
          flag75 = prop_outside75 > 0.70) %>%
   filter(flag95 | flag75)
 
+library(gt)
+
 gt_tbl <- highlighted %>%
-  select(Dataset, species, prop_outside95,
+  select(region, scenario, species, prop_outside95,
     prop_outside75, prop_below95, prop_above95, n_cells) %>%
   gt::gt() %>%
   fmt_percent(columns = c(prop_outside95, prop_outside75,
