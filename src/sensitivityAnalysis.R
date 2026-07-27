@@ -8,7 +8,7 @@
 ##########
 
 source(file.path("src", "libraries.R"))
-source(file.path("src", "customFunctions.R"))
+#source(file.path("src", "customFunctions.R"))
 source(file.path("src", "customFunctions2.R"))
 
 ##########
@@ -83,6 +83,11 @@ for(i in seq_len(nrow(sens_runs))){
         dplyr::pull(sci_name) |>
         unique()
       
+      # Remove specific species
+      target_species <- target_species[
+        !target_species %in% c("Lycalopex griseus", "Ateles belzebuth")
+      ]
+      
       if (length(target_species) == 0) {
         stop("No species found for this region/biome.")
       }
@@ -139,7 +144,7 @@ for(i in seq_len(nrow(sens_runs))){
       output_cropped <- file.path(basePathSDM, "biome_cropped")
 
       for (sp in target_species) {
-        
+
         path <- biome_paths[[biome]]
         # fetch current raster for sp in biome
         current_file <- file.path(path, paste0("proj_Current_EM_", sp, "_continuous.tif"))
@@ -170,13 +175,13 @@ for(i in seq_len(nrow(sens_runs))){
         # output filename
         output_path <- file.path(
           dirinput,
-          paste0(sp, "_", biome, "_", target_region, "_cropped.tif")
+          paste0(sp, "_", biome, "_", gsub(" ", "", target_region), "_cropped.tif")
         )
         # save raster
         writeRaster(sp_raster, output_path, overwrite = TRUE)
         message("Processed and saved: ", basename(output_path))
         # cleanup
-        rm(raster_file, biome_sf, continent_sf, target_geom, sp_raster, output_path)
+        rm(biome_sf, continent_sf, target_geom, sp_raster, output_path)
         invisible(gc())
       }
 
@@ -214,7 +219,7 @@ for(i in seq_len(nrow(sens_runs))){
         # get original CRS
         orig_crs <- crs(r_utm_masked)
         # rescale extent (divide by 1000 to convert meters to kilometers)
-        extent(r_raster) <- extent(r_raster) / 1000
+        #extent(r_raster) <- extent(r_raster) / 1000
         # extract species name from filename
         species_name <- gsub("_.*", "", file_path_sans_ext(basename(landscape)))
         # select target species
@@ -224,11 +229,11 @@ for(i in seq_len(nrow(sens_runs))){
         # aggregate raster using terra
         r_agg <- aggregate(r_utm, fact = species_fact, fun = mean, na.rm = TRUE)
         # build an output filename
-        output_filename <- gsub("\\.tif$", "_reprojectedKm.tif", landscape)
+        output_filename <- gsub("\\.tif$", "_reprojectedm.tif", landscape)
         # save aggregated raster
         writeRaster(r_agg, output_filename, overwrite = TRUE)
         # clean memory & save space
-        rm(r, r_utm, r_agg, biome_sf, continent_sf, target_geom, r_utm_masked, r_raster, orig_crs, species_name, species_traits, species_fact, output_filename)
+        #rm(r, r_utm, r_agg, biome_sf, continent_sf, target_geom_robinson, r_utm_masked, r_raster, orig_crs, species_name, species_traits, species_fact, output_filename)
         gc()
       }
 
@@ -269,7 +274,7 @@ for(i in seq_len(nrow(sens_runs))){
         
         sim_name <- paste0(replicateN, "_", str_replace_all(target_biome, " ", ""), "_", target_region, "_Mammals")
         sim_env <- sds(list.files(dirinput,
-                                  pattern = paste0("_", biome, "_", target_region, "_cropped_reprojectedKm.tif"), full.names = TRUE))
+                                  pattern = paste0("_", biome, "_", target_region, "_cropped_reprojectedm.tif"), full.names = TRUE))
         invisible(gc())
         
         # Step 2 # Create a simulation object 
@@ -318,7 +323,7 @@ for(i in seq_len(nrow(sens_runs))){
             "dispersalKernel" = calculate_dispersal_kernel(
               max_dispersal_dist = as.integer(species_traits[["dispersalMaxDistance"]][i]),
               kfun = negative_exponential_function,
-              mean_dispersal_dist = species_traits[["dispersalDistance"]][i] / 2,
+              mean_dispersal_dist = species_traits[["dispersalDistance"]][i],
             )
           )
         }
@@ -351,7 +356,7 @@ for(i in seq_len(nrow(sens_runs))){
           species = species_names,
           process_name = "suitability_influence_population_parameter",
           process_fun = function() {
-            species_suitability_name <- paste0(self$name, "_", biome, "_", target_region, "_cropped_reprojectedKm")
+            species_suitability_name <- paste0(self$name, "_", biome, "_", target_region, "_cropped_reprojectedm")
             
             self$traits[["carryingCapacity"]] <-
               self$traits[["maxCarryingCapacity"]] * self$sim$environment$current[[species_suitability_name]]
@@ -386,7 +391,7 @@ for(i in seq_len(nrow(sens_runs))){
             # i.e. individuals disperse more likely into more suitable cells
             abundance_after <- dispersal(
               abundance = self$traits[["abundance"]],
-              weights = self$sim$environment$current[[paste0(self$name, "_", biome, "_", target_region, "_cropped_reprojectedKm")]],
+              weights = self$sim$environment$current[[paste0(self$name, "_", biome, "_", target_region, "_cropped_reprojectedm")]],
               dispersal_kernel = self$traits[["dispersalKernel"]])
             
             # adding randomness?
@@ -555,9 +560,13 @@ for(i in seq_len(nrow(sens_runs))){
    })
 }
 
+gc()
+
 # --------------------------------------------------------
 # Sensitivity Analysis
 # --------------------------------------------------------
+
+sens_output_root <- "E:/metaRange_May26/sensitivity_runs"
 
 # list all run directories
 run_dirs <- list.dirs(sens_output_root, recursive = FALSE, full.names = TRUE)
@@ -602,23 +611,25 @@ TNIND_sp2 <- TNIND_sp %>%
   group_by(run_name, biome, region, species) %>% 
   summarise(
     TNIND = mean(TNIND_yr, na.rm = TRUE),
-    .groups = "drop"
-  )
+    .groups = "drop")
 
 # separate baseline values
 baseline_df <- TNIND_sp2 %>% 
   filter(grepl("baseline", run_name)) %>% 
   mutate(
-    region = sub("_baseline.*", "", run_name)
+    region = sub("_baseline.*", "", run_name),
+    species = gsub(".", " ", species, fixed = TRUE)
   ) %>% 
   select(region, species, baseline_TNIND = TNIND)
+
 
 # combine baseline values with sensitivity 
 sens_df <- TNIND_sp2 %>% 
   filter(!grepl("baseline", run_name)) %>% 
   mutate(
-    region = sub("_(repro|mort).*", "", run_name),
-    label  = stringr::str_extract(run_name, "(repro|mort)[0-9]+")) %>% 
+    region = sub("_(repro|mort|survival|dispersal).*", "", run_name),
+    label  = stringr::str_extract(run_name, "(repro|mort|survival|dispersal)[0-9]+"),
+    species = gsub(".", " ", species, fixed = TRUE)) %>% 
   left_join(
     baseline_df,
     by = c("region", "species")) %>% 
@@ -627,15 +638,108 @@ sens_df <- TNIND_sp2 %>%
   mutate(
     proportion = TNIND / baseline_TNIND)
 
+# # plot the values per sensitivity run
+# ggplot(sens_df, aes(x = label, y = proportion)) +
+#   geom_boxplot() +
+#   facet_wrap(~region) +
+#   # add dashed line for lower treshold of 20% variation
+#   geom_hline(yintercept = 0.8, linetype = "dashed", color = "red") +
+#   # add dashed line for upper treshold of 20% variation
+#   geom_hline(yintercept = 1.2, linetype = "dashed", color = "red") +
+#   labs(x = "Sensitivity run", y = "Value") +
+#   theme_minimal()
+
+
+# Calculate percentage change from baseline
+sens_df <- sens_df %>%
+  mutate(
+    percent_change = 100 * (TNIND - baseline_TNIND) / baseline_TNIND,
+    significant = abs(percent_change) > 20,
+    label = case_when(label == "dispersal1015" ~ "dispersal105", 
+                      TRUE ~ label)) %>%
+  mutate(label = factor(label, levels = c("dispersal095", "dispersal105",
+                                          "repro095", "repro105",
+                                          "survival095", "survival105")))
+# save output as .csv
 write.csv(sens_df, file = file.path(sens_output_root, "sensitivity_proportions_values.csv"))
 
-# plot the values per sensitivity run
-ggplot(sens_df, aes(x = label, y = proportion)) +
-  geom_boxplot() +
-  facet_wrap(~region) +
-  # add dashed line for lower treshold of 20% variation
-  geom_hline(yintercept = 0.8, linetype = "dashed", color = "red") +
-  # add dashed line for upper treshold of 20% variation
-  geom_hline(yintercept = 1.2, linetype = "dashed", color = "red") +
-  labs(x = "Sensitivity run", y = "Value") +
-  theme_minimal()
+####################################
+# PLOT SENSITIVITY ANALYSIS FIGURE #
+####################################
+
+# Species to label
+labels_df <- sens_df %>%
+  filter(significant)
+
+regions <- unique(sens_df$region)
+
+regions_plots <- list()
+
+# build a sensitivity analysis plot per region
+for (current_region in regions) {
+  
+  sens_region_df <- sens_df %>% 
+    dplyr::filter(region == current_region)
+  
+  # Species to label
+  labels_df <- sens_region_df %>%
+    filter(significant)
+  
+  sens_region <- ggplot(sens_region_df,
+         aes(x = label, y = percent_change, colour = significant)) +
+    # green zone - zone I want points ot be within
+    annotate("rect", xmin = -Inf, xmax = Inf, ymin = -20, ymax = 20,
+             alpha = 0.08, fill = "forestgreen") +
+    geom_hline(yintercept = c(-20, 20),
+               colour = "#556B2F", linetype = 2) +
+    # color code sps that go outside safe zone
+    scale_colour_manual(values = c(`FALSE` = "grey50", `TRUE` = "red"),
+                        guide = "none") +
+    # label sps outside safe zone
+    geom_text(data = subset(sens_region_df, significant), 
+              aes(label = species), size = 2, vjust = 1, fontface = "italic") +
+    # spread out points
+    geom_jitter(width = 0.15, alpha = 0.5, size = 1) +
+    coord_flip() +
+    labs(title = current_region,
+        y = " ",
+         x = NULL) +
+    theme_minimal() +
+    scale_y_continuous(limits = c(-25, 60)) +
+    theme(strip.background = element_rect(fill = "#F2F2F2", colour = NA),
+          strip.text = element_text(face = "bold", size = 10)
+          #axis.text.x = element_text(angle = 40, hjust = 1)
+    )
+  
+  regions_plots[[current_region]] <- sens_region
+  
+}
+
+# assemble final plot
+final_plot <- wrap_plots(
+  A = regions_plots$`North America`,
+  B = regions_plots$`Europe+Asia`,
+  C = regions_plots$`South America`,
+  D = regions_plots$Africa,
+  E = regions_plots$Asia,
+  design = "AB#
+            CDE") +
+  plot_layout(guides = "collect") &
+  theme(plot.margin = margin(5,5,5,5))
+
+final_plot
+
+# save supplementary figure
+ggsave("E:/metaRange_May26/FigureAndMetrics/SupplementaryFigure_SensitivityAnalysis.png",
+       final_plot,
+       bg = "transparent", width = 320, height = 320, units = "mm", dpi = 1200)
+
+
+# general summary table
+summary_df <- sens_df %>%
+  mutate(significant = abs(percent_change) > 20) %>%
+  group_by(region, label) %>%
+  summarise(
+    prop_sensitive = mean(significant),
+    .groups="drop")
+
