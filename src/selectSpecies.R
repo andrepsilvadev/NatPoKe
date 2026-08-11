@@ -225,6 +225,38 @@ for (ct in names(selectedMammals_perContinent)) {
 # Save file
 saveWorkbook(wb, "./data/MammalSpecies_selection.xlsx", overwrite = TRUE)
 
+# supplementary files species list per continent
+species_list <- mammalTraits_processed %>%
+  dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>%
+  dplyr::select(Biome = BIOME_NAME, Continent = CONTINENT,
+                `Trophic level` = trophic_level, `Scientific name` = sci_name,
+                Family = family.x, Order = order_) %>%
+  dplyr::distinct() %>%
+  dplyr::arrange(Biome, Continent, `Trophic level`,`Scientific name`) %>%
+  mutate(Family = str_to_sentence(str_to_lower(Family)),
+         Order = str_to_sentence(str_to_lower(Order)))
+
+#### OR ALTERNATIVELY #####
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+species_list_wide <- mammalTraits_processed %>%
+  dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests",
+                                  "Boreal Forests/Taiga")) %>%
+  dplyr::select(Biome = BIOME_NAME, Continent = CONTINENT, 
+                `Trophic level` = trophic_level, `Scientific name` = sci_name, Family = family.x, Order = order_) %>%
+  dplyr::distinct() %>%
+  mutate(Family = str_to_sentence(str_to_lower(Family)), 
+         Order = str_to_sentence(str_to_lower(Order)),
+         Present = "X") %>%
+  unite("Region", Biome, Continent, sep = " | ") %>%
+  select(`Scientific name`, Family, Order, `Trophic level`, Region, Present) %>%
+  pivot_wider(names_from = Region, values_from = Present, values_fill = "")
+
+
+write.csv(species_list_wide, "E:/metaRange_May26/FigureAndMetrics/species_list_supplementaryTable01.csv", row.names = FALSE)
+
 # final message 
 message("✅ Traits selection for mammals species done!\n\nCheck MammalSpecies_selection.xlsx and CompleteMammalSpsDataframe.csv")
 
