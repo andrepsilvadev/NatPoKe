@@ -13,6 +13,9 @@ source("./src/libraries.R")
 
 runs <- read.csv("./data/run_table.csv", stringsAsFactors = FALSE)
 
+validation_dir <- file.path("E:/metaRange_May26/", "modelValidation")
+dir.create(validation_dir, recursive = TRUE, showWarnings = FALSE)
+
 # build input & output folder paths
 
 inputFolder_paths <- character(0)
@@ -211,18 +214,10 @@ for (ds in datasets) {
   # save each run's plot (organise based on n of species)
   n_species <- n_distinct(df_indep$species)
   
-  validation_dir <- file.path("E:/metaRange_May26/", "modelValidation")
-  dir.create(validation_dir, recursive = TRUE, showWarnings = FALSE)
-  
-  ggsave(
-    filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
-    plot = p,
-    bg = "white",
+  ggsave(filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
+    plot = p, bg = "white",
     width = max(8, n_species * 0.25),  # 0.25–0.35 works well
-    height = 6,
-    units = "in",
-    dpi = 300
-  )
+    height = 6, units = "in", dpi = 300)
   
   # store plots in list
   plot_list[[ds]] <- p
@@ -252,74 +247,63 @@ estimated_with_ci <- combined_estimated %>%
 # Now summarise per species
 estimated_summary_by_species <- estimated_with_ci %>%
   dplyr::group_by(Dataset, species) %>%
-  dplyr::summarise(
-    up95 = mean(up95, na.rm = TRUE),
-    lw95 = mean(lw95, na.rm = TRUE),
-    estimated_mean = mean(estimatedDensity, na.rm = TRUE),
-    observed_mean = mean(meanDensity, na.rm = TRUE),
-    prop_outside95 = mean(outside95, na.rm = TRUE),
-    prop_below95   = mean(below95, na.rm = TRUE),
-    prop_above95   = mean(above95, na.rm = TRUE),
-    prop_outside75 = mean(outside75, na.rm = TRUE),
-    n_cells = dplyr::n(),
-    .groups = "drop") %>% 
+  dplyr::summarise(up95 = mean(up95, na.rm = TRUE),
+                   lw95 = mean(lw95, na.rm = TRUE),
+                   estimated_mean = mean(estimatedDensity, na.rm = TRUE),
+                   observed_mean = mean(meanDensity, na.rm = TRUE),
+                   prop_outside95 = mean(outside95, na.rm = TRUE),
+                   prop_below95 = mean(below95, na.rm = TRUE),
+                   prop_above95 = mean(above95, na.rm = TRUE),
+                   prop_outside75 = mean(outside75, na.rm = TRUE),
+                   n_cells = dplyr::n(), .groups = "drop") %>% 
   # remove erroneous species in asia
-  dplyr:: filter(
-    !(Dataset %in% c("Asia_ssp126_20260517", "Asia_ssp585_20260517") &
-        species %in% c("Lynx.lynx", "Ursus.arctos"))) %>% 
-  separate(Dataset,
-    into = c("region", "scenario", "date"),
-    sep = "_",
-    remove = TRUE) %>% 
+  dplyr:: filter(!(Dataset %in% c("Asia_ssp126_20260517", "Asia_ssp585_20260517") &
+                     species %in% c("Lynx.lynx", "Ursus.arctos"))) %>% 
+  separate(Dataset, into = c("region", "scenario", "date"), sep = "_", remove = TRUE) %>% 
   mutate(species = gsub(".", " ", species, fixed = TRUE),
          scenario = case_when(scenario == "ssp126" ~ "SSP1-2.6",
                               scenario == "ssp585" ~ "SSP5-8.5",
                               TRUE ~ scenario)) %>% 
-  dplyr::select(-date)
+  dplyr::select(-date) %>%
+  # flag those sps above 70% (these are the worst models we might have)
+  mutate(flag95 = prop_outside95 > 0.70, 
+         flag75 = prop_outside75 > 0.70)
 
-print(estimated_summary_by_species, n = Inf)
+#print(estimated_summary_by_species, n = Inf)
 
-str(combined_estimated)
-str(combined_independent)
-
-## HIGHLIGHT VALUES ABOVE 70% ##
-
-highlighted <- estimated_summary_by_species %>%
-  mutate(flag95 = prop_outside95 > 0.70,
-         flag75 = prop_outside75 > 0.70) %>%
-  filter(flag95 | flag75)
-
-library(gt)
-
-gt_tbl <- highlighted %>%
-  select(region, scenario, species, prop_outside95,
-    prop_outside75, prop_below95, prop_above95, n_cells) %>%
+validationTable <- estimated_summary_by_species %>%
+  dplyr::select(region, scenario, species, prop_outside95, prop_outside75, 
+         prop_below95, prop_above95, n_cells) %>%
   gt::gt() %>%
-  fmt_percent(columns = c(prop_outside95, prop_outside75,
-                prop_below95, prop_above95), decimals = 1) %>%
-  data_color(columns = prop_outside95,
-             rows = prop_outside95 > 0.70,
+  # keep only one decimal place
+  fmt_percent(columns = c(prop_outside95, prop_outside75, prop_below95, prop_above95),
+              decimals = 1) %>%
+  # highligh bad density estimates
+  data_color(columns = prop_outside95, rows = prop_outside95 > 0.70, 
              palette = c("white", "red")) %>%
-  data_color(columns = prop_outside75,
-             rows = prop_outside75 > 0.70,
+  data_color(columns = prop_outside75, rows = prop_outside75 > 0.70, 
              palette = c("white", "red")) %>%
   tab_header(title = "Validation table, highlighted cells represent proportions outside 95% and 75% confidence intervals")
 
-gt::gtsave(gt_tbl, file.path(validation_dir, "comparison_estimated_independent_species_density.docx"))
+# save as a formatted word document
+gt::gtsave(validationTable, file.path(validation_dir,
+                             "modelValidationTable.docx"))
 
+# save as a .csv
+fwrite(as.data.frame(estimated_summary_by_species),
+       file = file.path(validation_dir, "modelValidationTable.csv"))
 
-# convert to data.table
-dt <- as.data.table(estimated_summary_by_species)
-fwrite(dt,
-       file = file.path(validation_dir, "comparison_estimated_independent_species_density.csv"))
-
+# calculate the proportion of cells outside percentiles
 prop_outside_species <- estimated_summary_by_species %>%
-  dplyr::summarise(
-    min_prop_outside95 = min(prop_outside95, na.rm = TRUE),
-    mean_prop_outside95 = mean(prop_outside95, na.rm = TRUE),
-    max_prop_outside95 = max(prop_outside95, na.rm = TRUE),
-    prop_outside75 = mean(prop_outside75, na.rm = TRUE),
-    prop_below95   = mean(prop_below95, na.rm = TRUE),
-    prop_above95   = mean(prop_above95, na.rm = TRUE),
-    n_species = dplyr::n()
-  )
+  dplyr::summarise(min_prop_outside95 = min(prop_outside95, na.rm = TRUE),
+                   mean_prop_outside95 = mean(prop_outside95, na.rm = TRUE),
+                   max_prop_outside95 = max(prop_outside95, na.rm = TRUE),
+                   prop_outside75 = mean(prop_outside75, na.rm = TRUE),
+                   prop_below95 = mean(prop_below95, na.rm = TRUE),
+                   prop_above95 = mean(prop_above95, na.rm = TRUE),
+                   n_species = dplyr::n())
+
+# number of species underestimating
+length(unique(estimated_summary_by_species %>% 
+  dplyr::filter(prop_outside95 > 0.70) %>% 
+  pull(species)))
