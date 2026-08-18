@@ -66,4 +66,5 @@ easypackages::packages(
   "crayon",
   "HomeRange",
   "naniar",
+  "gt",
   prompt = FALSE)
