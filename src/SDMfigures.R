@@ -94,6 +94,9 @@ for (path in pathSDMoutputs) {
       dplyr::filter(species == sps) %>%
       dplyr::mutate(Type = "GBIF Occurrences")
     
+    # number of GBIF records
+    n_gbif <- nrow(gbif_species)
+    
     # color-blind palette
     color_map <- c("GBIF" = "#0072B2", "SDM" = "#E69F00")
     
@@ -107,6 +110,9 @@ for (path in pathSDMoutputs) {
       scale_color_manual(values = color_map, breaks = c("GBIF", "SDM"),
                          labels = c("GBIF occurrences", "SDM presences"), drop = FALSE) +
       ggtitle(bquote(italic(.(pretty_species_names(sps))) ~ " occurrences (" ~ .(region) ~ ")")) +
+      # add total number of occurrence available
+      annotate("text", x = Inf, y = -Inf, label = paste0("GBIF records: ", n_gbif),
+               hjust = 1.05, vjust = -0.5, size = 3.5) + 
       theme_minimal(base_size = 12) +
       theme(
         legend.title = element_blank(),
@@ -233,28 +239,37 @@ for(i in seq_len(nrow(importance_summary2))){
 
 gtsave(gt_tbl, 
        file = file.path(SDMsFigures_dir,
-                        paste0("VariableImportanceSummaryTable", Sys.Date(), ".docx")))
+                        paste0("VariableImportance_perSpecies", Sys.Date(), ".docx")))
+# write table to .csv and .xslx (for easy copy paste later)
+write.csv(importance_summary,
+          file = file.path(SDMsFigures_dir,
+                           paste0("VariableImportance_perSpecies", Sys.Date(), ".csv")), row.names = FALSE)
+
 
 importance_across_species <- var_importance_em_filtered %>%
   group_by(biome, expl.var) %>%
-  summarise(
-    mean_importance = mean(var.imp, na.rm = TRUE),
-    min_importance = min(var.imp, na.rm = TRUE),
-    max_importance = max(var.imp, na.rm = TRUE),
-    sd_importance = sd(var.imp, na.rm = TRUE),
-    n_species = n_distinct(species),
-    .groups = "drop"
-  )
+  summarise(mean_importance = round(mean(var.imp, na.rm = TRUE), 3),
+            min_importance = round(min(var.imp, na.rm = TRUE), 3),
+            max_importance = round(max(var.imp, na.rm = TRUE), 3),
+            #sd_importance = round(sd(var.imp, na.rm = TRUE), 3),
+            n_species = n_distinct(species), .groups = "drop")
 
 importance_ranked <- importance_across_species %>%
   group_by(biome) %>%
   arrange(desc(mean_importance)) %>%
   mutate(rank = row_number()) %>%
-  ungroup()
-# write table to .csv and .xslx (for easy copy paste later)
-#write.csv(importance_summary,
- #         file = file.path(SDMsFigures_dir,
-  #                         paste0("VariableImportanceSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
+  ungroup() %>% 
+  dplyr::select(-sd_importance) %>% 
+  rename("Biome" = "biome", "Explanatory Variable" = "expl.var", "Mean Importance" = "mean_importance",
+         "Minimum Importance" = "min_importance", "Maximum Importance" = "max_importance",
+         "No. of species" = "n_species", "Rank" = "rank")
+
+
+# write word table for avrage variable importance value sper biome
+gtsave(gt(importance_ranked), 
+       file = file.path(SDMsFigures_dir,
+                        paste0("VariableImportance_perBiome", Sys.Date(), ".docx")))
+
 #writexl::write_xlsx(importance_summary,
  #                   path = file.path(SDMsFigures_dir,
   #                                   paste0("VariableImportanceSummaryTable", Sys.Date(), ".xlsx")))
@@ -283,15 +298,7 @@ for (path in pathSDMoutputs) {
   }
 }
 
-all_EvalScores %>% 
-  group_by(region, metric.eval) %>% 
-  summarise(
-    mean_calibration = mean(calibration, na.rm = TRUE),
-    min_calibration = min(calibration, na.rm = TRUE),
-    max_calibration = max(calibration, na.rm = TRUE),
-    n = n(),
-    .groups = "drop"
-  )
+# boxplots per species within each region --------------------------------------
 
 plots_eval <- list()
 
@@ -305,7 +312,7 @@ for (g in unique(all_EvalScores$region)) {
     geom_boxplot() +
     labs(title = paste("Evaluation Metrics (EM) -", g),
          x = "Species",
-         y = "Calibration Score",
+         y = "Score",
          fill = "Metric") +
     coord_flip() +
     scale_fill_viridis_d(name = "Metric") +
@@ -315,13 +322,45 @@ for (g in unique(all_EvalScores$region)) {
   plots_eval[[g]] <- p
 }
 
+# save tropical sps
 ggsave(plot = plots_eval$tropical,
-       file = file.path(SDMsFigures_dir, "EvaluationMetrics_tropicalSps.tif"),
-       bg = 'white', width = 200, height = 300, units = "mm", dpi = 1200, compression ="lzw")
+       file = file.path(SDMsFigures_dir, "EvaluationMetrics_tropicalSps.png"),
+       bg = 'white', width = 200, height = 300, units = "mm", dpi = 1200#, compression ="lzw"
+       )
 
+# save boreal sps
 ggsave(plot = plots_eval$boreal,
-       file = file.path(SDMsFigures_dir, "EvaluationMetrics_borealSps.tif"),
-       bg = 'white', width = 200, height = 300, units = "mm", dpi = 1200, compression ="lzw")
+       file = file.path(SDMsFigures_dir, "EvaluationMetrics_borealSps.png"),
+       bg = 'white', width = 200, height = 300, units = "mm", dpi = 1200#, compression ="lzw"
+       )
+
+# boxplots and average values per region (boreal VS tropical) ------------------
+
+avg_evalScores <- all_EvalScores %>% 
+  group_by(region, metric.eval) %>% 
+  summarise(mean_calibration = mean(calibration, na.rm = TRUE),
+            min_calibration = min(calibration, na.rm = TRUE),
+            max_calibration = max(calibration, na.rm = TRUE),
+            n = n(), .groups = "drop")
+
+labels <- c("Boreal Forests/Taiga", "Tropical & Subtropical Moist\nBroadleaf Forests")
+
+evalMetric_perBiome <- ggplot(all_EvalScores, aes(x = region, y = calibration, fill = metric.eval)) +
+  geom_boxplot() +
+  labs(#title = paste("Evaluation Metrics per Biome"),
+       x = NULL,
+       y = "Score",
+       fill = "Metric") +
+  #coord_flip() +
+  scale_fill_viridis_d(name = "Metric") +
+  scale_x_discrete(label = labels) +
+  theme_minimal() 
+
+# save averaged eval metric per biome
+ggsave(plot = evalMetric_perBiome,
+       file = file.path(SDMsFigures_dir, "EvaluationMetricsPerBiome.png"),
+       bg = 'white', width = 120, height = 90, units = "mm", dpi = 1200#, compression ="lzw"
+)
 
 ############
 # OUTPUT 4 # Continuous landscapes 
