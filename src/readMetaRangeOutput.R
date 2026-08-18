@@ -101,7 +101,7 @@ TNIND_yr <- TNIND_yr %>%
       species == "Panthera tigris" ~ "Carnivore",
       species == "Ursus thibetanus" ~ "Omnivore",
       TRUE ~ trophic_level)
-    )%>%
+    ) %>%
   # deal with integer 64 columns (=big big numbers)
   mutate(across(where(bit64::is.integer64), as.numeric))
 
@@ -115,6 +115,77 @@ write_csv(TNIND_yr,
           file = file.path(output_root, paste0("completeMetaRangeRun_", #format(Sys.time(), "%Y%m%d"),
                                                "20260517",
                                                ".csv")))
+
+# metadata file
+metadata <- tibble::tribble(
+  ~variable, ~description, ~units, ~data_type,
+  
+  "TNIND",
+  "Total number of individuals across the whole landscape.",
+  "Number of individuals",
+  "Numeric",
+  
+  "MNIND",
+  "Mean number of individuals per occupied cell.",
+  "Individuals per cell",
+  "Numeric",
+  
+  "mean_repRate",
+  "Mean reproductive rate of the species across the landscape.",
+  "Specify according to model parameterisation",
+  "Numeric",
+  
+  "mean_carrCap",
+  "Mean of the maximum population size supported by local habitat conditions",
+  "Number of individuals per cell",
+  "Numeric",
+  
+  "occupancy",
+  "Number of cells occupied by the species.",
+  "Number of cells",
+  "Numeric",
+  
+  "future_scenario",
+  "Future climate scenario used in the simulation. ssp126 represents SSP1-2.6 and ssp585 represents SSP5-8.5.",
+  "Categorical",
+  "Character",
+  
+  "biome",
+  "Biome in which the species population was modelled. Tropical & Subtropical Moist Broadleaf Forests or Boreal Forests/Taiga.",
+  "Categorical",
+  "Character",
+  
+  "region",
+  "Geographic region in which the species population was modelled. Regions include Asia, Africa, South America, Europe+Asia, and North America",
+  "Categorical",
+  "Character",
+  
+  "species",
+  "Scientific name of the modelled species.",
+  "Text",
+  "Character",
+  
+  "timestep",
+  "Sequential time step of the simulation. One timestep corresponds to one simulation year, with 1 to 25 representing the burn-in period, and remaining ones modelled years.",
+  "Years / model timesteps",
+  "Numeric",
+  
+  "rep",
+  "Identifier of the stochastic simulation replicate.",
+  "Text",
+  "Character",
+  
+  "trophic_level",
+  "Functional trophic group of the species, Herbivore, Omnivore, or Carnivore.",
+  "Categorical",
+  "Character",
+  
+  "rep_num",
+  "Numeric identifier of the simulation replicate.",
+  "Integer",
+  "Integer")
+
+write_csv(metadata, file = file.path( output_root, "completeMetaRangeRun_20260517_metadata.csv"))
 
 ################################
 # DIAGNOSTIC POPULATION TRENDS # 
@@ -345,6 +416,12 @@ write_xlsx(all_traits, file.path("E:/metaRange_May26", "completeTraitDataframe_a
 # AVERAGE SUITABILITY OVER TIME #
 #################################
 
+# folder to save average suitability values and plot together with SDM outputs
+SDMsFigures_dir <- file.path(output_root, "SDMsFigures")
+if (!dir.exists(SDMsFigures_dir)) {
+  dir.create(SDMsFigures_dir, recursive = TRUE)
+}
+
 inputFolder_paths <- character(0)
 
 for (i in seq_len(nrow(runs))) {
@@ -378,7 +455,7 @@ for (i in seq_len(nrow(runs))) {
 rm(input_folder)
 invisible(gc())
 
-all_changes <- list()
+sps_suitability_ALL <- list()
 
 # loop over folders and produce one plot per folder
 for (dir in inputFolder_paths) {
@@ -409,38 +486,15 @@ for (dir in inputFolder_paths) {
     df$year <- as.numeric(names(r))
     df$species <- suppressMessages(pretty_species_names(species_name)) #pretty_species_names() is custom function
     df
-    
-  }) %>% bind_rows()
+  }) %>%
+    bind_rows()
   
   
   # folder name for saving plot
   folder_name <- basename(dirname(dir))
   
-  # Average across species for each year
-  avg_df <- folder_df %>%
-    group_by(year) %>%
-    summarise(
-      mean_suitability = mean(mean, na.rm = TRUE),
-      .groups = "drop"
-    )
-  
-  # Change from 2015 to 2100
-  change <- avg_df %>%
-    filter(year %in% c(2015, 2100)) %>%
-    summarise(
-      change = mean_suitability[year == 2100] -
-        mean_suitability[year == 2015]
-    )
-  
-  all_changes[[folder_name]] <- avg_df %>%
-    filter(year %in% c(2015, 2100)) %>%
-    summarise(
-      change = mean_suitability[year == 2100] -
-        mean_suitability[year == 2015]
-    ) %>%
-    mutate(folder = folder_name)
-  
-  
+  # create object with everyone's suitbaility values
+  sps_suitability_ALL[[folder_name]] <- folder_df
   
   # plot average suitability
   p <- ggplot(folder_df, aes(x = year, y = mean, group = species)) +
@@ -466,29 +520,68 @@ for (dir in inputFolder_paths) {
   invisible(gc())
 }
 
-all_changes <- bind_rows(all_changes)
+# average suitability per biome, continent and functional group ----------------
+sps_suitability <- bind_rows(sps_suitability_ALL, .id = "folder") %>%
+  mutate(region = sub("_ssp.*", "", folder),
+         scenario = sub(".*_(ssp\\d+)_.*", "\\1", folder),
+         biome = case_when(region %in% c("Asia", "Africa", "South America") ~ "Tropical & Subtropical Moist Broadleaf Forests",
+                           region %in% c("Europe+Asia", "North America") ~ "Boreal Forests/Taiga",
+                           TRUE ~ NA_character_)) %>% 
+  # add trait df to get trophic levels
+  left_join(
+    dplyr::select(combined_traits_data, sci_name, BIOME_NAME, CONTINENT, trophic_level),
+    by = c("species" = "sci_name",
+           "biome" = "BIOME_NAME", # keep biome & continent here or a many-to-many warning will appear
+           "region" = "CONTINENT")) %>% 
+  # correction for tigers that are from asia but asian boreal forest are modelled together with europe
+  mutate(trophic_level = case_when(
+    species == "Panthera tigris" ~ "Carnivore",
+    species == "Ursus thibetanus" ~ "Omnivore",
+    TRUE ~ trophic_level))
 
-all_changes
 
-library(dplyr)
-library(stringr)
+trophic_suit <- sps_suitability %>% 
+  group_by(scenario, biome, region, trophic_level, year) %>% 
+  # mean suitability per trophic group
+  dplyr::summarise(avg_suit = round(mean(mean, na.rm = TRUE), 3)) %>% 
+  dplyr::filter(year %in% c(2015, 2100)) %>% 
+  # Put years into separate columns
+  pivot_wider(names_from = year, values_from = avg_suit, names_prefix = "suit_") %>% 
+  # Calculate absolute and percentage change
+  mutate(perc_change = (suit_2100 - suit_2015) * 100) %>% 
+  arrange(scenario, biome, region, trophic_level) %>% 
+  rename("Scenario" = "scenario", "Biome" = "biome", "Region" = "region", 
+         "Trophic Level" = "trophic_level", "Mean Suitability in 2015" = "suit_2015",
+         "Mean Suitability in 2100" = "suit_2100", "Change between 2100 and 2015 (%)" = "perc_change")
 
-scenario_change <- all_changes %>%
-  mutate(
-    scenario = str_extract(folder, "ssp\\d+")
-  ) %>%
-  group_by(scenario) %>%
-  summarise(
-    mean_change = mean(change, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  mutate(
-    percent_change = mean_change * 100
-  )
+# save average suitability values per trophic group as csv
+write.csv(trophic_suit,
+          file = file.path(SDMsFigures_dir,
+                           paste0("AverageSuitabilityPerTrophicGroup", Sys.Date(), ".csv")), row.names = FALSE)
 
-scenario_change
+# average suitability per biome ------------------------------------------------
 
-mean(all_changes$change)
+biome_suit <- sps_suitability %>% 
+  group_by(scenario, biome, #region,
+           year) %>% 
+  # mean suitability per trophic group
+  dplyr::summarise(avg_suit = round(mean(mean, na.rm = TRUE), 3)) %>% 
+  dplyr::filter(year %in% c(2015, 2100)) %>% 
+  # Put years into separate columns
+  pivot_wider(names_from = year, values_from = avg_suit, names_prefix = "suit_") %>% 
+  # Calculate absolute and percentage change
+  mutate(perc_change = (suit_2100 - suit_2015) * 100) %>% 
+  arrange(scenario, biome#, region
+          ) %>% 
+  rename("Scenario" = "scenario", "Biome" = "biome", #"Region" = "region", 
+         "Mean Suitability in 2015" = "suit_2015", "Mean Suitability in 2100" = "suit_2100",
+         "Change between 2100 and 2015 (%)" = "perc_change")
+
+# save average suitability values per biome csv
+write.csv(biome_suit,
+          file = file.path(SDMsFigures_dir,
+                           paste0("AverageSuitabilityPerBiome", Sys.Date(), ".csv")), row.names = FALSE)
+
 
 message("✅ All diagnostic plots & files were created successfully!")
 
