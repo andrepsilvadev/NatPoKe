@@ -100,12 +100,14 @@ for (i in seq_len(nrow(runs))) {
   spData <- read.csv(file.path(dirinput, "metaRangeSpeciesDataframe.csv"))
 
   # (4) apply the function for the current pair of directories
+  set.seed(123)
   aa <- validateModel1.2(
     targetspecies = species_names,
     independentDensity = santini2022,
     dirouts = dirout,
     spData = spData,
-    validationYear = 26 # make sure this year is the timestep after the burn-in period ends
+    validationYear = 26, # make sure this year is the timestep after the burn-in period ends
+    subsample = FALSE
   )
 
   # store results in list
@@ -157,7 +159,7 @@ combined_independent$species <- as.factor(combined_independent$species)
 datasets <- unique(combined_independent$Dataset)
 
 
-TNIND_yr <- read.csv("E:/metaRange_May26/completeMetaRangeRun_20260517.csv") %>% 
+TNIND_yr <- read.csv("E:/metaRange_May26/completeMetaRangeRun_20260517.csv") %>%
   mutate(species = str_replace(species, " ", "."))
 
 combined_estimated <- combined_estimated %>%
@@ -168,60 +170,60 @@ combined_estimated <- combined_estimated %>%
 combined_independent <- combined_independent %>%
   left_join(TNIND_yr %>% select(species, trophic_level) %>% distinct(),
             by = "species")
-
-# start empty list
-plot_list <- list()
-
-ylims_list <- list(
-  Asia_ssp126_20260405 = c(0, 10),
-  Asia_ssp585_20260405 = c(0, 5),
-  Europe_ssp126_20260405 = c(0, 1)
-)
-
-for (ds in datasets) {
-  # subset current dataset
-  df_indep <- combined_independent %>%
-    filter(Dataset == ds) %>% 
-    mutate(species = reorder(species, meanDensity))
-  
-  df_est <- combined_estimated %>% filter(Dataset == ds)
-  
-  p <- ggplot(df_indep, aes(x = species, y = meanDensity)) +
-    # independent densities from santini
-    geom_boxplot(
-      aes(
-        ymin = lw95, lower = lw75,
-        middle = meanDensity,
-        upper = up75, ymax = up95),
-      stat = "identity", fill = "lightgray", color = "black") +
-    # dependent densities estimates from metaRange
-    geom_point(
-      data = df_est, aes(x = species, y = estimatedDensity),
-      color = "red",
-      position = position_jitter(width = 0.2),
-      size = 1) +
-    facet_wrap(~ trophic_level, scales = "free") +
-    #coord_flip() +
-    ylab(expression("Independent density estimate (individuals/km"^2 * ")")) +
-    xlab("") +
-    ggtitle(paste("Model validation:", ds)) +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      strip.text = element_text(face = "italic")
-    )
-  
-  # save each run's plot (organise based on n of species)
-  n_species <- n_distinct(df_indep$species)
-  
-  ggsave(filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
-    plot = p, bg = "white",
-    width = max(8, n_species * 0.25),  # 0.25–0.35 works well
-    height = 6, units = "in", dpi = 300)
-  
-  # store plots in list
-  plot_list[[ds]] <- p
-}
+# 
+# # start empty list
+# plot_list <- list()
+# 
+# ylims_list <- list(
+#   Asia_ssp126_20260405 = c(0, 10),
+#   Asia_ssp585_20260405 = c(0, 5),
+#   Europe_ssp126_20260405 = c(0, 1)
+# )
+# 
+# for (ds in datasets) {
+#   # subset current dataset
+#   df_indep <- combined_independent %>%
+#     filter(Dataset == ds) %>% 
+#     mutate(species = reorder(species, meanDensity))
+#   
+#   df_est <- combined_estimated %>% filter(Dataset == ds)
+#   
+#   p <- ggplot(df_indep, aes(x = species, y = meanDensity)) +
+#     # independent densities from santini
+#     geom_boxplot(
+#       aes(
+#         ymin = lw95, lower = lw75,
+#         middle = meanDensity,
+#         upper = up75, ymax = up95),
+#       stat = "identity", fill = "lightgray", color = "black") +
+#     # dependent densities estimates from metaRange
+#     geom_point(
+#       data = df_est, aes(x = species, y = estimatedDensity),
+#       color = "red",
+#       position = position_jitter(width = 0.2),
+#       size = 1) +
+#     facet_wrap(~ trophic_level, scales = "free") +
+#     #coord_flip() +
+#     ylab(expression("Independent density estimate (individuals/km"^2 * ")")) +
+#     xlab("") +
+#     ggtitle(paste("Model validation:", ds)) +
+#     theme_minimal() +
+#     theme(
+#       axis.text.x = element_text(angle = 45, hjust = 1),
+#       strip.text = element_text(face = "italic")
+#     )
+#   
+#   # save each run's plot (organise based on n of species)
+#   n_species <- n_distinct(df_indep$species)
+#   
+#   ggsave(filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
+#     plot = p, bg = "white",
+#     width = max(8, n_species * 0.25),  # 0.25–0.35 works well
+#     height = 6, units = "in", dpi = 300)
+#   
+#   # store plots in list
+#   plot_list[[ds]] <- p
+# }
 
 
 ##########
@@ -233,16 +235,12 @@ estimated_with_ci <- combined_estimated %>%
   dplyr::left_join(
     combined_independent %>%
       dplyr::select(Dataset, species, lw95, up95, lw75, up75, meanDensity),
-    by = c("Dataset", "species")
-  ) %>%
-  dplyr::mutate(
-    up95,
-    lw95,
-    below95 = estimatedDensity < lw95,
-    above95 = estimatedDensity > up95,
-    outside95 = below95 | above95,
-    outside75 = estimatedDensity < lw75 | estimatedDensity > up75
-  )
+    by = c("Dataset", "species")) %>%
+  dplyr::mutate(up95,lw95,
+                below95 = estimatedDensity < lw95,
+                above95 = estimatedDensity > up95,
+                outside95 = below95 | above95,
+                outside75 = estimatedDensity < lw75 | estimatedDensity > up75)
 
 # Now summarise per species
 estimated_summary_by_species <- estimated_with_ci %>%
@@ -287,23 +285,121 @@ validationTable <- estimated_summary_by_species %>%
 
 # save as a formatted word document
 gt::gtsave(validationTable, file.path(validation_dir,
-                             "modelValidationTable.docx"))
+                             paste0("modelValidationTable", Sys.Date(), ".docx")))
 
 # save as a .csv
 fwrite(as.data.frame(estimated_summary_by_species),
-       file = file.path(validation_dir, "modelValidationTable.csv"))
+       file = file.path(validation_dir, paste0("modelValidationTable", Sys.Date(), ".csv")))
 
 # calculate the proportion of cells outside percentiles
 prop_outside_species <- estimated_summary_by_species %>%
+  #group_by(scenario, region) %>% 
   dplyr::summarise(min_prop_outside95 = min(prop_outside95, na.rm = TRUE),
                    mean_prop_outside95 = mean(prop_outside95, na.rm = TRUE),
                    max_prop_outside95 = max(prop_outside95, na.rm = TRUE),
                    prop_outside75 = mean(prop_outside75, na.rm = TRUE),
                    prop_below95 = mean(prop_below95, na.rm = TRUE),
                    prop_above95 = mean(prop_above95, na.rm = TRUE),
-                   n_species = dplyr::n())
+                   n_species = dplyr::n()) %>% 
+  dplyr::select(-n_species) %>% 
+  pivot_longer(cols = c("min_prop_outside95", "mean_prop_outside95",
+                        "max_prop_outside95", "prop_outside75", "prop_below95", 
+                        "prop_above95"),
+               names_to = "Category",
+               values_to = "Value")
+
+# save output as .csv
+write.csv(prop_outside_species,
+          file = file.path(validation_dir, "ProportionOfCellOutsideIntervals.csv"),
+          row.names = FALSE)
+
 
 # number of species underestimating
 length(unique(estimated_summary_by_species %>% 
   dplyr::filter(prop_outside95 > 0.70) %>% 
   pull(species)))
+
+
+validation_plot_species <- estimated_summary_by_species %>%
+  mutate(
+    validation = case_when(
+      estimated_mean < lw95 ~ "Below 95% interval",
+      estimated_mean > up95 ~ "Above 95% interval",
+      TRUE ~ "Within 95% interval"
+    )
+  )
+
+
+val_plots <- list()
+
+for (sc in unique(validation_plot_species$scenario)) {
+  
+  for (reg in unique(validation_plot_species$region)) {
+    
+    validation_plot_species_sc_reg <- validation_plot_species %>%
+      dplyr::filter(scenario == sc, region == reg)
+    
+    label_data <- validation_plot_species_sc_reg %>%
+      dplyr::filter(validation == "Below 95% interval")
+    
+    p <- ggplot(validation_plot_species_sc_reg, 
+                aes(x = observed_mean, y = estimated_mean)) +
+      geom_abline(slope = 1, intercept = 0, linetype = "dashed", linewidth = 0.8) +
+      geom_point(aes(fill = validation), shape = 21, size = 3, alpha = 0.8, colour = "black") +
+      geom_text(data = label_data, aes(label = species),
+                vjust = -0.5, hjust = -0.1, nudge_x = 0.05, size = 2) +
+      scale_x_log10() +
+      scale_y_log10() +
+      scale_fill_manual(values = c("Below 95% interval" = "#D55E00",
+                                   "Within 95% interval" = "#56B4E9",
+                                   "Above 95% interval" = "#009E73")) +
+      labs(title = reg,
+           x = "Independent population density (log individuals/km²)",
+           y = "MetaRange population density (log individuals/km²)",
+           fill = "Model estimate") +
+      theme_classic() +
+      theme(legend.position = "bottom",
+            label
+            #axis.line = element_line(size = 1, colour = "black")
+            )
+    
+    val_plots[[paste(sc, reg, sep = "_")]] <- p
+  }
+}
+
+
+############
+# SSP1-2.6 #
+############
+
+layout <- "AB#
+           CDE"
+
+validationssp126 <- patchwork::wrap_plots(val_plots[c("SSP1-2.6_North America", "SSP1-2.6_Europe+Asia",
+                                  "SSP1-2.6_South America", "SSP1-2.6_Africa", "SSP1-2.6_Asia")]) +
+  patchwork::plot_layout(design = layout,
+                         guides = "collect", axis_titles = "collect") & theme(legend.position = "bottom")
+
+# save plot
+ggsave(filename = file.path(validation_dir, "ValidationPerSpecies_SSP1.png"), # path
+       validationssp126, # plot
+       bg = 'white', width = 250, height = 160, units = "mm", dpi = 1200,
+       #compression = "lzw"
+) # image parameters
+
+
+############
+# SSP5-8.5 #
+############
+
+validationssp585 <- patchwork::wrap_plots(val_plots[c("SSP5-8.5_North America", "SSP5-8.5_Europe+Asia",
+                                                      "SSP5-8.5_South America", "SSP5-8.5_Africa", "SSP5-8.5_Asia")]) +
+  patchwork::plot_layout(design = layout,
+                         guides = "collect", axis_titles = "collect") & theme(legend.position = "bottom")
+
+# save plot
+ggsave(filename = file.path(validation_dir, "ValidationPerSpecies_SSP5.png"), # path
+       validationssp585, # plot
+       bg = 'white', width = 250, height = 160, units = "mm", dpi = 1200,
+       #compression = "lzw"
+) # image parameters
