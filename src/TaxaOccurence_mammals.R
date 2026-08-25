@@ -1,4 +1,4 @@
-## Name: Taxa occurrences ##
+## Name: 02_taxaOccurrence_mammals.R ##
 ## Author: Inês Silva, Andre P. Silva & Afonso Barrocal & Jorinde-M. Rieger ##
 ## Date: January 17th, 2026 ##
 ## Description: Download and filter GBIF occurrence data for multiple species ##
