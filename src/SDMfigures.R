@@ -1,7 +1,8 @@
 ## Name: SDMfigures.R ##
 ## Author: Jorinde-M. Rieger & Inês Silva ##
-## Description: Create all suplementary material's figure from the SDM's runs ##
 ## Date: 30th Aug 2025 ##
+## Description: Create all suplementary materials (figures and tables) from
+## multiple SDMs ##
 
 # Settings & libraries ---------------------------------------------------------
 source("src/libraries.R") # libraries
@@ -10,11 +11,11 @@ gc()
 
 # paths for outputs
 pathSDMoutputs <- c(# Tropical region
-  "E:/NatPoKe_SDMs/tropical_SDMS",
-  # Boreal region
-  "E:/NatPoKe_SDMs/boreal_SDMS")
+                    "E:/NatPoKe_SDMs/tropical_SDMS",
+                    # Boreal region
+                    "E:/NatPoKe_SDMs/boreal_SDMS")
 
-output_root <- "E:/NatPoKe_SDMs" 
+output_root <- "E:/metaRange_May26" 
 
 # folder to save figure and tables on SDM outputs
 SDMsFigures_dir <- file.path(output_root, "SDMsFigures")
@@ -512,7 +513,7 @@ for (species in target_species) {
 
 
 # ############
-# # OUTPUT 3 # Evaluation metrics table for Ensemble Models
+# # OUTPUT X # Evaluation metrics table for Ensemble Models
 # ############
 # 
 # all_EvalScoresEM <- data.frame() 
