@@ -1,8 +1,8 @@
 ## Name: SDM.R ##
 ## Author: Jorinde-M. Rieger & André P. Silva & Inês Silva ##
+## Date: October 10th 2025 ##
 ## Description: builds and projects ensemble Species Distribution Models (SDMs)
 ## for multiple target species under current and future climate scenarios, using BIOMOD2
-## Date: October 10th 2025 ##
 
 ## Script overview:
 ##   STEP 1 – Load and crop environmental rasters to target biome.
@@ -17,14 +17,10 @@
 
 # !! NAVIGATION WARNINGS !! ----------------------------------------------------
 
-# This is a highly sensible function! Here are some good practices to make sure
+# This is a highly sensible script! Here are some good practices to make sure
 # we don't get errors running it:
 # (1) do not work inside a One Drive folder;
 # (2) avoid saving the outputs using long paths (MAXNET does not deal well with them)
-# (3) some minor chnages were done to André's function, namely adding
-# the path to the maxent folder as a function argument (might not be necessary in
-# the future if we stick with MAXNET but I am still leaving it here)
-# (4) function stops if one species has an error SOLUTION? use TryCatch()
 
 # settings & libraries
 source("./src/libraries.R") # libraries
