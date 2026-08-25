@@ -1144,10 +1144,11 @@ validateModel_1sps <- function(
 # 1. Loads rasters; 2. Sample ~300 random cells per species (not empty)
 # 3. Calculate predicted densities; 4. Returns a comparison-ready list
 
-validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData, validationYear) {
- 
+validateModel1.2 <- function(targetspecies, independentDensity, dirouts,
+                             spData, validationYear, subsample = FALSE,
+                             n_points = 300) {
   
-  ## Species density estimates by an INDEPENDENT SOURCE (akin to observed density)
+  ## Species density estimates by an INDEPENDENT SOURCE
   independentDensity <- independentDensity %>%
     dplyr::filter(Species %in% targetspecies) %>%
     dplyr::select(Species, lw95, lw75, PredMd, up75, up95) %>%
@@ -1156,12 +1157,10 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
       lw75 = as.numeric(lw75),
       PredMd = as.numeric(PredMd), # Predicted population density (individuals/km2)
       up75 = as.numeric(up75),
-      up95 = as.numeric(up95)
-    ) %>%
-    rename(
-      species = Species,
-      meanDensity = PredMd
-    )
+      up95 = as.numeric(up95)) %>%
+    rename(species = Species,
+           meanDensity = PredMd)
+  
   
   ## Species density estimated by METARANGE from multiple directories
   abundance_files <- list()
@@ -1169,86 +1168,88 @@ validateModel1.2 <- function(targetspecies, independentDensity, dirouts, spData,
   
   for (target_sps in targetspecies) {
     all_files <- character()
-    for (dirout in dirouts) { #Iterate through each directory
-      files <- list.files(
-        path = dirout,
-        pattern = 
-          paste0(target_sps, "_abundance_meanAcrossReplicates_0*", validationYear, "\\.tif$"),
-        full.names = TRUE
-      )
+    for (dirout in dirouts) {
+      files <- list.files(path = dirout, pattern = paste0(target_sps, 
+                                                          "_abundance_meanAcrossReplicates_0*",
+                                                          validationYear, "\\.tif$"),
+                          full.names = TRUE)
       all_files <- c(all_files, files)
     }
     abundance_files[[target_sps]] <- all_files
-    if(length(all_files) > 0){
+    if (length(all_files) > 0) {
       message(paste("Used rasters for", target_sps, ":", paste(basename(all_files), collapse = ", ")))
-    } else {
+    } else { 
       warning(paste("No rasters found for", target_sps, "in the given directories."))
     }
   }
+  
   
   abundance_rasters <- lapply(abundance_files, function(files) {
     lapply(files, terra::rast)
   })
   
-  abundance_stack_list <- lapply(abundance_rasters, function(raster_list){
-    if(length(raster_list) > 0){
-      terra::rast(unlist(raster_list))
-    } else {
-      NULL
-    }
-  })
+  abundance_stack_list <- lapply(abundance_rasters,
+                                 function(raster_list) {
+                                   if (length(raster_list) > 0) {
+                                     terra::rast(unlist(raster_list))
+                                   } else {
+                                     NULL
+                                   }
+                                 })
   
-  # convert raster stack to df
-  species_df <- lapply(names(abundance_stack_list), function(sps_name){
+  ## Convert raster stack to dataframe
+  species_df <- lapply(names(abundance_stack_list), function(sps_name) {
     stack <- abundance_stack_list[[sps_name]]
-    
-    if(!is.null(stack)){
-      lapply(1:terra::nlyr(stack), function(i){
+    if (!is.null(stack)) {
+      lapply(1:terra::nlyr(stack), function(i) {
         as.data.frame(stack[[i]], xy = TRUE) %>%
           mutate(species = sps_name) %>%
           rename(abundance = 3)
-      }) %>% bind_rows()
+      }) %>%
+        bind_rows()
     } else {
       NULL
     }
-  }) %>% bind_rows()
+  }) %>%
+    bind_rows()
   
-  # sample 300 abundance values for each species
+  
+  ## Remove empty cells and optionally subsample
   species_df_sampled <- species_df %>%
     group_by(species) %>%
-    group_modify(~ {
-      df <- .x %>% filter(abundance != 0)  # remove zeros
-      if (nrow(df) >= 300) {
-        df[sample(nrow(df), 300), ]
-      } else {
-        df  # keep all non-zero if fewer than 300
-      }
+    group_modify(~ {df <- .x %>%
+      filter(abundance != 0)
+    # if subsampling
+    if (subsample) {if (nrow(df) > n_points) {
+      df <- df %>%
+        slice_sample(n = n_points)}
+    }
+    df
     }) %>%
     ungroup()
   
-  # format raster's dataframe for validation
+  ## Format raster dataframe for validation
   predicted <- species_df_sampled %>%
     dplyr::filter(species %in% targetspecies) %>%
-    dplyr::group_by(species, x, y) %>% # if there are ever replicates involved
-    dplyr::summarise(
-      meanNInd = mean(abundance, na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
+    dplyr::group_by(species, x, y) %>%
+    dplyr::summarise(meanNInd = mean(abundance, na.rm = TRUE), .groups = "drop") %>%
     as.data.frame()
   
+  ## Modelling resolution
   spData2 <- spData %>%
     dplyr::select(Species, ModellingRes) %>%
     rename(species = Species) %>%
-    #mutate(ModellingRes = ifelse(ModellingRes == unique(ModellingRes)[1], unique(ModellingRes)[1], unique(ModellingRes)[1])) %>% #modified to take the first unique value of ModellingRes
     as.data.frame()
   
+  ## Convert abundance to density
   estimatedDensityJoin <- dplyr::inner_join(predicted, spData2, by = "species") %>%
-    mutate(estimatedDensity = meanNInd / ((ModellingRes/1000)^2))
-  # note 20260409 - because landscapes are now in meters we we need to put them back into km2 to compare with santini's values
+    mutate(estimatedDensity = meanNInd / ((ModellingRes / 1000)^2))
+  # note 20260409 - because landscapes are now in meters we we need to
+  # put them back into km2 to compare with santini's values
   
-  ## compare observed with predicted density
-  result_list <- list(independentDensity, estimatedDensityJoin)
-  names(result_list) <- c("independentDensity", "estimatedDensity")
+  ## Return results
+  result_list <- list(independentDensity = independentDensity,
+                      estimatedDensity = estimatedDensityJoin)
   return(result_list)
 }
 
