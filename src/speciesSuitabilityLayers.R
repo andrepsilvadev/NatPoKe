@@ -1,7 +1,10 @@
 ## Name: Creating SDM-based environmental layer ##
-## Author: Inês Silva & Sarina ##
-## Description: stack .tif outputs from SDMs, for multiple species and multiple environmental scenarios ##
+## Author: Inês Silva & Sarina Lincoln ##
 ## Date: December 27th 2025 ## Updated on March 27th 2026
+## Description: Use SDMs for 2015, 2030, 2050 and 2100 (.tif outputs), to build
+## stacks serving as environmental layers for the metaRange model for multiple
+## species and future scenarios (SSP1-2.6 and SSP5-8.5)##
+
 
 source("./src/libraries.R")
 source("./src/customFunctions2.R")
