@@ -1,13 +1,16 @@
-#####################################
-# RUNNING THE metaRange FOR MAMMALS #
-#####################################
-# Ines Silva
-# 11 Feb 2025
+## Name: mammalModel.R ##
+## Author: Inês Silva & Stefan Fallert ##
+## Date: 11 Feb 2025
+## Description: Build population dynamics model for mammals species using the 
+## metaRange and including the influence of suitbaility on species, beverton& holt
+## demography and dispersal. It initiates species within the IUCN range (needs
+## IUCN spatial file). Runs 3 replicates. Saves outputs as .tif for abundance,
+## reproductionRate and dispersalChange, plus a .csv file with TNIND, MNIND, 
+## mean_repRate, mean_carrCap and occupancy, all of them per species, timestep and replicate.
 
-# GOAL: Running the model for mammals species
 
 #######################
-# NAVIGATION WARNINGS # I MIGHT PUT THESE RECOMMENDATIONS ELSEWHERE WHEN THE REPO IS ALMOST FINAL
+# NAVIGATION WARNINGS #
 #######################
 
 # Model input files
