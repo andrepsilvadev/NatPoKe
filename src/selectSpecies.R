@@ -1,9 +1,11 @@
-## Name: speciesSelection.R ##
+## Name: 01_selectSpecies.R ##
 ## Author: Inês Silva ##
-## Description: CheckPoints to assess species available for modelling pipeline
 ## Date: December 05th 2025 ##
+## Description: Select species with available trait data for modelling with MetaRange.
+## This script produces both a dataframe for available mammal (lines 42 to 258) and
+## bird species (lines 263 TO 428)
 
-# Data source: SRIT trait database (ADD Zenodo LINK HERE OR GitHub LINKr)
+# Data source: SRIT trait database (https://doi.org/10.5281/zenodo.18455098)
 #
 # Expected folder structure:
 # project_root/
@@ -14,11 +16,6 @@
 #   src/
 #     01_selectSpecies.R
 #     (...)
-#
-# How to run:
-#   1. Download SRIT-database from Zenodo/GitHub
-#   2. Place it in /data/SRIT-database/
-#   3. Run this script top-to-bottom
 
 source("./src/libraries.R")
 
@@ -174,12 +171,12 @@ mammalTraits_processed <- mammalTraits_processed %>%
 # STEP 5 # .csv AND .xslx FILES PRODUCTION 
 ##########
 
-# write complete table to a .csv file (data folder)
+### complete table as .csv file (saved in data folder) -------------------------
 write.csv(mammalTraits_processed,
           file = paste0("./data/CompleteMammalSpsDataframe_", Sys.Date(), ".csv"),
           row.names = FALSE)
 
-mammalTraits_processed <- read.csv("data/traitData/CompleteMammalSpsDataframe_2025-12-20.csv")
+#mammalTraits_processed <- read.csv("data/traitData/CompleteMammalSpsDataframe_2025-12-20.csv")
 
 # check number of available sps for target areas
 biome_cont_troph_spp <- mammalTraits_processed %>%
@@ -225,7 +222,8 @@ for (ct in names(selectedMammals_perContinent)) {
 # Save file
 saveWorkbook(wb, "./data/MammalSpecies_selection.xlsx", overwrite = TRUE)
 
-# supplementary files species list per continent
+# supplementary Table SM1.1 - species list per continent -----------------------
+
 species_list <- mammalTraits_processed %>%
   dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga")) %>%
   dplyr::select(Biome = BIOME_NAME, Continent = CONTINENT,
@@ -235,11 +233,6 @@ species_list <- mammalTraits_processed %>%
   dplyr::arrange(Biome, Continent, `Trophic level`,`Scientific name`) %>%
   mutate(Family = str_to_sentence(str_to_lower(Family)),
          Order = str_to_sentence(str_to_lower(Order)))
-
-#### OR ALTERNATIVELY #####
-library(dplyr)
-library(tidyr)
-library(stringr)
 
 species_list_wide <- mammalTraits_processed %>%
   dplyr::filter(BIOME_NAME %in% c("Tropical & Subtropical Moist Broadleaf Forests",
@@ -255,7 +248,9 @@ species_list_wide <- mammalTraits_processed %>%
   pivot_wider(names_from = Region, values_from = Present, values_fill = "")
 
 
-write.csv(species_list_wide, "E:/metaRange_May26/FigureAndMetrics/species_list_supplementaryTable01.csv", row.names = FALSE)
+write.csv(species_list_wide,
+          "E:/metaRange_May26/FigureAndMetrics/species_list_supplementaryTable01.csv",
+          row.names = FALSE)
 
 # final message 
 message("✅ Traits selection for mammals species done!\n\nCheck MammalSpecies_selection.xlsx and CompleteMammalSpsDataframe.csv")
@@ -430,17 +425,3 @@ saveWorkbook(wb, "./data/BirdSpecies_selection.xlsx", overwrite = TRUE)
 
 # final message 
 message("✅ Traits selection for bird species done!\n\nCheck BirdSpecies_selection.xlsx and CompleteBirdpsDataframe.csv")
-
-##########
-# STEP 6 # write a .csv file with all mammals and bird species per region
-##########
-
-df <- bind_rows(mammalTraits_processed %>%
-                               dplyr::select(BIOME_NAME, CONTINENT, sci_name)#,
-                             #birdTraits_processed %>%
-                              # dplyr::select(BIOME_NAME, CONTINENT, sci_name)
-                )
-write.csv(df, 
-          file = "./data/species_by_region.csv",
-          row.names = FALSE)
-
