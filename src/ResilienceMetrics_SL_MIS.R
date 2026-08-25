@@ -1,7 +1,11 @@
 ## Name: ResilienceMetrics_SL_MIS.R ##
 ## Authors: Sarina Lincoln, Inês Silva ##
-## Description: 
 ## Date: 15 April 2026
+## Description: Calculate resilience metrics per species, namely invariability, 
+## resistance, extent and rate of recovery and persistence, from the estar package
+## Metrics are them averaged per biome and regions to produce two barplots, 
+## one per biome and another per biome (included in main manuscript).
+############ MANY LINES IN THE BOTTOM LEFT TO DELETE STILL #####################
 
 
 source("./src/libraries.R")
@@ -177,23 +181,30 @@ for (biome_name in unique(TNIND_yr$biome)) {
 
 # Add trophic details to species aggregation 
 results_sps <- results_sps %>%
-  left_join(
-    TNIND_yr %>% select(species, trophic_level) %>% distinct(),
-    by = "species"
-  )
+  left_join(TNIND_yr %>% select(species, trophic_level) %>% distinct(),
+            by = "species") %>% 
+  relocate(future_scenario, biome, region, species, trophic_level)
+
+# save metrics per species as .csv
+write.csv(results_sps,
+          file = file.path("E:/metaRange_May26", paste0("ResilienceMetricsPerSpecies", Sys.Date(), ".csv")),
+          row.names = FALSE)
 
 #unique(results_sps$region)
 
-results_by_region <- results_sps %>%
-  group_split(region)
+# save metrics per species as xlsx with a sheet for reach region
+results_sps_by_region <- results_sps %>%
+  dplyr::group_split(region)
 
-write_xlsx(
-  results_by_region,
-  file.path(
-    "E:/metaRange_May26/FigureAndMetrics", "ResilienceMetricsPerSpeciesAndRegion_SuppTable.xlsx" ))
+region_names <- results_sps %>%
+  dplyr::distinct(region) %>%
+  dplyr::pull(region)
+names(results_sps_by_region) <- region_names
+write_xlsx(results_sps_by_region, file.path("E:/metaRange_May26/FigureAndMetrics",
+                                            paste0("ResilienceMetricsPerSpecies", Sys.Date(), ".xlsx" )))
 
 # average across biome, scenario and trophic level
-results_sps_aggRegion <- results_sps %>% 
+results_region <- results_sps %>% 
   group_by(future_scenario, biome, region, trophic_level) %>% 
   summarise(
     mean_invariability   = mean(invariability, na.rm = TRUE),
@@ -206,7 +217,32 @@ results_sps_aggRegion <- results_sps %>%
     SD_extentRecovery   = sd(extent_recovery, na.rm = TRUE),
     SD_rateRecovery     = sd(rate_recovery, na.rm = TRUE),
     SD_persistence = sd(persistence, na.rm = TRUE),
-    .groups = "drop") %>% 
+    .groups = "drop")
+
+# save summary table with metrics per region
+results_region_rounded <- results_region %>%
+  dplyr::select(!c("SD_invariability", "SD_resistance", "SD_extentRecovery", "SD_rateRecovery", "SD_persistence")) %>% 
+  mutate(across(where(is.numeric), ~ signif(.x, 3))) %>% 
+  rename("Scenario" = "future_scenario",
+         "Biome" = "biome",
+         "Trophic Level" = "trophic_level",
+         "Mean Invariability" = "mean_invariability",
+         "Mean Resistance" = "mean_resistance",
+         "Mean Extent of Recovery" = "mean_extentRecovery",
+         "Mean Rate of Recovery" = "mean_rateRecovery",
+         "Mean Persistence" = "mean_persistence")
+
+# save as a formatted word document
+gt::gtsave(gt(results_region_rounded), file.path("E:/metaRange_May26/FigureAndMetrics",
+                                             paste0("ResilienceMetricsPerRegion", Sys.Date(), ".docx")))
+
+# save metrics per species as .csv
+write.csv(results_region,
+          file = file.path("E:/metaRange_May26", paste0("ResilienceMetricsPerRegion", Sys.Date(), ".csv")),
+          row.names = FALSE)
+
+
+results_sps_aggRegion <- results_region %>% 
   pivot_longer(
     cols = -c(future_scenario, biome, region, trophic_level),
     names_to = c(".value", "metric"),
@@ -279,288 +315,288 @@ ggsave(filename = "D:/metaRange_April26/FigureAndMetrics/Figure1_ResilienceMetri
 
 
 
-### OPTION 1 - DOT PLOT ###
-
-dot_plot <- ggplot(results_sps_aggRegion,
-            aes(x = future_scenario, y = mean, colour = trophic_level, group = trophic_level)) +
-  geom_point(position = position_dodge(width = 0.5), size = 2.8) +
-  geom_errorbar(aes(ymin = mean - SD,
-                    ymax = mean + SD),
-                width = 0.2,
-                position = position_dodge(width = 0.5)) +
-  facet_grid(metric ~ region,
-             scales = "free_y",
-             switch = "y",
-             labeller = labeller(metric = metric.labs)) +
-  labs(x = "Climate scenario",
-       y = "Mean stability metric (± SD)",
-       colour = "Trophic level") +
-  scale_color_manual(values = trophic_cols,
-                     name = "Trophic level") +
-  theme_bw(base_size = 11) +
-  #theme_minimal(base_size = 11) +
-  theme(
-    legend.position = "top",
-    strip.text = element_text(face = "bold"),
-    panel.grid.major.x = element_blank(),
-    strip.background = element_rect(fill = "white"),
-    panel.grid.minor = element_blank(),
-    #panel.spacing = unit(1.2, "lines")
-    strip.placement = "outside"
-  )
-
-dot_plot
-
-# save plot
-ggsave(filename = "D:/metaRange_April26/FigureAndMetrics/Figure1_ResilienceMetricsForEachRegion_dotPlot.png", # path
-       dot_plot, # plot
-       bg = 'white', width = 180, height = 160, units = "mm", dpi = 1200,
-       #compression = "lzw"
-) # image parameters
-
-
-## OPTION 2 - BOXPLOT + VIOLOIN PLOT
-
-results_long <- results_sps %>%
-  pivot_longer(
-    cols = c(invariability,
-             resistance,
-             extent_recovery,
-             rate_recovery,
-             persistence),
-    names_to = "metric",
-    values_to = "value")
-# order region more logically
-region_levels <- c("North America", "Europe+Asia", "South America", "Africa", "Asia")
-
-results_long$region <- factor(results_long$region, levels = region_levels)
-
-
-boxplot <- ggplot(results_long,
-       aes(trophic_level, value, fill = trophic_level)) +
-  geom_violin(alpha = 0.7) +
-  geom_boxplot(width = 0.15,
-               outlier.shape = NA) +
-  ggh4x::facet_grid2(metric ~ region,
-             scales = "free_y", 
-             switch = "y",
-             labeller = labeller(metric = metric.labs)) +
-  scale_fill_manual(values = trophic_cols,
-                     name = "Trophic level") +
-  theme_bw(base_size = 11) +
-  theme(
-    legend.position = "bottom",
-    strip.text = element_text(face = "bold"),
-    panel.grid.major.x = element_blank(),
-    strip.background = element_rect(fill = "white"),
-    panel.grid.minor = element_blank(),
-    #panel.spacing = unit(1.2, "lines")
-    strip.placement = "outside"
-  )
-
-
-# save plot
-ggsave(filename = "D:/metaRange_April26/FigureAndMetrics/Figure1_ResilienceMetricsForEachRegion_boxPlot.png", # path
-       boxplot, # plot
-       bg = 'white', width = 180, height = 160, units = "mm", dpi = 1200,
-       #compression = "lzw"
-) # image parameters
-
-
-
-
-
-
-
-
-# per scenario
-
-results_scen <- tibble()
-for (biome_name in unique(TNIND_yr$biome)) {
-  for (scenario_name in unique(TNIND_yr$future_scenario)) {
-    
-    filtered_data <- TNIND_yr %>%
-      filter(
-        biome == biome_name,
-        future_scenario == scenario_name,
-        timestep >= pre_tf[1]
-      )
-    agg_data <- filtered_data %>%
-      group_by(timestep) %>%
-      summarise(
-        abundance = mean(TNIND, na.rm = TRUE),
-        .groups = "drop"
-  )
-results_scen <- bind_rows(
-  results_scen,
-  calc_metrics(agg_data) %>%
-    mutate(
-      biome = biome_name,
-      future_scenario = scenario_name))
-  }
-}
-
-############
-# OUTPUT 2 # Analysis aggregated by species
-############
-
-
-
-# ---------------------------
-# Analysis aggregated by trophic
-# ---------------------------
-
-results_trop <- tibble()
-
-for (biome_name in unique(TNIND_yr$biome)) {
-  for (scenario_name in unique(TNIND_yr$future_scenario)) {
-    #for (rep_n in unique(TNIND_yr$rep_num)) {
-
-    filtered_data <- TNIND_yr %>%
-      filter(
-        biome == biome_name,
-        future_scenario == scenario_name,
-     #   rep_num == rep_n,
-        timestep >= pre_tf[1]
-      )
-    
-    for (tl in unique(filtered_data$trophic_level)) {
-  
-  agg_data <- filtered_data %>%
-    filter(trophic_level == tl) %>%
-    group_by(timestep
-             #, rep_num
-             ) %>%
-    summarise(abundance = mean(TNIND, na.rm = TRUE), .groups = "drop")
-  
-  results_trop <- bind_rows(
-    results_trop,
-    calc_metrics(agg_data) %>%
-      mutate(
-        biome = biome_name,
-        future_scenario = scenario_name,
-        trophic_level = tl,
-       # rep_num = rep_n
-      )
-  )
-    }}}
-#}
-
-
-
-df_long <- results_trop %>%
-  dplyr::select(invariability, resistance, extent_recovery,
-                rate_recovery, biome, future_scenario, trophic_level) %>% 
-  pivot_longer(
-    cols = c(invariability, resistance, extent_recovery,
-             rate_recovery#, persistence
-    ),
-    names_to = "metric",
-    values_to = "value") %>%
-  mutate(metric = factor(metric,
-                         levels = c("invariability",
-                                    "resistance",
-                                    "extent_recovery",
-                                    "rate_recovery"
-                                    #,"persistence"
-                         )),
-         trophic_level = factor(trophic_level),
-         future_scenario = factor(future_scenario))
-
-trophic_cols <- c(
-  "Herbivore" = "#99cc00",
-  "Carnivore" = "#ffab27",
-  "Omnivore" = "#377eb8"#,
-  #"Top predator" = "#984ea3"
-)
-
-# new facet label names
-metric.labs <- c("Invariability",
-                 "Resistance",
-                 "Extent of recovery" ,
-                 "Rate of recovery")
-names(metric.labs) <- c("invariability",
-                        "resistance",
-                        "extent_recovery",
-                        "rate_recovery")
-
-
-
-ggplot(df_long, aes(x = future_scenario, y = value, fill = trophic_level)) +
-  geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.55, colour = "grey30", linewidth = 0.2) +
-  geom_hline(yintercept = 0, linewidth = 0.5, colour = "black") +
-  facet_grid(metric ~ biome,
-             scales = "free_y",
-             switch = "y",
-             labeller = labeller(metric = metric.labs)) +
-  scale_fill_manual(values = trophic_cols, name = "Trophic level") +
-  ylab("Ecological Stability Metrics") +
-  xlab(NULL) +
-  theme_minimal(base_size = 11) +
-  theme(
-    legend.position = "top",
-    strip.text = element_text(face = "bold"),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.spacing = unit(1.2, "lines")
-  )
-
-
-# ---------------------------
-# Analysis aggregated by trophic AND region 
-# ---------------------------
-
-results_trop_reg <- tibble()
-for (biome_name in unique(TNIND_yr$biome)) {
-  for (region_name in unique(TNIND_yr$region)) {
-    for (scenario_name in unique(TNIND_yr$future_scenario)) {
-    
-    filtered_data <- TNIND_yr %>%
-      filter(
-        biome == biome_name,
-        future_scenario == scenario_name,
-        timestep >= pre_tf[1]
-      )
-    
-      for (tl in unique(filtered_data$trophic_level)) {
-      
-      agg_data <- filtered_data %>%
-        filter(trophic_level == tl) %>%
-        group_by(timestep) %>%
-        summarise(abundance = sum(TNIND, na.rm = TRUE), .groups = "drop")
-      
-      results_trop_reg <- bind_rows(
-        results_trop_reg,
-        calc_metrics(agg_data) %>%
-          mutate(
-            biome = biome_name,
-            future_scenario = scenario_name,
-            trophic_level = tl,
-            region = region_name
-            
-          )
-      )
-    }}}}
-
-
-# save diagnostics in .xlsx
-
-wb <- createWorkbook()
-addWorksheet(wb, "perScenario")
-writeData(wb, "perScenario", results_scen)
-addWorksheet(wb, "perSpecies")
-writeData(wb, "perSpecies", results_sps)
-addWorksheet(wb, "perTrophicLevel")
-writeData(wb, "perTrophicLevel", results_trop)
-addWorksheet(wb, "perTrophicLevelAndRegion")
-writeData(wb, "perTrophicLevelAndRegion", results_trop_reg)
-saveWorkbook(wb, file.path("D:/metaRange_April26", paste0("resilienceMetrics_", 
-                                                   "20260405",
-                                                   #Sys.Date(),
-                                                   ".xlsx")), overwrite = TRUE)
-invisible(gc())
-
-
+# ### OPTION 1 - DOT PLOT ###
 # 
-# write.csv(results, "metric_results_region&trophic.csv", row.names = FALSE)
-
+# dot_plot <- ggplot(results_sps_aggRegion,
+#             aes(x = future_scenario, y = mean, colour = trophic_level, group = trophic_level)) +
+#   geom_point(position = position_dodge(width = 0.5), size = 2.8) +
+#   geom_errorbar(aes(ymin = mean - SD,
+#                     ymax = mean + SD),
+#                 width = 0.2,
+#                 position = position_dodge(width = 0.5)) +
+#   facet_grid(metric ~ region,
+#              scales = "free_y",
+#              switch = "y",
+#              labeller = labeller(metric = metric.labs)) +
+#   labs(x = "Climate scenario",
+#        y = "Mean stability metric (± SD)",
+#        colour = "Trophic level") +
+#   scale_color_manual(values = trophic_cols,
+#                      name = "Trophic level") +
+#   theme_bw(base_size = 11) +
+#   #theme_minimal(base_size = 11) +
+#   theme(
+#     legend.position = "top",
+#     strip.text = element_text(face = "bold"),
+#     panel.grid.major.x = element_blank(),
+#     strip.background = element_rect(fill = "white"),
+#     panel.grid.minor = element_blank(),
+#     #panel.spacing = unit(1.2, "lines")
+#     strip.placement = "outside"
+#   )
+# 
+# dot_plot
+# 
+# # save plot
+# ggsave(filename = "D:/metaRange_April26/FigureAndMetrics/Figure1_ResilienceMetricsForEachRegion_dotPlot.png", # path
+#        dot_plot, # plot
+#        bg = 'white', width = 180, height = 160, units = "mm", dpi = 1200,
+#        #compression = "lzw"
+# ) # image parameters
+# 
+# 
+# ## OPTION 2 - BOXPLOT + VIOLOIN PLOT
+# 
+# results_long <- results_sps %>%
+#   pivot_longer(
+#     cols = c(invariability,
+#              resistance,
+#              extent_recovery,
+#              rate_recovery,
+#              persistence),
+#     names_to = "metric",
+#     values_to = "value")
+# # order region more logically
+# region_levels <- c("North America", "Europe+Asia", "South America", "Africa", "Asia")
+# 
+# results_long$region <- factor(results_long$region, levels = region_levels)
+# 
+# 
+# boxplot <- ggplot(results_long,
+#        aes(trophic_level, value, fill = trophic_level)) +
+#   geom_violin(alpha = 0.7) +
+#   geom_boxplot(width = 0.15,
+#                outlier.shape = NA) +
+#   ggh4x::facet_grid2(metric ~ region,
+#              scales = "free_y", 
+#              switch = "y",
+#              labeller = labeller(metric = metric.labs)) +
+#   scale_fill_manual(values = trophic_cols,
+#                      name = "Trophic level") +
+#   theme_bw(base_size = 11) +
+#   theme(
+#     legend.position = "bottom",
+#     strip.text = element_text(face = "bold"),
+#     panel.grid.major.x = element_blank(),
+#     strip.background = element_rect(fill = "white"),
+#     panel.grid.minor = element_blank(),
+#     #panel.spacing = unit(1.2, "lines")
+#     strip.placement = "outside"
+#   )
+# 
+# 
+# # save plot
+# ggsave(filename = "D:/metaRange_April26/FigureAndMetrics/Figure1_ResilienceMetricsForEachRegion_boxPlot.png", # path
+#        boxplot, # plot
+#        bg = 'white', width = 180, height = 160, units = "mm", dpi = 1200,
+#        #compression = "lzw"
+# ) # image parameters
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# # per scenario
+# 
+# results_scen <- tibble()
+# for (biome_name in unique(TNIND_yr$biome)) {
+#   for (scenario_name in unique(TNIND_yr$future_scenario)) {
+#     
+#     filtered_data <- TNIND_yr %>%
+#       filter(
+#         biome == biome_name,
+#         future_scenario == scenario_name,
+#         timestep >= pre_tf[1]
+#       )
+#     agg_data <- filtered_data %>%
+#       group_by(timestep) %>%
+#       summarise(
+#         abundance = mean(TNIND, na.rm = TRUE),
+#         .groups = "drop"
+#   )
+# results_scen <- bind_rows(
+#   results_scen,
+#   calc_metrics(agg_data) %>%
+#     mutate(
+#       biome = biome_name,
+#       future_scenario = scenario_name))
+#   }
+# }
+# 
+# ############
+# # OUTPUT 2 # Analysis aggregated by species
+# ############
+# 
+# 
+# 
+# # ---------------------------
+# # Analysis aggregated by trophic
+# # ---------------------------
+# 
+# results_trop <- tibble()
+# 
+# for (biome_name in unique(TNIND_yr$biome)) {
+#   for (scenario_name in unique(TNIND_yr$future_scenario)) {
+#     #for (rep_n in unique(TNIND_yr$rep_num)) {
+# 
+#     filtered_data <- TNIND_yr %>%
+#       filter(
+#         biome == biome_name,
+#         future_scenario == scenario_name,
+#      #   rep_num == rep_n,
+#         timestep >= pre_tf[1]
+#       )
+#     
+#     for (tl in unique(filtered_data$trophic_level)) {
+#   
+#   agg_data <- filtered_data %>%
+#     filter(trophic_level == tl) %>%
+#     group_by(timestep
+#              #, rep_num
+#              ) %>%
+#     summarise(abundance = mean(TNIND, na.rm = TRUE), .groups = "drop")
+#   
+#   results_trop <- bind_rows(
+#     results_trop,
+#     calc_metrics(agg_data) %>%
+#       mutate(
+#         biome = biome_name,
+#         future_scenario = scenario_name,
+#         trophic_level = tl,
+#        # rep_num = rep_n
+#       )
+#   )
+#     }}}
+# #}
+# 
+# 
+# 
+# df_long <- results_trop %>%
+#   dplyr::select(invariability, resistance, extent_recovery,
+#                 rate_recovery, biome, future_scenario, trophic_level) %>% 
+#   pivot_longer(
+#     cols = c(invariability, resistance, extent_recovery,
+#              rate_recovery#, persistence
+#     ),
+#     names_to = "metric",
+#     values_to = "value") %>%
+#   mutate(metric = factor(metric,
+#                          levels = c("invariability",
+#                                     "resistance",
+#                                     "extent_recovery",
+#                                     "rate_recovery"
+#                                     #,"persistence"
+#                          )),
+#          trophic_level = factor(trophic_level),
+#          future_scenario = factor(future_scenario))
+# 
+# trophic_cols <- c(
+#   "Herbivore" = "#99cc00",
+#   "Carnivore" = "#ffab27",
+#   "Omnivore" = "#377eb8"#,
+#   #"Top predator" = "#984ea3"
+# )
+# 
+# # new facet label names
+# metric.labs <- c("Invariability",
+#                  "Resistance",
+#                  "Extent of recovery" ,
+#                  "Rate of recovery")
+# names(metric.labs) <- c("invariability",
+#                         "resistance",
+#                         "extent_recovery",
+#                         "rate_recovery")
+# 
+# 
+# 
+# ggplot(df_long, aes(x = future_scenario, y = value, fill = trophic_level)) +
+#   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.55, colour = "grey30", linewidth = 0.2) +
+#   geom_hline(yintercept = 0, linewidth = 0.5, colour = "black") +
+#   facet_grid(metric ~ biome,
+#              scales = "free_y",
+#              switch = "y",
+#              labeller = labeller(metric = metric.labs)) +
+#   scale_fill_manual(values = trophic_cols, name = "Trophic level") +
+#   ylab("Ecological Stability Metrics") +
+#   xlab(NULL) +
+#   theme_minimal(base_size = 11) +
+#   theme(
+#     legend.position = "top",
+#     strip.text = element_text(face = "bold"),
+#     panel.grid.major.x = element_blank(),
+#     panel.grid.minor = element_blank(),
+#     panel.spacing = unit(1.2, "lines")
+#   )
+# 
+# 
+# # ---------------------------
+# # Analysis aggregated by trophic AND region 
+# # ---------------------------
+# 
+# results_trop_reg <- tibble()
+# for (biome_name in unique(TNIND_yr$biome)) {
+#   for (region_name in unique(TNIND_yr$region)) {
+#     for (scenario_name in unique(TNIND_yr$future_scenario)) {
+#     
+#     filtered_data <- TNIND_yr %>%
+#       filter(
+#         biome == biome_name,
+#         future_scenario == scenario_name,
+#         timestep >= pre_tf[1]
+#       )
+#     
+#       for (tl in unique(filtered_data$trophic_level)) {
+#       
+#       agg_data <- filtered_data %>%
+#         filter(trophic_level == tl) %>%
+#         group_by(timestep) %>%
+#         summarise(abundance = sum(TNIND, na.rm = TRUE), .groups = "drop")
+#       
+#       results_trop_reg <- bind_rows(
+#         results_trop_reg,
+#         calc_metrics(agg_data) %>%
+#           mutate(
+#             biome = biome_name,
+#             future_scenario = scenario_name,
+#             trophic_level = tl,
+#             region = region_name
+#             
+#           )
+#       )
+#     }}}}
+# 
+# 
+# # save diagnostics in .xlsx
+# 
+# wb <- createWorkbook()
+# addWorksheet(wb, "perScenario")
+# writeData(wb, "perScenario", results_scen)
+# addWorksheet(wb, "perSpecies")
+# writeData(wb, "perSpecies", results_sps)
+# addWorksheet(wb, "perTrophicLevel")
+# writeData(wb, "perTrophicLevel", results_trop)
+# addWorksheet(wb, "perTrophicLevelAndRegion")
+# writeData(wb, "perTrophicLevelAndRegion", results_trop_reg)
+# saveWorkbook(wb, file.path("D:/metaRange_April26", paste0("resilienceMetrics_", 
+#                                                    "20260405",
+#                                                    #Sys.Date(),
+#                                                    ".xlsx")), overwrite = TRUE)
+# invisible(gc())
+# 
+# 
+# # 
+# # write.csv(results, "metric_results_region&trophic.csv", row.names = FALSE)
+# 
