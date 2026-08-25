@@ -1,7 +1,10 @@
 ## Name: readMetaRangeOutput.R ##
 ## Author: Inês Silva ##
-## Description: read metaRange ouputs and perform basic diagnostics
 ## Date: November 25th 2025 ##
+## Description: read metaRange ouputs and perform some basic diagnostics including
+## .csv file with complete metaRange runs for all regions and scenarios alongsode metadata file.
+## diagnostic population trends using the TNIND over time, a trait dataframe for all
+## modeled species for all regions and average suitability over time plots
 
 source("./src/libraries.R")
 source("./src/customFunctions2.R")  
