@@ -1,8 +1,11 @@
-##################################
-# FORMATING MAMMAL SPS DATAFRAME #
-##################################
-# Ines Silva
-# 04 Feb 2025 # Updates on 30th of March 2026
+## Name: metaRangeSpeciesDataframe_mammals.R ##
+## Author: Inês Silva ##
+## Date: 04 Feb 2025 # Updates on 30th of March 2026 ##
+## Description: Format available species traits for input in MetaRange model.
+## Becaus the metaRange is run by region within a specific biome the script demands
+## variables like target_biome and target_region to produce the final .csv file.
+## This script can be run through runMetaRange.R
+
 
 ## Select Target Biome (choose one)
 #target_biome <- "Boreal Forests/Taiga" # Options: "Tropical & Subtropical Moist Broadleaf Forests", "Boreal Forests/Taiga"
