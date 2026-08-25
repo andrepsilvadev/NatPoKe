@@ -1,4 +1,4 @@
-## Name: taxaOccurrences_birds.R ##
+## Name: taxaOccurrence_birds.R ##
 ## Author: Inês Silva ##
 ## Date: 03 Jan 2026
 ## Description: Download and filter bird sps occurrence data from GBIF ##
