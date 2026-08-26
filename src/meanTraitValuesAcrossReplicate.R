@@ -1,8 +1,8 @@
-###########################################
-# AVERAGE TRAIT RASTERS ACROSS REPLICATES #
-###########################################
-# Stefan Fallert. & Inês Silva
-# 02 Jan 2026
+## Name: brayCurtis_overTime.R ##
+## Author: Stefan Fallert. & Inês Silva ##
+## Date: 02 Jan 2026 ##
+## Description: Average metaRange models raster outputs across replicates for
+## all species and timesteps.
 
 ##########
 # Step 1 # Check directories and get reference objects to locate rasters
