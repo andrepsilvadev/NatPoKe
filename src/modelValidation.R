@@ -1,7 +1,11 @@
 ## Name: modelValidation.R ##
 ## Authors: Inês Silva ##
-## Description: Validates metaRang outputs for multiple species in multiple scenarios&regions ##
 ## Date: 27 April 2025 updated on 10 Nov. 2025
+## Description: Validate metaRange outputs for multiple species in multiple
+## scenarios&regions. Validation is against the Santini et al. 2022 dataset. Scatter
+## plots are produced to show agreement between metaRange and Santini as well as 
+## supplementary table with % of modelled cells within or outside confidence
+## intervals available in Santini et al. 2022
 
 #source("./src/customFunctions.R")
 source("./src/customFunctions2.R")
