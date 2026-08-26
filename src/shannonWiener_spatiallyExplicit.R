@@ -1,7 +1,10 @@
-## Name: UpdatedSpatiallyExplicitMaps.R ##
+## Name: shannonWiener_spatiallyExplicit.R ##
 ## Authors: Inês Silva ##
-## Description: calculate Shannon-Index Change and build maps per scenario and trophic group ##
 ## Date: March 28th 2025 updated on November 25th 2025
+## Description: Calculate Shannon-Index Change per cell for each
+## scenario, biome, region and trophic level. Change is calculated between
+## 2100 (t=136) and 2015 (t=26). Output is plotted as world maps to visually detected
+## hotspots of chnage in community similarity
 
 
 # Set up, load needed packages & functions
