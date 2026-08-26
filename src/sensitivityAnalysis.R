@@ -1,7 +1,10 @@
 ## Name: SensitivityAnalysis.R ##
 ## Author: Inês Silva ##
-## Date: January 10th, 2026 ##
-## Description: Run metarange sensitivity runs and produce plot showing model's sensitivity to certain parameters ##
+## Date: January 10th, 2026 updated may 2026 ##
+## Description: Re-run metarange models from input production to outputs with
+## modifications to certain parameters specified in sensrun_table.csv. No raster
+## outputs are saved in these runs! Final plot showing model's sensitivity in the
+## abundance is produced with 20% chnage as treshold.
 
 ##########
 # STEP 0 # Load libraries and custom functions
