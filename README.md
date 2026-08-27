@@ -6,7 +6,7 @@ A research pipeline to explore how nature policy interventions affect keystone s
 
 > 🚧 **Under active development** 🚧<br>
 >
-> For questions, clarifications, or collaborations regarding this project, please contact:<br> **André P. Silva**<br> [Institution or Department Name]<br> Email: [[your.email\@example.com](mailto:your.email@example.com){.email}]
+> For questions, clarifications, or collaborations regarding this project, please contact:<br> **André P. Silva** & **Inês Silva**<br> [Institution or Department Name]<br> Email: [andre.pinto.da.silva@su.se](andre.pinto.da.silva@su.se) & [misilva@ciencias.ulisboa.pt](misilva@ciencias.ulisboa.pt)
 
 ## Repository Overview
 
