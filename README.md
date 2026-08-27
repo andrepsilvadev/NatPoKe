@@ -2,7 +2,7 @@
 
 [![DOI](https://img.shields.io/badge/DOI-coming_soon-blue?logo=doi&logoColor=white)](https://doi.org/10.0000/placeholder) [![Project Page](https://img.shields.io/badge/Project_Website-MISTRAFinBio-green?logo=leaflet&logoColor=white)](https://finbio.org/)
 
-A research pipeline to explore how nature policy interventions affect keystone species in Boreal and Tropical forests.<br> The project leverages process-based modeling (via [metaRange](https://metarange.github.io/metaRange/#)) and resilience metrics to evaluate ecological responses under various policy scenarios.
+A research pipeline using the [metaRange](https://metarange.github.io/metaRange/#) framework to couple species distribution models with population demography and dispersal, to quantify species resilience (invariability, resistance, recovery and persistence), temporal change in community diversity (Shannon-Wiener) and composition (Bray-Curtis dissimilarity), alongside their spatial heterogeneity.
 
 > 🚧 **Under active development** 🚧<br>
 >
