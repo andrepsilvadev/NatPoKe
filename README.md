@@ -10,6 +10,8 @@ A research pipeline to explore how nature policy interventions affect keystone s
 
 ## Repository Overview
 
+![description](repoOverview.png)
+
 This repository contains all scripts and supporting materials used in the modeling and analysis pipeline.<br>
 
 | Folder | Description |
