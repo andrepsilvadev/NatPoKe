@@ -24,6 +24,78 @@ This repository contains all scripts and supporting materials used in the modeli
 
 <br>
 
+## Scripts description <br>
+
+### 1. Raw data
+
+`selectSpecies.R`  
+Selects and filters the mammal species included available from the [SRIT-database](https://zenodo.org/records/18455098) datasets, based on the necessary traits (e.g. reproduction rate, body mass, etc...)
+
+`taxaOccurrence.R`  
+Retrieves and processes species occurrence records from GBIF to generate the occurrence dataset used for species distribution modelling.
+
+`ClimateChange.R`
+Processes current and projected climate layers from CHELSA and prepares the environmental data for the different future scenarios and time periods.
+
+`LandUseChange.R`
+Processes land-use/land-cover data and generates the corresponding current and future environmental layers used in the species distribution models.
+
+### 2. Species Distribution Models
+
+`SDM.R`  
+Builds species distribution models using species occurrences, climate and land-use as predictorsthrough [biomod2](https://biomodhub.github.io/biomod2/), to estimate current and future species suitability. Custom function is created to iterate across multiple species and scenarios.
+
+`SDMfigures.R`  
+Generates presence maps vs total available records maps, variable importance tables, evaluation metrics plots and current and projected distribution maps for all species, commonly used for quality control and interpretation of results before moving forward.
+
+### 3. Build metaRange inputs
+
+`metaRangeSpeciesDataframe.R`  
+Compiles and formats species traits into a metaRange ready dataframe required for all species within a region to be modelled.
+
+`speciesSuitabilityLayers.R`  
+Prepares species-specific environmental suitability layers across time periods to serve as environment in the metaRange simulations. Interpolation is used to fill in timesteps between future projections (e.g. between 2030 and 2050).
+
+### 4. Run metaRange simulations
+
+`mammalModel.R`  
+Code for the metaRange population dynamics simulations, incorporating process like suitability influenc eon population parameters, demography following Beverton&Holt and dispersal to simulate mammal population dynamics under alternative scenarios.
+
+### 5. Analysis, validation & evaluation
+
+`readMetaRangeOutputs.R`  
+Reads and performs basic diagnotic (saving plots and dataframes) from the raw metaRange simulation outputs for downstream analyses. Compiles multiple metaRange (e.g. different regions) into one dataframe.
+
+`modelValidation.R`  
+Evaluates model performance by comparing simulated outputs against an independent dataset (Santini et al. 2022) to assess the reliability of model predictions.
+
+`sensitivityAnalysis.R`  
+Tests the sensitivity of model outcomes to key parameters and assumptions to identify which factors most influence the results.
+
+`speciesResilienceMetrics.R`  
+Calculates species-level resilience metrics, using the [estar](https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210x.70265) package, from the model outputs to quantify changes in population persistence and responses to environmental change.
+
+`shannonWiener_overTime.R`  
+Calculates temporal changes in community diversity using the Shannon–Wiener diversity index.
+
+`shannonWiener_spatiallyExplicit.R`    
+Calculates spatially explicit Shannon–Wiener diversity across the study area to identify geographic patterns in community diversity.
+
+`brayCurtis_overTime.R`  
+Quantifies temporal changes in community composition using Bray–Curtis dissimilarity.
+
+`brayCurtis_spatiallyExplicit.R`  
+Calculates spatially explicit Bray–Curtis dissimilarity to assess geographic variation and turnover in community composition.   
+
+
+
+
+
+
+
+
+<br>
+
 \## 🛠 How to Run the Pipeline - Quick Guide <br>
 
 Use the `run.R` to run the complete pipeline from creating the inputs for a specific species, region and scenario up to running the metaRange model and producing results.
