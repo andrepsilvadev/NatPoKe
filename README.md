@@ -10,7 +10,7 @@ A research pipeline using the [metaRange](https://metarange.github.io/metaRange/
 
 ## Repository Overview
 
-![description](repoOverview.png)
+![description](repoOverview2_black.png)
 
 This repository contains all scripts and supporting materials used in the modeling and analysis pipeline.<br>
 
