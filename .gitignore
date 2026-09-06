@@ -6,8 +6,24 @@
 
 # Ignore deleteLater folder
 src/deprecatedScripts/
-data/
 data/old/
+data/global_suitability_landscapes/
 output/
 outputs/
 output_old/
+
+# Ignore contents of large data folders
+data/sdm/*
+data/externaldata/*
+data/traitdata/*
+
+# Ignore specific large files
+data/species_verbatim_check.csv
+data/species_by_regionFINAL.csv
+*.zip
+data/GBIF_occurrences_mammals_2026-02-04.csv
+
+# Keep folder structure
+!data/sdm/.gitkeep
+!data/externaldata/.gitkeep
+!data/traitdata/.gitkeep
