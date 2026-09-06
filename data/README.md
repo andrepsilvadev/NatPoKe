@@ -1,6 +1,9 @@
 # Data Folder
 
-This folder contains the **input datasets** for the proposed modeling workflow. Data to be stored here can be dowloaded from multiple sources (see below) and from the Zenodo repository ADD ZENODO LINK.
+This folder contains all the **input datasets** for the proposed modeling workflow.
+
+> [!IMPORTANT]
+> Contents meantioned next can be downloaded from mentioned sources or from our [Zenodo repository]()
 
 ## Contents
 
