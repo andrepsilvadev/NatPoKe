@@ -4,13 +4,18 @@
 ## Description: Define general directory names and create needed folders ##
 
 # get project root
-project_root <- getwd()
+#project_root <- getwd()
+project_root <- "E:/metaRange_May26"
 
 # data paths (shared across runs)
 data_dir <- file.path(project_root, "data")
 ## folder with sdm related inputs
 dir.create(file.path(data_dir, "sdm"), showWarnings = FALSE)
 sdm_dir <- file.path(data_dir, "sdm")
+
+# output root - this should be inside the project_root
+#output_root <- file.path(project_root, "outputs")
+#dir.create(output_root, showWarnings = FALSE)
 
 # create directories for extra outputs
 ## sensitivity runs & analysis
