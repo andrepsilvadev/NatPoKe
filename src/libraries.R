@@ -67,4 +67,5 @@ easypackages::packages(
   "HomeRange",
   "naniar",
   "gt",
+  "ggrepel"
   prompt = FALSE)
