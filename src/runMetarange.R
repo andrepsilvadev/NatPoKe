@@ -106,10 +106,10 @@ for (i in seq_len(nrow(runs))) {
     source(file.path("src", "mammalMetaRangeSpeciesDataframe.R"))
     
     # build environmental layers from SDM's outputs
-    #source(file.path("src", "speciesSuitabilityLayers.R"))
+    source(file.path("src", "speciesSuitabilityLayers.R"))
     # clean temporary files
-    #tmpFiles(current = TRUE, remove = TRUE)
-    #invisible(gc())
+    tmpFiles(current = TRUE, remove = TRUE)
+    invisible(gc())
     
     # run metaRange custom model
     source(file.path("src", "mammalModel.R"))
