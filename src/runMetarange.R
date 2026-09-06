@@ -18,15 +18,15 @@ data_dir <- file.path(project_root, "data")
 
 ## path for biomes' SDM outputs
 biome_paths <- list(                      
-  tropical = "D:/NatPoKe_SDMs/tropical_SDMS", #"./data/sdm/tropical_SDMS",
-  boreal   = "D:/NatPoKe_SDMs/boreal_SDMS" #"./data/sdm/boreal_SDMS"
+  tropical = "E:/metaRange_May26/data/sdm/tropical_SDMS",#"E:/NatPoKe_SDMs/tropical_SDMS", #"./data/sdm/tropical_SDMS",
+  boreal   = "E:/metaRange_May26/data/sdm/boreal_SDMS"#"E:/NatPoKe_SDMs/boreal_SDMS" #"./data/sdm/boreal_SDMS"
 )
 
 # folder to save intermediate SDMs (processedSDMs)
-processedSDM_dir <- "D:/NatPoKe_SDMs/processedSDMs"
+processedSDM_dir <- "E:/metaRange_May26/data/sdm/processedSDMs" #"E:/NatPoKe_SDMs/processedSDMs"
 
 # output root (all runs live here)
-output_root <- "E:/metaRange_May26"
+output_root <- "E:/metaRange_May26/outputs"
 
 terra::terraOptions(
   # define new temporary folder
