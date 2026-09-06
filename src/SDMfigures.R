@@ -11,11 +11,12 @@ gc()
 
 # paths for outputs
 pathSDMoutputs <- c(# Tropical region
-                    "E:/NatPoKe_SDMs/tropical_SDMS",
+                    "E:/metaRange_May26/data/sdm/tropical_SDMS", #"E:/NatPoKe_SDMs/tropical_SDMS",
                     # Boreal region
-                    "E:/NatPoKe_SDMs/boreal_SDMS")
+                    "E:/metaRange_May26/data/sdm/boreal_SDMS" #"E:/NatPoKe_SDMs/boreal_SDMS"
+                    )
 
-output_root <- "E:/metaRange_May26" 
+output_root <- "E:/metaRange_May26/outputs" 
 
 # folder to save figure and tables on SDM outputs
 SDMsFigures_dir <- file.path(output_root, "SDMsFigures")
@@ -510,51 +511,3 @@ for (species in target_species) {
     invisible(gc())
   }
 }
-
-
-# ############
-# # OUTPUT X # Evaluation metrics table for Ensemble Models
-# ############
-# 
-# all_EvalScoresEM <- data.frame() 
-# 
-# for (path in pathSDMoutputs) {
-#   for (species in target_species) {
-#     
-#     # get region name from folder name
-#     region <- if (grepl("Boreal", path, ignore.case = TRUE)) "boreal" else "tropical"
-#     
-#     # find teh path for the .csv with metrics value
-#     file_path <- file.path(path, paste0("EvalScoresEM_", gsub(" ", ".", species), "_", region, ".csv"))
-#     if (file.exists(file_path)) {
-#       eval_scores <- read.csv(file_path)
-#       # add species column 
-#       eval_scores$species <- species
-#       # add biome column
-#       eval_scores$biome <- ifelse(grepl("Boreal", path, ignore.case = TRUE), "Boreal Forests/Taiga",
-#                                   ifelse(grepl("Tropical", path, ignore.case = TRUE), "Tropical & Subtropical Moist Broadleaf Forests", NA))
-#       # bind all together
-#       all_EvalScoresEM <- rbind(all_EvalScoresEM, eval_scores)
-#       rm(eval_scores)
-#     }
-#   }
-# }
-# 
-# # summarize calibration scores 
-# eval_table_em <- all_EvalScoresEM %>%
-#   group_by(biome, species, metric.eval) %>%
-#   # get mean value for the calibration metric
-#   summarise(
-#     mean_validation = mean(validation, na.rm = TRUE),
-#     .groups = "drop"
-#   ) %>% 
-#   pivot_wider(names_from = metric.eval, values_from = mean_validation)
-# 
-# # write table to .csv and .xslx (for easy copy paste later)
-# write.csv(eval_table_em,
-#           file = file.path(SDMsFigures_dir,
-#                            paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".csv")), row.names = FALSE)
-# writexl::write_xlsx(eval_table_em,
-#                     path = file.path(SDMsFigures_dir,
-#                                      paste0("EnsembleCalibrationScoresSummaryTable", Sys.Date(), ".xlsx")))
-
