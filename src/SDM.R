@@ -107,9 +107,9 @@ for (target_biome in biomes) {
   
   ## output directory per biome
   sdm_output_dir <- file.path(
-    #"C:/Users/maria/Desktop/testing"
-    "D:/NatPoKe_SDMs"
-    ,
+    #"D:/NatPoKe_SDMs"
+    #"E:/metaRange_May26/data/sdm"
+    "./data/sdm",
     paste0(biome_short, "_SDMS"))
   dir.create(sdm_output_dir, recursive = TRUE, showWarnings = FALSE)
   
