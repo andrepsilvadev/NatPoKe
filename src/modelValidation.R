@@ -17,7 +17,7 @@ source("./src/libraries.R")
 
 runs <- read.csv("./data/run_table.csv", stringsAsFactors = FALSE)
 
-validation_dir <- file.path("E:/metaRange_May26/", "modelValidation")
+validation_dir <- file.path("E:/metaRange_May26", "modelValidation")
 dir.create(validation_dir, recursive = TRUE, showWarnings = FALSE)
 
 # build input & output folder paths
@@ -40,7 +40,7 @@ for (i in seq_len(nrow(runs))) {
   )
   # save input path
   input_folder <- file.path(
-    "E:/metaRange_May26",
+    "E:/metaRange_May26/outputs",
     runname, "Inputs")
   if (!file.exists(input_folder)) {
     warning("Input folder not found (skipping): ", input_folder)
@@ -48,7 +48,7 @@ for (i in seq_len(nrow(runs))) {
   }
     # save output path
     output_folder <- file.path(
-      "E:/metaRange_May26",
+      "E:/metaRange_May26/outputs",
       runname, "Outputs")
     if (!file.exists(output_folder)) {
       warning("Output folder not found (skipping): ", output_folder)
@@ -133,7 +133,7 @@ for (i in seq_len(nrow(runs))) {
 #plot_data_list$Asia_ssp126_20260517$independentDensity
 
 ##########
-# STEP 3 # Plot each sps validation per region & scenario separately
+# STEP 3 # Bind everything together and add trophic groups
 ##########
 
 # empty lists
@@ -174,64 +174,9 @@ combined_estimated <- combined_estimated %>%
 combined_independent <- combined_independent %>%
   left_join(TNIND_yr %>% select(species, trophic_level) %>% distinct(),
             by = "species")
-# 
-# # start empty list
-# plot_list <- list()
-# 
-# ylims_list <- list(
-#   Asia_ssp126_20260405 = c(0, 10),
-#   Asia_ssp585_20260405 = c(0, 5),
-#   Europe_ssp126_20260405 = c(0, 1)
-# )
-# 
-# for (ds in datasets) {
-#   # subset current dataset
-#   df_indep <- combined_independent %>%
-#     filter(Dataset == ds) %>% 
-#     mutate(species = reorder(species, meanDensity))
-#   
-#   df_est <- combined_estimated %>% filter(Dataset == ds)
-#   
-#   p <- ggplot(df_indep, aes(x = species, y = meanDensity)) +
-#     # independent densities from santini
-#     geom_boxplot(
-#       aes(
-#         ymin = lw95, lower = lw75,
-#         middle = meanDensity,
-#         upper = up75, ymax = up95),
-#       stat = "identity", fill = "lightgray", color = "black") +
-#     # dependent densities estimates from metaRange
-#     geom_point(
-#       data = df_est, aes(x = species, y = estimatedDensity),
-#       color = "red",
-#       position = position_jitter(width = 0.2),
-#       size = 1) +
-#     facet_wrap(~ trophic_level, scales = "free") +
-#     #coord_flip() +
-#     ylab(expression("Independent density estimate (individuals/km"^2 * ")")) +
-#     xlab("") +
-#     ggtitle(paste("Model validation:", ds)) +
-#     theme_minimal() +
-#     theme(
-#       axis.text.x = element_text(angle = 45, hjust = 1),
-#       strip.text = element_text(face = "italic")
-#     )
-#   
-#   # save each run's plot (organise based on n of species)
-#   n_species <- n_distinct(df_indep$species)
-#   
-#   ggsave(filename = file.path(validation_dir, paste0("validation_", ds, ".png")),
-#     plot = p, bg = "white",
-#     width = max(8, n_species * 0.25),  # 0.25–0.35 works well
-#     height = 6, units = "in", dpi = 300)
-#   
-#   # store plots in list
-#   plot_list[[ds]] <- p
-# }
-
 
 ##########
-# STEP 4 # Proportion outside known density estimates
+# STEP 4 # Get proportion of cells outside known density estimates in table
 ##########
 
 # Join CI to cell-level data first
@@ -323,15 +268,20 @@ length(unique(estimated_summary_by_species %>%
   dplyr::filter(prop_outside95 > 0.70) %>% 
   pull(species)))
 
+##########
+# STEP 5 # Produce model Valdation plot with metaRange against santini
+##########
 
+# label sps above and beloow CI
 validation_plot_species <- estimated_summary_by_species %>%
-  mutate(
-    validation = case_when(
-      estimated_mean < lw95 ~ "Below 95% interval",
-      estimated_mean > up95 ~ "Above 95% interval",
-      TRUE ~ "Within 95% interval"
-    )
-  )
+  mutate(validation = case_when(estimated_mean < lw95 ~ "Below 95% interval",
+                                estimated_mean > up95 ~ "Above 95% interval",
+                                TRUE ~ "Within 95% interval"))
+
+# save output as .csv
+write.csv(validation_plot_species,
+          file = file.path(validation_dir, "Validation_labelledSpecies.csv"),
+          row.names = FALSE)
 
 
 val_plots <- list()
@@ -350,27 +300,29 @@ for (sc in unique(validation_plot_species$scenario)) {
                 aes(x = observed_mean, y = estimated_mean)) +
       geom_abline(slope = 1, intercept = 0, linetype = "dashed", linewidth = 0.8) +
       geom_point(aes(fill = validation), shape = 21, size = 3, alpha = 0.8, colour = "black") +
-      geom_text(data = label_data, aes(label = species),
-                vjust = -0.5, hjust = -0.1, nudge_x = 0.05, size = 2) +
+      # avoid overlapping labels
+      geom_text_repel(data = label_data, aes(label = species), size = 2,
+                      fontface = "italic", box.padding = 0.4, point.padding = 0.3,
+                      force = 1, max.overlaps = Inf, min.segment.length = 0) +
+      # logaritmic scale helps see all sps nicely
       scale_x_log10() +
       scale_y_log10() +
       scale_fill_manual(values = c("Below 95% interval" = "#D55E00",
                                    "Within 95% interval" = "#56B4E9",
                                    "Above 95% interval" = "#009E73")) +
-      labs(title = reg,
-           x = "Independent population density (log individuals/km²)",
+      labs(title = reg, x = "Independent population density (log individuals/km²)",
            y = "MetaRange population density (log individuals/km²)",
            fill = "Model estimate") +
       theme_classic() +
-      theme(legend.position = "bottom",
-            label
-            #axis.line = element_line(size = 1, colour = "black")
-            )
+      theme(legend.position = "bottom")
     
     val_plots[[paste(sc, reg, sep = "_")]] <- p
   }
 }
 
+# Plots can be produced per scenario but because the timestep for validation is
+# 26 and before any new scenario is introduced any variation in points positions
+# are due to stochasticity and not very different values modelled
 
 ############
 # SSP1-2.6 #
