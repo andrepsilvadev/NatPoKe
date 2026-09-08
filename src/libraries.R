@@ -26,6 +26,7 @@ easypackages::packages(
   "rnaturalearth",
   "rnaturalearthdata",
   "rworldmap",
+  "ParallelLogger",
   
   #Species Distribution Modelling
   "biomod2", 
@@ -63,4 +64,5 @@ easypackages::packages(
   "crayon",
   "HomeRange",
   "naniar",
+  "estar",
   prompt = FALSE)
