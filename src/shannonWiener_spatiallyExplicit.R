@@ -246,7 +246,7 @@ world <- ne_countries(scale = "medium", returnclass = "sf")
 
 # get icons for each taxonomic group plot
 uuid_carnivores <- get_uuid(name = "Panthera leo", n = 5)[[5]]
-uuid_herbivores <- get_uuid(name = "Cervus elaphus", n = 1)
+uuid_herbivores <- get_uuid(name = "Cervus elaphus", n = 1)[[1]]
 uuid_omnivores <- get_uuid(name = "Sus scrofa", n = 5)[[2]]
 
 
