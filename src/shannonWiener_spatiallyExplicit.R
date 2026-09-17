@@ -34,7 +34,7 @@ for (i in seq_len(nrow(runs))) {
   )
   
   output_folder <- file.path(
-    "E:/metaRange_May26", 
+    "E:/metaRange_May26/outputs", 
     runname, "Outputs")
   
   
@@ -51,7 +51,7 @@ rm(output_folder)
 invisible(gc())
 
 # get target species
-TNIND_yr <- read.csv("E:/metaRange_May26/completeMetaRangeRun_20260517.csv")
+TNIND_yr <- read.csv("E:/metaRange_May26/outputs/completeMetaRangeRun_20260517.csv")
 target_species <- unique(TNIND_yr$species)
 target_species <- gsub(" ", ".", target_species)
 
@@ -181,13 +181,13 @@ for (dir_name in names(all_final_data)) {
     invisible(gc())
     
     # convert df to raster
-    r <- rast(troph_df[, c("x", "y", "Shannon_change")],
-              type = "xyz")
+    #r <- rast(troph_df[, c("x", "y", "Shannon_change")],
+     #         type = "xyz")
     
     # save as raster file
-    writeRaster(r, filename = file.path("E:/metaRange_May26/Shannon_output",
-                                     paste0(dir_name, "_", troph, "_change.tif")),
-                overwrite = TRUE)
+    #writeRaster(r, filename = file.path("E:/metaRange_May26/Shannon_output",
+     #                                paste0(dir_name, "_", troph, "_change.tif")),
+      #          overwrite = TRUE)
   }
 }
 
@@ -224,6 +224,18 @@ for (dir_name in names(Shannon_indexes)) {
 
 # check results
 #Shannon_indexes$`South America_ssp126_20260517`$Herbivore
+
+library(dplyr)
+library(purrr)
+
+sw_df <- map_dfr(Shannon_indexes, ~ map_dfr(.x, identity, .id = "trophic_group"),
+  .id = "scenario_region") %>%
+  mutate(scenario = stringr::str_extract(scenario_region, "ssp\\d+"),
+         region = stringr::str_remove(scenario_region, "_ssp\\d+_\\d+$")) %>%
+  dplyr::select(region, scenario, trophic_group, everything(), -scenario_region)
+
+write.csv(sw_df,
+          "E:/metaRange_May26/outputs/Shannon_output/completeShannonWienerIndex.csv")
 
 
 ##########
