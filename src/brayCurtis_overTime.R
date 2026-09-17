@@ -33,7 +33,7 @@ for (i in seq_len(nrow(runs))) {
   )
   
   output_folder <- file.path(
-    "E:/metaRange_May26", 
+    "E:/metaRange_May26/outputs", 
     runname, "Outputs")
   
   
@@ -50,7 +50,7 @@ rm(output_folder)
 invisible(gc())
 
 # get target species
-TNIND_yr <- read.csv("E:/metaRange_May26/completeMetaRangeRun_20260517.csv")
+TNIND_yr <- read.csv("E:/metaRange_May26/outputs/completeMetaRangeRun_20260517.csv")
 target_species <- unique(TNIND_yr$species)
 target_species <- gsub(" ", ".", target_species)
 
@@ -177,18 +177,18 @@ for(dir in outputFolder_paths){
 }
 
 
-# save outputs as excel file
+# save outputs as one excel file
 bc_output <- imap_dfr(bc_time_series, ~ imap_dfr(.x,
                                                  ~ mutate(.x, run = .y)) %>%
                         mutate(run_name = .y))
 
-write_xlsx(bc_output, "E:/metaRange_May26/BrayCurtis/BrayCurtis_TimeSeries.xlsx")
+write_xlsx(bc_output, "E:/metaRange_May26/outputs/BrayCurtis/BrayCurtis_TimeSeries.xlsx")
 
 ##########
 # STEP 3 # Plot Index over time 
 ##########
 
-BrayCurtis_TimeSeries <- read_excel("E:/metaRange_May26/BrayCurtis/BrayCurtis_TimeSeries.xlsx")
+BrayCurtis_TimeSeries <- read_excel("E:/metaRange_May26/outputs/BrayCurtis/BrayCurtis_TimeSeries.xlsx")
 
 # split column into region, scenario and run date to plot
 BrayCurtis_TimeSeries <- BrayCurtis_TimeSeries %>%
@@ -215,7 +215,7 @@ trophic_cols <- c("Herbivore" = "#6A8F52",
                   "Omnivore"  = "#5B8FA8")
 
 # all runs were previously compiled into one .csv file stored in the outputs folder
-TNIND_yr <- read.csv("E:/metaRange_May26/completeMetaRangeRun_20260517.csv")
+TNIND_yr <- read.csv("E:/metaRange_May26/outputs/completeMetaRangeRun_20260517.csv")
 
 
 # clean up erroneous species
@@ -386,6 +386,6 @@ BrayCurtis_Change_perRegion <- BrayCurtis_TimeSeries %>%
 # save as a formatted word document
 gt::gtsave(gt(BrayCurtis_Change_perRegion) %>%
              tab_header(title = "Percentage change in the Bray-Curtis Dissimilarity Index relative to the baseline (2015, timestep 25)"),
-           file.path("E:/metaRange_May26/FigureAndMetrics",
+           file.path("E:/metaRange_May26/outputs/FigureAndMetrics",
                      paste0("BrayCurtis_Change_perRegion", Sys.Date(), ".docx")))
 
