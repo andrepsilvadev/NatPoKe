@@ -31,7 +31,7 @@ for (i in seq_len(nrow(runs))) {
   )
   
   output_folder <- file.path(
-    "E:/metaRange_May26", 
+    "E:/metaRange_May26/outputs", 
     runname, "Outputs")
   
   
@@ -48,7 +48,7 @@ rm(output_folder)
 invisible(gc())
 
 # get target species
-TNIND_yr <- read.csv("E:/metaRange_May26/completeMetaRangeRun_20260517.csv")
+TNIND_yr <- read.csv("E:/metaRange_May26/outputs/completeMetaRangeRun_20260517.csv")
 target_species <- unique(TNIND_yr$species)
 target_species <- gsub(" ", ".", target_species)
 
@@ -238,9 +238,9 @@ for(dir in outputFolder_paths){
     
     # put it back in a raster
     out_bray <- rasterize(pts, t1[[1]], field = "bray")
-    writeRaster(out_bray,
-                filename = file.path("E:/metaRange_May26/BrayCurtis", paste0("bray_", run_name, "_", troph, ".tif")),
-                overwrite = TRUE)
+    #writeRaster(out_bray,
+     #           filename = file.path("E:/metaRange_May26/BrayCurtis", paste0("bray_", run_name, "_", troph, ".tif")),
+      #          overwrite = TRUE)
     
     invisible(gc())
     
@@ -253,6 +253,15 @@ for(dir in outputFolder_paths){
     invisible(gc())
   }
 }
+
+bc_df <- map_dfr(all_results,
+  ~ map_dfr(.x, ~ as.data.frame(.x$bray, xy = TRUE, na.rm = TRUE) %>%
+      rename(bray = last), .id = "trophic_group"), .id = "scenario_region") %>%
+  mutate(scenario = stringr::str_extract(scenario_region, "ssp\\d+"),
+         region = stringr::str_remove(scenario_region, "_ssp\\d+_\\d+$")) %>%
+  dplyr::select(region, scenario, trophic_group, x, y, bray)
+
+
 ####################################
 ## PLOTTING BRAY CURTIS PER PIXEL ##
 ####################################
