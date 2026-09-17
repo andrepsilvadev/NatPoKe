@@ -68,5 +68,6 @@ easypackages::packages(
   "naniar",
   "gt",
   "ggrepel",
+  "biscale",
   
   prompt = FALSE)
