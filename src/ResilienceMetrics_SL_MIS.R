@@ -244,6 +244,154 @@ write.csv(results_region,
           file = file.path("E:/metaRange_May26/outputs", paste0("ResilienceMetricsPerRegion", Sys.Date(), ".csv")),
           row.names = FALSE)
 
+##########
+# STEP 5 # Build manuscripts main Figure
+##########
+
+results_sps_long <- results_sps %>%
+  # pivot metrics values longer for plotting
+  pivot_longer(cols = c(invariability, resistance, extent_recovery, rate_recovery,
+                        persistence), names_to = "metric", values_to = "value") %>% 
+  # remove extent of recovery
+  dplyr::filter(!metric %in% "extent_recovery")
+
+# set level to order the plots logically
+metric_levels <- c("invariability","resistance", "rate_recovery", "persistence")
+results_sps_long$metric <- factor(results_sps_long$metric,
+                                  levels = metric_levels)
+# define prettier metric names for plotting
+metric.labs <- c("invariability" = "Invariability",
+                 "resistance" = "Resistance",
+                 # "extentRecovery" = "Recovery\nExtent",
+                 "rate_recovery" = "Recovery\nRate",
+                 "persistence" = "Persistence")
+
+# define color scheme
+trophic_cols <- c("Herbivore" = "#99cc00",
+                  "Carnivore" = "#ffab27",
+                  "Omnivore"  = "#377eb8")
+# darker colors for the points
+trophic_cols_dark <- colorspace::darken(trophic_cols, amount = 0.35)
+
+# order region more logically
+region_levels <- c("North America", "Europe+Asia",
+                   "South America", "Africa", "Asia")
+
+region_labs <- c("North America" = "North America",
+                 "Europe+Asia" = "Eurasia",
+                 "South America" = "South America",
+                 "Africa" = "Africa",
+                 "Asia" = "Asia")
+
+# make pretties labels for scenarios
+scenario_labs <- c("ssp126" = "SSP1-2.6",
+                   "ssp585" = "SSP5-8.5")
+
+
+# Main Manuscript figure #
+
+metricsPerRegion <- ggplot(results_sps_long, 
+                           aes(x = future_scenario, y = value, fill = trophic_level)) +
+  # boxplot across species
+  geom_boxplot(position = position_dodge(0.7), width = 0.55,
+               colour = "grey40", linewidth = 0.2, outlier.shape = NA) +
+  # one dot per species
+  geom_jitter(aes(colour = trophic_level),
+              position = position_jitterdodge(jitter.width = 0.12, dodge.width = 0.7),
+              size = 1.1, alpha = 0.6) +
+  geom_hline(yintercept = 0, linewidth = 0.5) +
+  facet_nested(metric ~ biome + region,
+               scales = "free",
+               switch = "y",
+               labeller = labeller(metric = metric.labs, region = region_labs),
+    strip = strip_nested(background_x = element_blank(),
+                         by_layer_x = TRUE),
+    nest_line = element_line(linewidth = 0.5, colour = "grey30")) +
+  scale_x_discrete(labels = scenario_labs) +
+  scale_fill_manual(values = trophic_cols, name = "") +
+  scale_colour_manual(values = trophic_cols_dark, guide = "none") +
+  ylab(NULL) +
+  xlab(NULL) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.spacing = unit(0.5, "lines"),
+    # increase spacing between pannels in yy axis
+    panel.spacing.y = unit(1, "lines"),
+    strip.placement = "outside")
+
+# save plot
+ggsave(filename = "E:/metaRange_May26/outputs/FigureAndMetrics/Figure1_ResilienceMetricsForEachRegion_updated.png", # path
+       metricsPerRegion, # plot
+       bg = 'white', width = 300, height = 200, units = "mm", dpi = 1200,
+       #compression = "lzw"
+) # image parameters
+
+
+# Supplementary Table with Quantiles and Mean values
+
+quantiles_table <- results_sps_long %>%
+  group_by(metric, biome, region, future_scenario, trophic_level) %>%
+  summarise(
+    n = sum(!is.na(value)),
+    mean = mean(value, na.rm = TRUE),
+    q1 = quantile(value, 0.25, na.rm = TRUE),
+    median = median(value, na.rm = TRUE),
+    q3 = quantile(value, 0.75, na.rm = TRUE),
+    .groups = "drop") %>%
+  # round values
+  mutate(across(c(mean, q1, median, q3), ~ round(.x, 3)))
+
+
+# write legends for word documents
+metric_legends <- c(
+  invariability = "Distribution of invariability values across species, summarised by biome, region, future scenario, and trophic level. Q1 represents the 25 percentile and Q3 the 75 percentile.",
+  resistance = "Distribution of resistance values across species, summarised by biome, region, future scenario, and trophic level. Q1 represents the 25 percentile and Q3 the 75 percentile.",
+  rate_recovery = "Distribution of recovery rate values across species, summarised by biome, region, future scenario, and trophic level. Q1 represents the 25 percentile and Q3 the 75 percentile.",
+  #RECOVERY_EXTENT = "Distribution of recovery extent values across species, summarised by biome, region, future scenario, and trophic level. Q1 represents the 25 percentile and Q3 the 75 percentile.",
+  persistence = "Distribution of persistence values across species, summarised by biome, region, future scenario, and trophic level. Q1 represents the 25 percentile and Q3 the 75 percentile."
+)
+
+# one document per metric
+for (m in unique(quantiles_table$metric)) {
+  
+  # filter for  metric
+  df <- quantiles_table %>%
+    filter(metric == m) %>%
+    dplyr::select(biome, region, future_scenario, trophic_level, n, mean, q1, median, q3)
+  
+  # Create gt table
+  tbl <- df %>%
+    gt() %>%
+    # add spanner with metric name over summary statistics
+    tab_spanner(label = m, columns = c(n, mean, q1, median, q3)) %>%
+    # Column names
+    cols_label(biome = "Biome", region = "Region", future_scenario = "Scenario",
+               trophic_level = "Trophic level", n = "No. of species", mean = "Mean",
+               q1 = "Q1", median = "Median", q3 = "Q3") %>%
+    # Number formatting
+    fmt_number(columns = c(mean, q1, median, q3),
+               decimals = 3) %>%
+    # Align summary statistics
+    cols_align(align = "center", columns = c(n, mean, q1, median, q3)) %>%
+    # Add legend
+    tab_header(title = metric_legends[[m]]) %>%
+    tab_options(table.font.size = px(9), source_notes.font.size = px(9))
+  
+  # File name
+  output_file <- file.path("E:/metaRange_May26/outputs/FigureAndMetrics",
+                           paste0(m, "_Quantiles_", Sys.Date(), ".docx"))
+  
+  # Save
+  gtsave(tbl, output_file)
+}
+
+print(quantiles_table, n = Inf)
+# Supplementary Materials Figure #
+
 
 results_sps_aggRegion <- results_region %>% 
   # keep only relevant columns
@@ -265,73 +413,9 @@ results_sps_aggRegion <- results_region %>%
   # remove extent of recovery
   dplyr::filter(!metric %in% "extentRecovery")
 
-# define color scheme
-trophic_cols <- c("Herbivore" = "#99cc00",
-                  "Carnivore" = "#ffab27",
-                  "Omnivore"  = "#377eb8")
-
-# define prettier metric names for plotting
-metric.labs <- c("invariability" = "Invariability",
-                 "resistance" = "Resistance",
-                # "extentRecovery" = "Recovery\nExtent",
-                 "rateRecovery" = "Recovery\nRate",
-                 "persistence" = "Persistence")
-
-# order region more logically
-region_levels <- c("North America", "Europe+Asia", "South America", "Africa", "Asia")
-region_labs <- c("North America" = "North America",
-                 "Europe+Asia" = "Eurasia",
-                 "South America" = "South America",
-                 "Africa" = "Africa",
-                 "Asia" = "Asia")
-
 results_sps_aggRegion$region <- factor(results_sps_aggRegion$region,
                                        levels = region_levels)
 
-# make pretties labels for scenarios
-scenario_labs <- c("ssp126" = "SSP1-2.6", "ssp585" = "SSP5-8.5")
-
-
-# Main Manuscript figure #
-
-metricsPerRegion <- ggplot(results_sps_aggRegion,
-       aes(x = future_scenario, y = mean, fill = trophic_level)) +
-  # mean metric valus across species
-  geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.55,
-           colour = "grey40", linewidth = 0.1) +
-  geom_errorbar(aes(ymin = mean - SD, ymax = mean + SD),
-    position = position_dodge(0.6), width = 0.2, linewidth = 0.2) +
-  geom_hline(yintercept = 0, linewidth = 0.5) +
-  # nested facets per metric(rows) and biome/region (columns)
-  facet_nested(metric ~ biome + region, scales = "free",
-               switch = "y", labeller = labeller(metric = metric.labs, region = region_labs),
-               # add spanner line across biomes' regions
-               strip = strip_nested(background_x = element_blank(), by_layer_x = TRUE),
-               nest_line = element_line(linewidth = 0.5, colour = "grey30")) +
-  scale_x_discrete(labels = scenario_labs) +
-  # user defined color scale
-  scale_fill_manual(values = trophic_cols, name = " ") +
-  ylab(" ") +
-  xlab(NULL) +
-  theme_minimal(base_size = 11) +
-  theme(
-    legend.position = "bottom",
-    strip.text = element_text(face = "bold"),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.spacing = unit(0.5, "lines"),
-    strip.placement = "outside")
-
-# save plot
-ggsave(filename = "E:/metaRange_May26/outputs/FigureAndMetrics/Figure1_ResilienceMetricsForEachRegion_updated.png", # path
-       metricsPerRegion, # plot
-       bg = 'white', width = 200, height = 160, units = "mm", dpi = 1200,
-       #compression = "lzw"
-) # image parameters
-
-
-
-# Supplementary Materials Figure #
 
 supp_resilencePerRegions <- ggplot(results_sps_aggRegion,
        aes(x = future_scenario,
@@ -375,4 +459,33 @@ ggsave(filename = "D:/metaRange_April26/FigureAndMetrics/SupplementaryFigure_Res
        #compression = "lzw"
 ) # image parameters
 
+
+## OLD CODE ##
+# metricsPerRegion <- ggplot(results_sps_aggRegion,
+#                            aes(x = future_scenario, y = mean, fill = trophic_level)) +
+#   # mean metric valus across species
+#   geom_bar(stat = "identity", position = position_dodge(0.6), width = 0.55,
+#            colour = "grey40", linewidth = 0.1) +
+#   geom_errorbar(aes(ymin = mean - SD, ymax = mean + SD),
+#                 position = position_dodge(0.6), width = 0.2, linewidth = 0.2) +
+#   geom_hline(yintercept = 0, linewidth = 0.5) +
+#   # nested facets per metric(rows) and biome/region (columns)
+#   facet_nested(metric ~ biome + region, scales = "free",
+#                switch = "y", labeller = labeller(metric = metric.labs, region = region_labs),
+#                # add spanner line across biomes' regions
+#                strip = strip_nested(background_x = element_blank(), by_layer_x = TRUE),
+#                nest_line = element_line(linewidth = 0.5, colour = "grey30")) +
+#   scale_x_discrete(labels = scenario_labs) +
+#   # user defined color scale
+#   scale_fill_manual(values = trophic_cols, name = " ") +
+#   ylab(" ") +
+#   xlab(NULL) +
+#   theme_minimal(base_size = 11) +
+#   theme(
+#     legend.position = "bottom",
+#     strip.text = element_text(face = "bold"),
+#     panel.grid.major.x = element_blank(),
+#     panel.grid.minor = element_blank(),
+#     panel.spacing = unit(0.5, "lines"),
+#     strip.placement = "outside")
 
